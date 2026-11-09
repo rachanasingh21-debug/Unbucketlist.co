@@ -203,7 +203,8 @@ function renderDest(t){
      <article class="offer"><div class="offer-ph">${scape({...t,image:t.photos[i%Math.max(1,t.photos.length)]||'',video:''})}</div>
       <div class="offer-body"><h3>${o.name}</h3><p>${o.blurb}</p><div class="offer-meta"><span>${o.days} days</span><b>${money(o.price)}<small> / person</small></b></div>
       <button class="btn" type="button" data-pick="${i}">Choose this</button></div></article>`).join('')}</div>
-     ${route?`<p class="route-line"><b>The route</b> ${route.stops.map(s=>s[0]).join(' → ')}${route.loop?' → '+route.stops[0][0]:''}</p>`:''}</section>
+</section>
+   ${route?routeCard(t,route):''}
    <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
    <section class="tale in-drawer">${storyBanner(t)}</section>
    <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>
@@ -222,7 +223,7 @@ function renderDest(t){
      <p class="fine">Preview: requests are not collected yet, so nothing is sent.</p>
     </form></div>
    <nav class="d-next"><button type="button" data-close>← Back to the map</button><button type="button" data-goto="${next.id}">Next: ${next.name} →</button></nav>
-   <div class="d-bar"><span><b>${money(t.price)}</b> / person · ${t.days} days</span><button class="btn" type="button" data-go-book>Unbucket this</button></div>`;
+   <div class="d-bar"><div><b>${money(t.price)}</b><small> / person</small><span>Best in ${MONTH_FULL[t.m]} · ${t.days} days</span></div><button class="btn" type="button" data-go-book>Unbucket this</button></div>`;
   sheet.scrollTop=0;
   const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{root:sheet,threshold:.2});$$('.day',sheet).forEach(d=>o.observe(d));
   const f=$('#bookForm',sheet),cur=()=>offers[+$('#bkOffer',f).value];
@@ -236,6 +237,34 @@ function renderDest(t){
     f.innerHTML=`<div class="p">Almost there, ${esc(name.split(' ')[0])}</div><p class="ok">${esc(of.name)} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(of.price*pax)}</p>
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
   });
+}
+/* Route card: the journey as a small schematic (A → B → C ...) with day labels, a legend and the stop list */
+function routeCard(t,r){
+  const KC={arrive:'#3ccf86',depart:'#3ccf86',stop:'#ff6a45',side:'#f6b84b'};
+  // schematic, like a metro map: keeps each stop's direction (north up, east right) but spreads them evenly so labels never pile up
+  const narrow=innerWidth<760,n=r.stops.length;
+  const rank=vals=>{const o=vals.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]||p[1]-q[1]),out=[];o.forEach(([,i],k)=>out[i]=n>1?k/(n-1):.5);return out};
+  const norm=vals=>{const lo=Math.min(...vals),hi=Math.max(...vals);return vals.map(v=>hi-lo<1e-9?.5:(v-lo)/(hi-lo))};
+  const xr=rank(r.stops.map(s=>s[2])),yr=rank(r.stops.map(s=>-s[1])),gx=norm(r.stops.map(s=>s[2])),gy=norm(r.stops.map(s=>-s[1]));
+  const VW=narrow?360:720,VH=narrow?Math.max(300,n*64+40):360;
+  const P=r.stops.map((s,i)=>{const nx=.4*gx[i]+.6*xr[i],ny=.4*gy[i]+.6*yr[i];
+    return narrow?[30+nx*120,36+ny*(VH-72)]:[200+nx*(VW-400),46+ny*(VH-92)]});
+  const seq=r.loop?[...P,P[0]]:P;
+  let d=`M${seq[0][0].toFixed(1)},${seq[0][1].toFixed(1)}`;
+  for(let i=1;i<seq.length;i++){const [a0,b0]=seq[i-1],[a1,b1]=seq[i];d+=` Q${((a0+a1)/2-(b1-b0)*.12).toFixed(1)},${((b0+b1)/2+(a1-a0)*.12).toFixed(1)} ${a1.toFixed(1)},${b1.toFixed(1)}`}
+  const labels=r.stops.map((s,i)=>{const [x,y]=P[i],right=narrow||x<VW/2+20,k=s[5]||'stop',big=k==='arrive'||k==='depart';
+    return `<g><circle cx="${x}" cy="${y}" r="${big?13:10}" fill="${KC[k]}" opacity=".18"/><circle cx="${x}" cy="${y}" r="${big?7:5.5}" fill="${KC[k]}" stroke="#14110f" stroke-width="2"/>
+     <text x="${x+(right?14:-14)}" y="${y-3}" text-anchor="${right?'start':'end'}" class="rc-n">${esc(s[0])}</text>
+     <text x="${x+(right?14:-14)}" y="${y+11}" text-anchor="${right?'start':'end'}" class="rc-s">${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</text></g>`}).join('');
+  const list=r.stops.map((s,i)=>`<li><i style="background:${KC[s[5]||'stop']}"></i><span><b>${esc(s[0])}</b>, ${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</span></li>`).join('')
+    +(r.loop?`<li><i style="background:${KC.depart}"></i><span><b>${esc(r.stops[0][0])}</b>, back to the start and fly out</span></li>`:'');
+  return `<section class="routecard" aria-label="The ${esc(t.name)} route">
+   <p class="eyebrow">The route</p><h3>${r.stops.map(s=>esc(s[0])).join(' → ')}${r.loop?' → '+esc(r.stops[0][0]):''}</h3>
+   <div class="rc-box"><svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Map of the route">
+     <line x1="${VW/2}" y1="16" x2="${VW/2}" y2="${VH-16}" class="rc-grid"/><line x1="16" y1="${VH/2}" x2="${VW-16}" y2="${VH/2}" class="rc-grid"/>
+     <path d="${d}" class="rc-path"/>${labels}</svg>
+    <p class="rc-legend"><span><i style="background:#ff6a45;border-radius:2px;height:3px"></i>Route</span><span><i style="background:${KC.arrive}"></i>Arrive &amp; depart</span><span><i style="background:${KC.stop}"></i>Stops</span><span><i style="background:${KC.side}"></i>Side trips</span></p>
+    <ol class="rc-list">${list}</ol></div></section>`;
 }
 function goBook(){const f=$('#bookForm',sheet);if(!f)return;f.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#bkName',sheet)?.focus({preventScroll:true}),650)}
 function openTrip(id,{push=true,book=false}={}){

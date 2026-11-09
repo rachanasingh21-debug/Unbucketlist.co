@@ -157,10 +157,10 @@ function cloudAlpha(c){
 /* ---------- views ---------- */
 const fitCache={};
 function fitK(id){const key=id+W+'x'+H;if(fitCache[key])return fitCache[key];const b=routeBox(R[id]);
-  const usableH=H*(W<760?.4:.74),usableW=W*(W<760?.84:.6);return fitCache[key]=Math.min(kMax,usableW/(b.x1-b.x0+b.span*.45),usableH/(b.y1-b.y0+b.span*.45))}
+  const usableH=H*(W<760?.3:.7),usableW=W*(W<760?.62:.56);return fitCache[key]=Math.min(kMax,usableW/(b.x1-b.x0+b.span*.45),usableH/(b.y1-b.y0+b.span*.45))}
 function fitView(id){const b=routeBox(R[id]),k=fitK(id);
   // leave room for the card: below on phones, on the left on desktop
-  return {x:b.cx-(W<760?0:W*.16/k),y:b.cy+(W<760?H*.17/k:0),k}}
+  return {x:b.cx-(W<760?W*.06/k:W*.16/k),y:b.cy+(W<760?H*.21/k:0),k}}
 function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
   V.x=360<2*hw?0:cl(V.x,-180+hw,180-hw);V.y=144<2*hh?-11:cl(V.y,-84+hh,60-hh)}
 
@@ -245,26 +245,50 @@ function render(){
   for(const d of DEST)drawMarker(d);
 }
 let placed=[];
-function placeLabel(text,x,y,font){ctx.font=font;const w=ctx.measureText(text).width,h=14;
-  for(const [dx,dy,al] of [[12,0,'left'],[-12,0,'right'],[0,16,'center'],[0,-16,'center']]){const lx=al==='left'?x+dx:al==='right'?x+dx-w:x-w/2,ly=y+dy-h/2;
-    if(lx<4||lx+w>W-4||ly<4||ly+h>H-4)continue;if(placed.some(r=>lx<r[0]+r[2]&&lx+w>r[0]&&ly<r[1]+r[3]&&ly+h>r[1]))continue;
-    placed.push([lx-3,ly-2,w+6,h+4]);return [x+dx,y+dy,al]}return null}
+const KIND={arrive:'#3ccf86',depart:'#3ccf86',stop:'#ff6a45',side:'#f6b84b'};
+const KIND_RGB={arrive:'60,207,134',depart:'60,207,134',stop:'255,106,69',side:'246,184,75'};
+function fit(text,max){if(ctx.measureText(text).width<=max)return text;while(text.length>3&&ctx.measureText(text+'…').width>max)text=text.slice(0,-1);return text.trim()+'…'}
+// place a two-line label (name + day line) next to a dot without colliding with others; tries right, left, below, above
+function placeLabel(name,sub,x,y){
+  const maxW=W<760?160:230;
+  ctx.font='600 13px Inter, system-ui, sans-serif';const n=fit(name,maxW),w1=ctx.measureText(n).width;
+  ctx.font='400 11px Inter, system-ui, sans-serif';const s=sub?fit(sub,maxW):'',w2=s?ctx.measureText(s).width:0;
+  const w=Math.max(w1,w2),h=s?30:16;
+  for(const [dx,dy,al] of [[13,0,'left'],[-13,0,'right'],[0,24,'center'],[0,-24,'center']]){
+    const lx=al==='left'?x+dx:al==='right'?x+dx-w:x-w/2,ly=y+dy-h/2;
+    if(lx<4||lx+w>W-4||ly<4||ly+h>H-4)continue;
+    if(placed.some(r=>lx<r[0]+r[2]&&lx+w>r[0]&&ly<r[1]+r[3]&&ly+h>r[1]))continue;
+    placed.push([lx-4,ly-3,w+8,h+6]);return {x:x+dx,y:y+dy,al,n,s}}
+  return sub?placeLabel(name,'',x,y):null}
 function starAlpha(id){return ramp(V.k/fitK(id),.32,.62)}
 function onScreen(id){const b=routeBox(R[id]);return (sx(b.cx)>-W*.2&&sx(b.cx)<W*1.2&&sy(b.cy)>-H*.2&&sy(b.cy)<H*1.2)?1:0}
+function kindOf(r,i){const k=r.stops[i][5]||'stop';return k}
 function drawJourney(d){
   const r=R[d.id],a=starAlpha(d.id);if(a<=0||!onScreen(d.id)){prog[d.id]=0;return}
   const pts=r.stops.map(s=>[sx(s[2]),sy(-s[1])]);if(r.loop)pts.push(pts[0]);
-  const n=pts.length-1;prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5?.035:0));const P=prog[d.id];
+  const n=pts.length-1;prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5?.04:0));const P=prog[d.id];
+  // the route: a dashed line in travel order, drawn stop by stop, gently moving
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.shadowColor='rgba(255,226,160,.9)';ctx.shadowBlur=10;ctx.strokeStyle=`rgba(255,244,214,${.9*a})`;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
-  for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[x1,y1]=pts[i];ctx.lineTo(x0+(x1-x0)*f,y0+(y1-y0)*f)}
-  ctx.stroke();ctx.restore();
-  r.stops.forEach((s,i)=>{const [x,y]=pts[i];if(i>Math.ceil(P)+(i===0?1:0)&&i!==0)return;const tw=reduce?1:.78+.22*Math.sin(tNow*.003+i*1.7);
-    const rad=i===0?18:13;const g=ctx.createRadialGradient(x,y,0,x,y,rad);g.addColorStop(0,`rgba(255,246,220,${.85*a*tw})`);g.addColorStop(1,'rgba(255,240,200,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill();
-    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(x,y,i===0?4.2:2.8,0,7);ctx.fill();
-    if(i===0){ctx.strokeStyle=`rgba(255,255,255,${.7*a})`;ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.stroke()}
-    const font=`${i===0?600:500} ${i===0?13:12}px Inter, system-ui, sans-serif`,pl=placeLabel(s[0],x,y,font);
-    if(pl){ctx.font=font;ctx.textAlign=pl[2];ctx.textBaseline='middle';ctx.fillStyle=`rgba(255,255,255,${a*.95})`;ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;ctx.fillText(s[0],pl[0],pl[1]);ctx.shadowBlur=0}
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
+    // a slight curve between stops reads as a journey rather than a ruler line
+    const mx=(x0+x1)/2-(y1-y0)*.12,my=(y0+y1)/2+(x1-x0)*.12;
+    if(f>=1)ctx.quadraticCurveTo(mx,my,x1,y1);else{const qx=x0+(mx-x0)*f,qy=y0+(my-y0)*f,rx=mx+(x1-mx)*f,ry=my+(y1-my)*f;ctx.quadraticCurveTo(qx,qy,qx+(rx-qx)*f,qy+(ry-qy)*f)}}
+  ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=4;
+  ctx.strokeStyle=`rgba(255,106,69,${.95*a})`;ctx.lineWidth=2.2;ctx.setLineDash([7,6]);ctx.lineDashOffset=reduce?0:-tNow*.012;ctx.stroke();
+  ctx.restore();
+  // stops: reserve every visible dot first, so labels are placed around them
+  r.stops.forEach((s,i)=>{if(i>Math.ceil(P)&&i!==0)return;const [x,y]=pts[i];placed.push([x-9,y-9,18,18])});
+  r.stops.forEach((s,i)=>{if(i>Math.ceil(P)&&i!==0)return;const [x,y]=pts[i],k=kindOf(r,i),rgb=KIND_RGB[k];
+    const tw=reduce?1:.75+.25*Math.sin(tNow*.003+i*1.7),big=k==='arrive'||k==='depart';
+    const halo=big?20:15,g=ctx.createRadialGradient(x,y,0,x,y,halo);g.addColorStop(0,`rgba(${rgb},${.55*a*tw})`);g.addColorStop(1,`rgba(${rgb},0)`);ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,halo,0,7);ctx.fill();
+    ctx.fillStyle=`rgba(${rgb},${a})`;ctx.beginPath();ctx.arc(x,y,big?6.5:5,0,7);ctx.fill();
+    ctx.strokeStyle=`rgba(255,255,255,${.95*a})`;ctx.lineWidth=2;ctx.stroke();
+    if(big){ctx.strokeStyle=`rgba(${rgb},${.6*a})`;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.stroke()}
+    const sub=`${s[3]} · ${s[4]||''}`,pl=placeLabel(s[0],sub,x,y);
+    if(pl){ctx.textAlign=pl.al;ctx.textBaseline='middle';ctx.shadowColor='rgba(0,0,0,.65)';ctx.shadowBlur=6;
+      ctx.font='600 13px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
+      if(pl.s){ctx.font='400 11px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(255,240,225,${.85*a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}ctx.shadowBlur=0}
     starHits.push({x,y,id:d.id,i})});
 }
 function drawMarker(d){
@@ -293,6 +317,7 @@ function showCard(id){
   const route=r.stops.map(s=>s[0]).join(' · ')+(r.loop?' · back to '+r.stops[0][0]:'');
   card.innerHTML=`<p class="mc-eye">Best in ${MONTH_FULL[t.m]} · ${t.place}</p><h3>${t.name}</h3>
    <p class="mc-route">${route}</p><p class="mc-meta">${t.days} days · from ${money(t.price)} · ${offers.length} way${offers.length===1?'':'s'} to go</p>
+   <p class="legend"><i class="k-arrive"></i>Arrive &amp; depart<i class="k-stop"></i>Stops<i class="k-side"></i>Side trips</p>
    <div class="mc-row"><button class="btn" type="button" data-unbucket="${id}">Unbucket this for me</button><button class="btn ghost3" type="button" data-explore="${id}">Explore ${t.name}</button></div>
    <button class="mc-back" type="button" data-world>← Back to the world</button>`;
   card.classList.add('on');
@@ -342,7 +367,7 @@ let lastTap=0;
 function handleTap(x,y){
   const now=performance.now();
   for(const h of hits)if(Math.hypot(h.x-x,h.y-y)<24){lastTap=0;return flyTo(fitView(h.id))}
-  for(const s of starHits)if(Math.hypot(s.x-x,s.y-y)<20){const st=R[s.id].stops[s.i];tip.textContent=`${st[3]} · ${st[0]}`;tip.style.left=x+'px';tip.style.top=y+'px';tip.hidden=false;lastTap=0;return}
+  for(const s of starHits)if(Math.hypot(s.x-x,s.y-y)<20){const st=R[s.id].stops[s.i];tip.textContent=`${st[0]} · ${st[3]}${st[4]?' · '+st[4]:''}`;tip.style.left=x+'px';tip.style.top=y+'px';tip.hidden=false;lastTap=0;return}
   tip.hidden=true;
   if(now-lastTap<320){lastTap=0;zoomSmooth(2.2,x,y)}else lastTap=now;
 }
