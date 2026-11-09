@@ -52,6 +52,11 @@ window.FACTS = {
   {k:'859',t:'Al-Qarawiyyin in Fes, founded by Fatima al-Fihri: the oldest continuously operating university.'},
   {k:'Blue',t:'Chefchaouen’s blue walls in the Rif Mountains are often linked to its Jewish heritage.'},
   {k:'150 m',t:'How high the Erg Chebbi dunes rise near Merzouga.'}]},
+ ladakh:{q:'The land of high passes',f:[
+  {k:'5,359 m',t:'Khardung La, the high pass between Leh and the Nubra Valley.'},
+  {k:'~134 km',t:'The length of Pangong Tso, at about 4,350 m. Around 60% of it lies in Tibet.'},
+  {k:'Hanle',t:'Home to the Indian Astronomical Observatory, one of the highest telescopes in the world.'},
+  {k:'Nubra',t:'A high-altitude desert valley where sand dunes sit under snow peaks.'}]},
  newzealand:{q:'Long summer evenings',f:[
   {k:'“8th wonder”',t:'How Rudyard Kipling is said to have described Milford Sound.'},
   {k:'3,724 m',t:'Aoraki / Mount Cook, the country’s highest peak.'},

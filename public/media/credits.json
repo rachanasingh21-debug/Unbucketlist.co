@@ -303,5 +303,31 @@
    "source": "https://commons.wikimedia.org/wiki/File:Church_of_the_Good_Shepherd%2C_Lake_Tekapo%2C_New_Zealand_03.jpg",
    "caption": "Church of the Good Shepherd, Tekapo"
   }
+ ],
+ "ladakh": [
+  {
+   "file": "ladakh-1.jpg",
+   "title": "File:Pangong_Tso_2.jpg",
+   "author": "KennyOMG",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Pangong_Tso_2.jpg",
+   "caption": "Pangong Tso"
+  },
+  {
+   "file": "ladakh-2.jpg",
+   "title": "File:A_Lady_in_White_Dress,_Hunder_Sand_Dunes,_Nubra_Valley,_Ladakh.jpg",
+   "author": "RPSkokie",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:A_Lady_in_White_Dress%2C_Hunder_Sand_Dunes%2C_Nubra_Valley%2C_Ladakh.jpg",
+   "caption": "Hunder dunes, Nubra Valley"
+  },
+  {
+   "file": "ladakh-3.jpg",
+   "title": "File:Leh_Palace_-_Leh_-_Ladakh_-_View_from_Shanti_Stupa.jpg",
+   "author": "Sumit Das",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Leh_Palace_-_Leh_-_Ladakh_-_View_from_Shanti_Stupa.jpg",
+   "caption": "Leh Palace from Shanti Stupa"
+  }
  ]
 }

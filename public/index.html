@@ -20,23 +20,20 @@
   <button class="wish" id="wishBtn">♡ Wishlist <em id="wishCount">0</em></button>
 </header>
 
-<!-- 1. LIVE EARTH: tap a place, fly in, open its page -->
-<section class="zoom" id="top">
-  <div class="zoom-stage" id="stage">
-    <div id="earth" aria-label="Interactive 3D Earth. Drag to spin, pinch or use the buttons to zoom, tap a photo pin to fly there."></div>
-    <div class="veil" id="veil" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-    <div class="hero-copy" id="zCopy">
+<!-- 1. THE MAP: zoom out to zoom in -->
+<section class="maphero" id="top">
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="map" tabindex="0" aria-label="Illustrated world map. Drag to move, pinch or use the buttons to zoom, tap a dot to fly to a place."></canvas>
+    <div class="hero-copy" id="heroCopy">
       <p class="eyebrow">Zoom out to zoom in</p>
-      <h1>Your bucket list is <em>too big.</em></h1>
-      <p>So pick one place. Tap a photo on the globe to fly there, then open it to see the plan and book.</p>
+      <h1>Where do you <em>wanna go?</em></h1>
+      <p>Tap a dot to fly there.<span class="more"> Keep zooming to see the journey.</span></p>
     </div>
-    <article class="info" id="info" hidden></article>
-    <div class="zoom-btns"><button id="zIn" aria-label="Zoom in">+</button><button id="zOut" aria-label="Zoom out">−</button><button id="zSpin" aria-label="Pause or resume rotation" title="Pause or resume rotation">⟳</button></div>
-    <div class="months-wrap">
-      <div class="months-head"><b>Your first 12 months</b><button id="playYear">▶ Play the year</button></div>
-      <div class="months" id="months" role="tablist"></div>
-      <p class="earth-credit">Earth imagery: NASA Blue Marble, via NASA GIBS</p>
-    </div>
+    <div class="map-btns"><button id="mzIn" type="button" aria-label="Zoom in">+</button><button id="mzOut" type="button" aria-label="Zoom out">−</button><button id="mzWorld" type="button" aria-label="Back to the whole world" title="Whole world">◎</button></div>
+    <p class="zoom-hint" id="zoomHint" hidden>Hold Ctrl (⌘ on Mac) and scroll to zoom, or use + and −</p>
+    <aside class="map-card" id="mapCard" aria-live="polite"></aside>
+    <p class="star-tip" id="starTip" hidden></p>
+    <button class="see-all" id="seeAll" type="button">See everything we’re unbucketing ↓</button>
   </div>
 </section>
 
@@ -73,10 +70,11 @@
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 </aside>
 
-<script src="vendor/globe.gl.min.js"></script>
-<script src="vendor/three.min.js"></script>
 <script src="facts.js"></script>
 <script src="media/photos.js"></script>
+<script src="offers.js"></script>
+<script src="routes.js"></script>
 <script src="app.js"></script>
+<script src="map.js"></script>
 </body>
 </html>

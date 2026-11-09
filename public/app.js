@@ -49,12 +49,15 @@ TRIPS.push(
   plan:[['Marrakech','Medina and Jemaa el-Fnaa at dusk.'],['Atlas Mountains','Berber village lunch.'],['Aït Benhaddou','Kasbah and film-set walk.'],['Merzouga','Camel trek to desert camp.'],['Fes','Tanneries and the old medina.'],['Chefchaouen','The blue city.'],['Depart','Fly home from Tangier.']]},
  {id:'newzealand',cat:['adventure','mountain'],name:'New Zealand',place:'New Zealand',tag:'Middle-earth, for real',days:9,price:3600,sky:['#bfe3f5','#7fb7d9','#2c5d8a'],land:['#3d6b4a','#27472f','#142a1a'],image:'',video:'',
   hook:'Fjords, glaciers and long summer evenings.',story:'Summer down south: kayak Milford Sound, jump off something in Queenstown, sleep under the Milky Way.',
-  plan:[['Queenstown','Lake walk and fergburger.'],['Milford Sound','Cruise the fjord.'],['Glenorchy','Scenic drive and hike.'],['Wanaka','Roy’s Peak sunrise.'],['Mt Cook','Hooker Valley walk.'],['Tekapo','Stargazing reserve.'],['Christchurch','Gardens and markets.'],['Free day','Your pick.'],['Depart','Fly home.']]}
+  plan:[['Queenstown','Lake walk and fergburger.'],['Milford Sound','Cruise the fjord.'],['Glenorchy','Scenic drive and hike.'],['Wanaka','Roy’s Peak sunrise.'],['Mt Cook','Hooker Valley walk.'],['Tekapo','Stargazing reserve.'],['Christchurch','Gardens and markets.'],['Free day','Your pick.'],['Depart','Fly home.']]},
+ {id:'ladakh',cat:['mountain','adventure','culture'],name:'Ladakh',place:'India',tag:'The land of high passes',days:9,price:1450,sky:['#cfe4f7','#8fb6dc','#3b4f7a'],land:['#9b8164','#6f5a45','#3e3127'],image:'',video:'',
+  hook:'Moonscape valleys, turquoise lakes at 4,000 m and skies full of stars.',story:'Start slow in Leh, cross Khardung La into the dunes of Nubra, follow the Shyok to Pangong Tso, then sleep under the clearest skies in India at Hanle.',
+  plan:[['Leh','Arrive and acclimatise. Shanti Stupa at sunset.'],['Leh','Monasteries of Thiksey and Hemis.'],['Khardung La to Nubra','Over the pass to Diskit and the Hunder dunes.'],['Nubra Valley','Camel trails, Diskit monastery.'],['Turtuk','Apricot orchards in the last village before the border.'],['Shyok to Pangong','Along the river to the lake.'],['Pangong Tso','Sunrise on the water that changes colour.'],['Hanle','Stargazing near the observatory.'],['Tso Moriri','The quiet lake, then back to Leh.']]}
 );
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
-/* YOUR FIRST 12 MONTHS: one trip per month. m = month index (0=Jan). Edit freely; lat/lng put the pin on the globe. */
-const CAL={patagonia:[0,-51.0,-73.1],lofoten:[1,68.2,13.6],kyoto:[2,35.01,135.77],rajasthan:[3,26.9,75.8],santorini:[4,36.4,25.4],maldives:[5,3.2,73.2],
+/* YOUR FIRST 12 MONTHS: one trip per month. m = month index (0=Jan). Edit freely; lat/lng put the dot on the map. */
+const CAL={ladakh:[5,34.164,77.585],patagonia:[0,-51.0,-73.1],lofoten:[1,68.2,13.6],kyoto:[2,35.01,135.77],rajasthan:[3,26.9,75.8],santorini:[4,36.4,25.4],maldives:[5,3.2,73.2],
  iceland:[6,64.9,-19.0],serengeti:[7,-2.33,34.8],bali:[8,-8.4,115.2],peru:[9,-13.16,-72.55],morocco:[10,31.6,-8.0],newzealand:[11,-44.7,169.1]};
 TRIPS.forEach(t=>{[t.m,t.lat,t.lng]=CAL[t.id]});
 TRIPS.sort((a,b)=>a.m-b.m);
@@ -169,224 +172,96 @@ function chapter(i){if(i===cur)return;cur=i;const [k,txt,t]=CH[i];st.classList.a
 {const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)chapter(+e.target.dataset.s)}),{threshold:.55});$$('#storySteps div').forEach(d=>o.observe(d))}
 chapter(0);
 
-/* ---------- LIVE EARTH: tap a place, fly in, open its page ---------- */
-const zoom=$('.zoom'),stage=$('#stage'),zc=$('#zCopy'),nav=$('#nav'),info=$('#info'),veil=$('#veil');
-const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
-const NEAR=1.1;            // altitude at which a selected place counts as "zoomed in"
-const isPhone=matchMedia('(max-width:760px)').matches;
-// NASA Blue Marble with shaded relief + sea-floor relief, streamed as map tiles (free, no key; max zoom level 8)
-const GIBS=(x,y,l)=>`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/${l}/${y}/${x}.jpeg`;
-let world=null,month=-1,playTimer=null,clouds=null,userZoom=false;
+/* ---------- the map hero lives in map.js ---------- */
+const nav=$('#nav'),mapHero=$('#top');
+addEventListener('scroll',()=>nav.classList.toggle('solid',mapHero.getBoundingClientRect().bottom<innerHeight*.5),{passive:true});
+$('#seeAll').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'smooth'}));
 
-function pinEl(t){
-  const b=document.createElement('button');
-  b.className='gpin';b.type='button';b.dataset.m=t.m;
-  b.setAttribute('aria-label',`${t.name}, ${MONTH_FULL[t.m]}`);
-  b.innerHTML=`<span class="gpin-photo">${t.photos[0]?`<img src="${t.photos[0]}" alt="" loading="lazy">`:''}</span><span class="gpin-text"><b>${t.name}</b><small>${MON[t.m]}</small></span>`;
-  b.style.pointerEvents='auto';
-  b.addEventListener('click',e=>{e.stopPropagation();pinTap(t)});
-  return b;
-}
-try{
-  if(typeof Globe==='function'){
-    world=Globe({animateIn:false})($('#earth'))
-      .globeImageUrl('img/earth-blue-marble.jpg')          // shows instantly while the sharp tiles stream in
-      .globeTileEngineUrl(GIBS).globeTileEngineMaxLevel(8)
-      .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#8fd0ff').atmosphereAltitude(.2)
-      .width($('#earth').clientWidth).height($('#earth').clientHeight)
-      .htmlElementsData(TRIPS).htmlLat('lat').htmlLng('lng').htmlAltitude(.012).htmlElement(pinEl)
-      .htmlElementVisibilityModifier((el,v)=>{el.style.opacity=v?1:0;el.style.pointerEvents=v?'auto':'none'})
-      .arcsData(TRIPS.slice(0,-1).map((t,i)=>({startLat:t.lat,startLng:t.lng,endLat:TRIPS[i+1].lat,endLng:TRIPS[i+1].lng})))
-      .arcColor(()=>['rgba(255,140,100,.85)','rgba(255,220,160,.5)']).arcStroke(.3).arcDashLength(.4).arcDashGap(.3).arcDashAnimateTime(4000).arcAltitudeAutoScale(.14)
-      .ringsData([]).ringColor(()=>t=>`rgba(255,130,90,${1-t})`).ringMaxRadius(3.5).ringPropagationSpeed(1.6).ringRepeatPeriod(1000)
-      .onZoom(onGlobeZoom);
-    world.renderer().setPixelRatio(Math.min(devicePixelRatio,2));
-    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.5;c.enableZoom=false;c.enablePan=false;c.minPolarAngle=Math.PI*.22;c.maxPolarAngle=Math.PI*.78;c.rotateSpeed=.6;
-    // Opening move: start far out in space, then glide in ("zoom out to zoom in")
-    world.pointOfView({lat:22,lng:40,altitude:7},0);
-    setTimeout(()=>world.pointOfView({lat:22,lng:60,altitude:isPhone?2.6:2.2},2600),400);
-    addEventListener('resize',()=>{const e=$('#earth');world.width(e.clientWidth).height(e.clientHeight)});
-    new IntersectionObserver(([e])=>e.isIntersecting?world.resumeAnimation():world.pauseAnimation()).observe(zoom);
-    if(window.requestIdleCallback)requestIdleCallback(addClouds,{timeout:1500});else setTimeout(addClouds,600);
-  }
-}catch(err){console.warn('Globe unavailable',err);world=null}
-
-/* Clouds: a soft procedural cloud layer (no image licence needed) that drifts and parts as you zoom in */
-function addClouds(){
-  const T=window.THREE;if(!world||!T)return;
-  const W=isPhone?640:1024,H=W/2,cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  const ctx=cv.getContext('2d'),img=ctx.createImageData(W,H),d=img.data;
-  const hash=(x,y,z)=>{let h=(x*374761393+y*668265263+z*1274126177)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))>>>0)/4294967296};
-  const fade=t=>t*t*(3-2*t),lerp=(a,b,t)=>a+(b-a)*t;
-  function noise(x,y,z){const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z),u=fade(x-X),v=fade(y-Y),w=fade(z-Z);
-    return lerp(lerp(lerp(hash(X,Y,Z),hash(X+1,Y,Z),u),lerp(hash(X,Y+1,Z),hash(X+1,Y+1,Z),u),v),lerp(lerp(hash(X,Y,Z+1),hash(X+1,Y,Z+1),u),lerp(hash(X,Y+1,Z+1),hash(X+1,Y+1,Z+1),u),v),w)}
-  const fbm=(x,y,z)=>{let s=0,a=.5,f=1;for(let o=0;o<5;o++){s+=a*noise(x*f,y*f,z*f);f*=2.03;a*=.5}return s};
-  for(let j=0;j<H;j++){const lat=(j/H-.5)*Math.PI,cl=Math.cos(lat),sl=Math.sin(lat);
-    const band=.55+.45*Math.abs(Math.sin(lat*2.2)); // more cloud in storm belts, less in the subtropics
-    for(let i=0;i<W;i++){const lon=i/W*2*Math.PI,x=cl*Math.cos(lon)*2.4,y=sl*2.4,z=cl*Math.sin(lon)*2.4;
-      const q=fbm(x+1.7,y+9.2,z+5.1);const n=fbm(x+q*1.6,y+q*1.6,z+q*1.6);
-      const a=clamp((n*band-.42)/.22);const k=(j*W+i)*4;d[k]=d[k+1]=d[k+2]=255;d[k+3]=a*235}}
-  ctx.putImageData(img,0,0);
-  const soft=document.createElement('canvas');soft.width=W;soft.height=H;const sc=soft.getContext('2d');
-  sc.filter=`blur(${isPhone?2:3}px)`;sc.drawImage(cv,0,0);sc.filter='none';sc.globalAlpha=.55;sc.drawImage(cv,0,0); // blurred base + a little crisp detail
-  const tex=new T.CanvasTexture(soft);tex.colorSpace=T.SRGBColorSpace;
-  clouds=new T.Mesh(new T.SphereGeometry(world.getGlobeRadius()*1.008,72,72),new T.MeshLambertMaterial({map:tex,transparent:true,depthWrite:false,opacity:.85}));
-  world.scene().add(clouds);
-  (function drift(){clouds.rotation.y+=.00025;requestAnimationFrame(drift)})();
-  onGlobeZoom(world.pointOfView());
-}
-function onGlobeZoom(pov){
-  const a=pov.altitude;
-  if(clouds)clouds.material.opacity=.85*clamp((a-.55)/1.3);   // clouds part as you descend
-  stage.classList.toggle('far',a>1.7);
-  stage.style.setProperty('--pin',clamp(1.25-a*.18,.78,1.2).toFixed(2));
-}
-
-/* Zoom controls: buttons, pinch, double-tap, trackpad pinch. One-finger vertical swipes still scroll the page. */
-function setAlt(a,ms){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(a,.28,7)},ms)}
-function zoomBy(f){if(!world)return;userZoom=true;world.controls().autoRotate=false;setAlt(world.pointOfView().altitude*f,600)}
-if(world){
-  const el=$('#earth'),dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
-  let pinch=null,lastTap=0;
-  ['gesturestart','gesturechange','gestureend'].forEach(ev=>stage.addEventListener(ev,e=>e.preventDefault())); // iOS: stop page zoom
-  el.addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:dist(e.touches),a:world.pointOfView().altitude};world.controls().autoRotate=false}},{passive:true});
-  el.addEventListener('touchmove',e=>{if(pinch&&e.touches.length===2){e.preventDefault();userZoom=true;setAlt(pinch.a*pinch.d/dist(e.touches),0)}},{passive:false});
-  el.addEventListener('touchend',e=>{
-    if(e.touches.length<2&&pinch){pinch=null;return}
-    if(e.changedTouches.length===1&&e.touches.length===0){const now=Date.now();if(now-lastTap<300){e.preventDefault();zoomBy(.55);lastTap=0}else lastTap=now}
-  },{passive:false});
-  el.addEventListener('dblclick',()=>zoomBy(.55));
-  el.addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();userZoom=true;setAlt(world.pointOfView().altitude*Math.exp(e.deltaY*.01),0)}},{passive:false});
-}
-$('#zIn').onclick=()=>zoomBy(.55);$('#zOut').onclick=()=>zoomBy(1.8);
-$('#zSpin').onclick=()=>{if(world){const c=world.controls();c.autoRotate=!c.autoRotate}};
-
-/* Calendar + info card */
-$('#months').innerHTML=TRIPS.map(t=>`<button class="m" data-m="${t.m}" role="tab"><b>${MON[t.m]}</b><span>${t.name}</span></button>`).join('');
-$('#months').addEventListener('click',e=>{const b=e.target.closest('.m');if(b){stopPlay();selectMonth(+b.dataset.m)}});
-function renderInfo(t){
-  info.hidden=!t;stage.classList.toggle('picked',!!t);
-  if(world){const e=$('#earth');world.width(e.clientWidth).height(e.clientHeight)}
-  if(!t)return;
-  info.innerHTML=`<button class="info-x" type="button" aria-label="Back to the whole globe" data-reset>✕</button>
-   <div class="info-ph">${t.photos[0]?`<img src="${t.photos[0]}" alt="${t.name}">`:''}</div>
-   <div class="info-body"><div class="mo">${MONTH_FULL[t.m]} · month ${t.m+1} of 12</div><h3>${t.name}</h3><div class="pl">${t.place} · ${t.days} days · from ${money(t.price)}</div>
-   <p>${t.hook}</p><button class="btn" type="button" data-open="${t.id}">Explore ${t.name} →</button></div>`;
-}
-info.addEventListener('click',e=>{
-  const o=e.target.closest('[data-open]');if(o){stopPlay();openTrip(o.dataset.open,{fly:true});return}
-  if(e.target.closest('[data-reset]'))resetGlobe();
-});
-function pinTap(t){
-  stopPlay();
-  const near=world&&world.pointOfView().altitude<NEAR+.15;
-  if(month===t.m&&near)openTrip(t.id,{fly:true}); // second tap on the place you're looking at opens its page
-  else selectMonth(t.m);
-}
-function selectMonth(m){
-  const t=TRIPS.find(x=>x.m===m);if(!t)return;month=m;
-  $$('#months .m').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));
-  $$('.gpin').forEach(p=>p.classList.toggle('on',+p.dataset.m===m));
-  const sel=$(`#months .m[data-m="${m}"]`);sel&&sel.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
-  renderInfo(t);
-  if(world){world.controls().autoRotate=false;world.ringsData([t]).ringLat('lat').ringLng('lng');
-    world.pointOfView({lat:t.lat-(isPhone?6:0),lng:t.lng+(isPhone?0:-14),altitude:NEAR},1800)}
-}
-function resetGlobe(){
-  month=-1;renderInfo(null);$$('#months .m,.gpin').forEach(b=>b.classList.remove('on'));
-  if(world){world.ringsData([]);const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:isPhone?2.6:2.2},1400);world.controls().autoRotate=true}
-}
-function stopPlay(){clearInterval(playTimer);playTimer=null;$('#playYear').textContent='▶ Play the year'}
-$('#playYear').onclick=()=>{
-  if(playTimer)return stopPlay();
-  $('#playYear').textContent='⏸ Pause';let i=month<0||month>=11?0:month+1;selectMonth(i);
-  playTimer=setInterval(()=>{i++;if(i>11)return stopPlay();selectMonth(i)},4200);
-};
-addEventListener('scroll',()=>nav.classList.toggle('solid',zoom.getBoundingClientRect().bottom<innerHeight*.5),{passive:true});
-
-/* ---------- DESTINATION PAGE (full screen, own link: #kyoto) ---------- */
+/* ---------- DESTINATION PAGE (full screen, own link: #ladakh) ---------- */
 const drawer=$('#drawer'),sheet=$('#sheet');
 let pushed=false;
 function monthOptions(t){
-  const now=new Date(),opts=[];
-  for(let k=0;k<12;k++){const d=new Date(now.getFullYear(),now.getMonth()+1+k,1);
-    opts.push(`<option value="${d.getFullYear()}-${d.getMonth()+1}" ${d.getMonth()===t.m&&!opts.some(o=>o.includes('selected'))?'selected':''}>${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}</option>`)}
+  const now=new Date(),opts=[];let picked=false;
+  for(let k=0;k<12;k++){const d=new Date(now.getFullYear(),now.getMonth()+1+k,1),sel=!picked&&d.getMonth()===t.m;if(sel)picked=true;
+    opts.push(`<option value="${d.getFullYear()}-${d.getMonth()+1}" ${sel?'selected':''}>${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}</option>`)}
   return opts.join('');
 }
 function renderDest(t){
+  const offers=(window.OFFERS||{})[t.id]||[{name:t.tag,days:t.days,price:t.price,blurb:t.hook}];
+  const route=(window.ROUTES||{})[t.id];
   const tile=(n)=>`<div class="${n===2&&!t.photos.length?'play':''}">${scape({...t,image:t.photos[n]||'',video:'',sky:[...t.sky].reverse().slice(n%2,3).concat(t.sky).slice(0,3)})}</div>`;
   const nTiles=t.photos.length>=3?3:5;
-  const idx=TRIPS.indexOf(t),prev=TRIPS[(idx+11)%12],next=TRIPS[(idx+1)%12];
+  const idx=TRIPS.indexOf(t),next=TRIPS[(idx+1)%TRIPS.length];
   sheet.dataset.id=t.id;
-  sheet.innerHTML=`<button class="close" data-close aria-label="Back to the globe">← Globe</button>
+  sheet.innerHTML=`<button class="close" data-close aria-label="Back to the map">← Map</button>
    <header class="d-hero">${scape(t)}
-    <div class="d-hero-copy"><p class="eyebrow">${MONTH_FULL[t.m]} · month ${t.m+1} of 12 · ${fmtCoord(t)}</p><h2>${t.name}</h2><p class="d-hook">${t.hook}</p>
-     <div class="d-chips"><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)} / person</span></div>
-     <button class="btn" type="button" data-go-book>Book this trip</button></div>
+    <div class="d-hero-copy"><p class="eyebrow">Best in ${MONTH_FULL[t.m]} · ${t.place} · ${fmtCoord(t)}</p><h2>${t.name}</h2><p class="d-hook">${t.hook}</p>
+     <div class="d-chips"><span>${t.days} days</span><span>from ${money(t.price)} / person</span><span>${offers.length} way${offers.length>1?'s':''} to go</span></div>
+     <button class="btn" type="button" data-go-book>Unbucket this for me</button></div>
     <span class="d-scroll" aria-hidden="true">↓</span></header>
+   <section class="offers"><p class="eyebrow">Ways to unbucket ${t.name}</p><div class="offer-list">${offers.map((o,i)=>`
+     <article class="offer"><div class="offer-ph">${scape({...t,image:t.photos[i%Math.max(1,t.photos.length)]||'',video:''})}</div>
+      <div class="offer-body"><h3>${o.name}</h3><p>${o.blurb}</p><div class="offer-meta"><span>${o.days} days</span><b>${money(o.price)}<small> / person</small></b></div>
+      <button class="btn" type="button" data-pick="${i}">Choose this</button></div></article>`).join('')}</div>
+     ${route?`<p class="route-line"><b>The route</b> ${route.stops.map(s=>s[0]).join(' → ')}${route.loop?' → '+route.stops[0][0]:''}</p>`:''}</section>
    <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
    <section class="tale in-drawer">${storyBanner(t)}</section>
    <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>
     <div class="tl">${t.plan.map((d,i)=>`<div class="day"><small>Day ${i+1}</small><h4>${d[0]}</h4><p>${d[1]}</p></div>`).join('')}</div></div>
     <form class="book" id="bookForm" novalidate>
-     <div class="p">${money(t.price)} <span>/ person</span></div>
+     <div class="p" id="bkPrice">${money(offers[0].price)} <span>/ person</span></div>
+     <label for="bkOffer">Trip</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select>
      <label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select>
      <label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select>
      <label for="bkName">Your name</label><input id="bkName" autocomplete="name" required>
      <label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required>
-     <div class="total"><span>Estimated total</span><b id="bkTotal">${money(t.price*2)}</b></div>
+     <div class="total"><span>Estimated total</span><b id="bkTotal">${money(offers[0].price*2)}</b></div>
      <p class="err" id="bkErr" hidden></p>
-     <button class="btn" type="submit">Request to book</button>
+     <button class="btn" type="submit">Unbucket this for me</button>
      <button class="btn ghost2" type="button" data-save="${t.id}">${wish.has(t.id)?'♥ Saved':'♡ Save for later'}</button>
-     <p class="fine">Preview: booking requests are not collected yet, so nothing is sent.</p>
+     <p class="fine">Preview: requests are not collected yet, so nothing is sent.</p>
     </form></div>
-   <nav class="d-next"><button type="button" data-goto="${prev.id}">← ${MON[prev.m]} · ${prev.name}</button><button type="button" data-goto="${next.id}">${MON[next.m]} · ${next.name} →</button></nav>
-   <div class="d-bar"><span><b>${money(t.price)}</b> / person · ${t.days} days</span><button class="btn" type="button" data-go-book>Book</button></div>`;
+   <nav class="d-next"><button type="button" data-close>← Back to the map</button><button type="button" data-goto="${next.id}">Next: ${next.name} →</button></nav>
+   <div class="d-bar"><span><b>${money(t.price)}</b> / person · ${t.days} days</span><button class="btn" type="button" data-go-book>Unbucket this</button></div>`;
   sheet.scrollTop=0;
   const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{root:sheet,threshold:.2});$$('.day',sheet).forEach(d=>o.observe(d));
-  const f=$('#bookForm',sheet);
-  f.addEventListener('input',()=>{$('#bkTotal',f).textContent=money(t.price*+$('#bkPax',f).value)});
+  const f=$('#bookForm',sheet),cur=()=>offers[+$('#bkOffer',f).value];
+  const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;$('#bkTotal',f).textContent=money(cur().price*+$('#bkPax',f).value)};
+  f.addEventListener('input',upd);
   f.addEventListener('submit',e=>{
     e.preventDefault();
     const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
     if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
-    const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=$('#bkPax',f).value;
-    f.innerHTML=`<div class="p">Almost there, ${esc(name.split(' ')[0])}</div><p class="ok">${t.name} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(t.price*pax)}</p>
+    const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=+$('#bkPax',f).value,of=cur();
+    f.innerHTML=`<div class="p">Almost there, ${esc(name.split(' ')[0])}</div><p class="ok">${esc(of.name)} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(of.price*pax)}</p>
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
   });
 }
-function openTrip(id,{fly=false,push=true}={}){
+function goBook(){const f=$('#bookForm',sheet);if(!f)return;f.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#bkName',sheet)?.focus({preventScroll:true}),650)}
+function openTrip(id,{push=true,book=false}={}){
   const t=TRIPS.find(x=>x.id===id);if(!t)return;
-  const show=()=>{
-    renderDest(t);
-    drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
-    if(push&&location.hash!=='#'+id){history.pushState({dest:id},'','#'+id);pushed=true}
-    $('.close',sheet).focus({preventScroll:true});
-  };
-  if(fly&&world&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-    // fly down through the clouds into the place, then the page takes over
-    world.pointOfView({lat:t.lat,lng:t.lng,altitude:.3},1100);
-    veil.classList.add('on');
-    setTimeout(()=>{show();setTimeout(()=>veil.classList.remove('on'),350)},1050);
-  }else show();
+  renderDest(t);
+  drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+  if(push&&location.hash!=='#'+id){history.pushState({dest:id},'','#'+id);pushed=true}
+  $('.close',sheet).focus({preventScroll:true});
+  if(book)setTimeout(goBook,450);
 }
 function closeTrip({fromHistory=false}={}){
   if(!drawer.classList.contains('open'))return;
   drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.style.overflow='';
   if(!fromHistory){if(pushed){pushed=false;history.back()}else history.replaceState(null,'',location.pathname)}
-  if(world&&month>=0){const t=TRIPS.find(x=>x.m===month);world.pointOfView({lat:t.lat,lng:t.lng,altitude:NEAR},1200)}
 }
 function routeFromHash(){
   const id=location.hash.slice(1),t=TRIPS.find(x=>x.id===id);
-  if(t){if(!drawer.classList.contains('open')||sheet.dataset.id!==id)openTrip(id,{push:false});selectMonthQuiet(t.m)}
+  if(t){if(!drawer.classList.contains('open')||sheet.dataset.id!==id)openTrip(id,{push:false})}
   else closeTrip({fromHistory:true});
 }
-function selectMonthQuiet(m){month=m;$$('#months .m').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));$$('.gpin').forEach(p=>p.classList.toggle('on',+p.dataset.m===m));renderInfo(TRIPS.find(x=>x.m===m))}
 addEventListener('popstate',()=>{pushed=false;routeFromHash()});
 drawer.addEventListener('click',e=>{
   if(e.target.closest('[data-close]'))return closeTrip();
-  if(e.target.closest('[data-go-book]')){$('#bookForm',sheet).scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#bkName',sheet)?.focus({preventScroll:true}),600);return}
-  const g=e.target.closest('[data-goto]');if(g){const t=TRIPS.find(x=>x.id===g.dataset.goto);selectMonthQuiet(t.m);renderDest(t);history.replaceState({dest:t.id},'','#'+t.id);return}
+  if(e.target.closest('[data-go-book]'))return goBook();
+  const p=e.target.closest('[data-pick]');if(p){const sel=$('#bkOffer',sheet);if(sel){sel.value=p.dataset.pick;sel.dispatchEvent(new Event('input',{bubbles:true}))}return goBook()}
+  const g=e.target.closest('[data-goto]');if(g){renderDest(TRIPS.find(x=>x.id===g.dataset.goto));history.replaceState({dest:g.dataset.goto},'','#'+g.dataset.goto);return}
   const s=e.target.closest('[data-save]');if(s){const id=s.dataset.save;wish.has(id)?(wish.delete(id),s.textContent='♡ Save for later'):(wish.add(id),s.textContent='♥ Saved');saveWish();renderCards()}
 });
 addEventListener('keydown',e=>e.key==='Escape'&&closeTrip());
