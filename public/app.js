@@ -65,6 +65,13 @@ const wish=new Set(JSON.parse((()=>{try{return localStorage.getItem('ubl-wish')|
 const saveWish=()=>{try{localStorage.setItem('ubl-wish',JSON.stringify([...wish]))}catch(e){}$('#wishCount').textContent=wish.size};
 const toast=m=>{let t=$('.toast')||document.body.appendChild(Object.assign(document.createElement('div'),{className:'toast'}));t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200)};
 
+/* Ambient life for the illustrated scenes: drifting clouds + gliding birds (skipped when real media is set) */
+function ambient(){
+  const cloud=(y,w,d,dl,o)=>`<i class="cloud" style="--y:${y}%;--w:${w}%;--d:${d}s;--dl:${dl}s;--o:${o}"></i>`;
+  const bird=(y,d,dl,sc)=>`<svg class="bird" viewBox="0 0 24 10" style="--y:${y}%;--d:${d}s;--dl:${dl}s;--sc:${sc}" aria-hidden="true"><path d="M1 8 Q6 0 12 6 Q18 0 23 8"/></svg>`;
+  return `<div class="amb" aria-hidden="true">${cloud(12,46,70,-12,.55)}${cloud(26,34,95,-48,.4)}${cloud(6,28,120,-70,.3)}${bird(20,26,-4,1)}${bird(28,34,-17,.7)}${bird(16,42,-30,.55)}</div>`;
+}
+
 /* A layered SVG landscape + optional real photo/video (media wins when provided) */
 function scape(t,id){
   const [a,b,c]=t.land;
@@ -74,7 +81,7 @@ function scape(t,id){
    <circle cx="285" cy="110" r="34" fill="#fff" opacity=".55"/>
    <path d="M0 190 L70 120 L120 175 L190 90 L260 180 L330 130 L400 195 V300 H0Z" fill="${c}" opacity=".55"/>
    <path d="M0 220 Q80 160 160 215 T320 205 T400 225 V300 H0Z" fill="${b}"/>
-   <path d="M0 255 Q100 215 200 250 T400 245 V300 H0Z" fill="${a}"/></svg>${media}`;
+   <path d="M0 255 Q100 215 200 250 T400 245 V300 H0Z" fill="${a}"/></svg>${media||ambient()}`;
 }
 
 /* ---------- 2. PICK ---------- */

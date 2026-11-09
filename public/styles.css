@@ -81,6 +81,18 @@ button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 /* trip art (css landscape) */
 .art,.reel-bg,.drawer-hero{background:var(--sky)}
 .scape{position:absolute;inset:0;width:100%;height:100%}
+.scape{animation:push 40s ease-in-out infinite alternate;transform-origin:50% 80%}
+@keyframes push{to{transform:scale(1.12)}}
+.amb{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.cloud{position:absolute;top:var(--y);left:-60%;width:var(--w);aspect-ratio:3/1;border-radius:50%;opacity:var(--o);
+ background:radial-gradient(ellipse at 30% 60%,#fff 0 30%,transparent 70%),radial-gradient(ellipse at 65% 45%,#fff 0 35%,transparent 72%),radial-gradient(ellipse at 50% 70%,#fff 0 30%,transparent 70%);
+ filter:blur(6px);animation:drift var(--d) linear infinite;animation-delay:var(--dl)}
+@keyframes drift{to{transform:translateX(calc(100vw * 2.2))}}
+.bird{position:absolute;top:var(--y);left:-8%;width:calc(26px * var(--sc));fill:none;stroke:rgba(20,15,15,.75);stroke-width:1.6;stroke-linecap:round;animation:fly var(--d) linear infinite;animation-delay:var(--dl)}
+.bird path{transform-box:fill-box;transform-origin:50% 100%;animation:flap .7s ease-in-out infinite alternate}
+.card .amb,.gallery .amb{display:none}
+@keyframes fly{0%{transform:translate(0,0)}50%{transform:translate(60vw,-4vh)}100%{transform:translate(125vw,3vh)}}
+@keyframes flap{from{transform:scaleY(1)}to{transform:scaleY(.45)}}
 .media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 /* 3. REELS */
