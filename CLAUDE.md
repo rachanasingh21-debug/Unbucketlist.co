@@ -19,4 +19,7 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - `public/app.js`: trips data (`TRIPS`, `CAL` = first-12-months calendar), globe, reels, story banners, itinerary drawer.
 - `public/facts.js`: facts and pull-quotes per destination for the story banners.
 - `public/media/`: Wikimedia Commons photos; `credits.json` is the source of truth, regenerate `photos.js` from it. Keep photo credits (licences require attribution).
-- `public/vendor/globe.gl.min.js` and `public/img/`: self-hosted 3D globe library and Earth textures.
+- Hero globe: `public/vendor/globe.gl.min.js` + NASA GIBS tiles (BlueMarble_ShadedRelief_Bathymetry, max level 8; free, no key) + procedural clouds.
+  `public/vendor/three.min.js` (three r185, for the cloud layer) MUST load AFTER globe.gl: loaded before it, globe.gl picks up window.THREE and its tile engine stops loading tiles.
+- Destination pages are a full-screen overlay routed by hash (`#kyoto`). Tap a globe pin once to fly there, again (or "Explore") to open the page.
+- Booking form is a preview: it does not send or store anything yet (no backend chosen).

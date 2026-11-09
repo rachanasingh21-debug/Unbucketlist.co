@@ -169,36 +169,86 @@ function chapter(i){if(i===cur)return;cur=i;const [k,txt,t]=CH[i];st.classList.a
 {const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)chapter(+e.target.dataset.s)}),{threshold:.55});$$('#storySteps div').forEach(d=>o.observe(d))}
 chapter(0);
 
-/* ---------- LIVE EARTH: zoom out -> zoom in + 12-month calendar ---------- */
-const zoom=$('.zoom'),zc=$('#zCopy'),zr=$('#zReveal'),nav=$('#nav'),zUI=$('#zUI'),info=$('#info');
+/* ---------- LIVE EARTH: tap a place, fly in, open its page ---------- */
+const zoom=$('.zoom'),stage=$('#stage'),zc=$('#zCopy'),nav=$('#nav'),info=$('#info'),veil=$('#veil');
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
-let world=null,month=-1,playTimer=null;
+const NEAR=1.1;            // altitude at which a selected place counts as "zoomed in"
+const isPhone=matchMedia('(max-width:760px)').matches;
+// NASA Blue Marble with shaded relief + sea-floor relief, streamed as map tiles (free, no key; max zoom level 8)
+const GIBS=(x,y,l)=>`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/${l}/${y}/${x}.jpeg`;
+let world=null,month=-1,playTimer=null,clouds=null,userZoom=false;
+
+function pinEl(t){
+  const b=document.createElement('button');
+  b.className='gpin';b.type='button';b.dataset.m=t.m;
+  b.setAttribute('aria-label',`${t.name}, ${MONTH_FULL[t.m]}`);
+  b.innerHTML=`<span class="gpin-photo">${t.photos[0]?`<img src="${t.photos[0]}" alt="" loading="lazy">`:''}</span><span class="gpin-text"><b>${t.name}</b><small>${MON[t.m]}</small></span>`;
+  b.style.pointerEvents='auto';
+  b.addEventListener('click',e=>{e.stopPropagation();pinTap(t)});
+  return b;
+}
 try{
   if(typeof Globe==='function'){
     world=Globe({animateIn:false})($('#earth'))
-      .globeImageUrl('img/earth-blue-marble.jpg').bumpImageUrl('img/earth-topology.png')
-      .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#7fc4ff').atmosphereAltitude(.24)
-      .width(innerWidth).height(innerHeight)
-      .pointsData(TRIPS).pointLat('lat').pointLng('lng').pointColor(()=>'#ff5a3c').pointAltitude(.05).pointRadius(.45).pointResolution(12)
-      .labelsData(TRIPS).labelLat('lat').labelLng('lng').labelText(t=>t.name).labelSize(1.15).labelDotRadius(.35).labelColor(()=>'rgba(255,255,255,.95)').labelAltitude(.012).labelResolution(2)
+      .globeImageUrl('img/earth-blue-marble.jpg')          // shows instantly while the sharp tiles stream in
+      .globeTileEngineUrl(GIBS).globeTileEngineMaxLevel(8)
+      .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#8fd0ff').atmosphereAltitude(.2)
+      .width($('#earth').clientWidth).height($('#earth').clientHeight)
+      .htmlElementsData(TRIPS).htmlLat('lat').htmlLng('lng').htmlAltitude(.012).htmlElement(pinEl)
+      .htmlElementVisibilityModifier((el,v)=>{el.style.opacity=v?1:0;el.style.pointerEvents=v?'auto':'none'})
       .arcsData(TRIPS.slice(0,-1).map((t,i)=>({startLat:t.lat,startLng:t.lng,endLat:TRIPS[i+1].lat,endLng:TRIPS[i+1].lng})))
-      .arcColor(()=>['rgba(255,90,60,.9)','rgba(255,200,120,.55)']).arcStroke(.35).arcDashLength(.45).arcDashGap(.25).arcDashAnimateTime(3500).arcAltitudeAutoScale(.16)
-      .ringsData([]).ringColor(()=>t=>`rgba(255,120,80,${1-t})`).ringMaxRadius(5).ringPropagationSpeed(2.2).ringRepeatPeriod(900)
-      .onPointClick(t=>selectMonth(t.m)).onLabelClick(t=>selectMonth(t.m));
+      .arcColor(()=>['rgba(255,140,100,.85)','rgba(255,220,160,.5)']).arcStroke(.3).arcDashLength(.4).arcDashGap(.3).arcDashAnimateTime(4000).arcAltitudeAutoScale(.14)
+      .ringsData([]).ringColor(()=>t=>`rgba(255,130,90,${1-t})`).ringMaxRadius(3.5).ringPropagationSpeed(1.6).ringRepeatPeriod(1000)
+      .onZoom(onGlobeZoom);
     world.renderer().setPixelRatio(Math.min(devicePixelRatio,2));
-    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.7;c.enableZoom=false;c.enablePan=false;c.minPolarAngle=Math.PI*.3;c.maxPolarAngle=Math.PI*.7;
-    world.pointOfView({lat:18,lng:60,altitude:5},0);
-    addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
+    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.5;c.enableZoom=false;c.enablePan=false;c.minPolarAngle=Math.PI*.22;c.maxPolarAngle=Math.PI*.78;c.rotateSpeed=.6;
+    // Opening move: start far out in space, then glide in ("zoom out to zoom in")
+    world.pointOfView({lat:22,lng:40,altitude:7},0);
+    setTimeout(()=>world.pointOfView({lat:22,lng:60,altitude:isPhone?2.6:2.2},2600),400);
+    addEventListener('resize',()=>{const e=$('#earth');world.width(e.clientWidth).height(e.clientHeight)});
     new IntersectionObserver(([e])=>e.isIntersecting?world.resumeAnimation():world.pauseAnimation()).observe(zoom);
+    if(window.requestIdleCallback)requestIdleCallback(addClouds,{timeout:1500});else setTimeout(addClouds,600);
   }
 }catch(err){console.warn('Globe unavailable',err);world=null}
 
-let userZoom=false; // once someone zooms by hand, scrolling no longer overrides their zoom level
-function setAlt(a,ms){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(a,.35,7)},ms)}
-function zoomBy(f){if(!world)return;userZoom=true;setAlt(world.pointOfView().altitude*f,500)}
+/* Clouds: a soft procedural cloud layer (no image licence needed) that drifts and parts as you zoom in */
+function addClouds(){
+  const T=window.THREE;if(!world||!T)return;
+  const W=isPhone?640:1024,H=W/2,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d'),img=ctx.createImageData(W,H),d=img.data;
+  const hash=(x,y,z)=>{let h=(x*374761393+y*668265263+z*1274126177)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))>>>0)/4294967296};
+  const fade=t=>t*t*(3-2*t),lerp=(a,b,t)=>a+(b-a)*t;
+  function noise(x,y,z){const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z),u=fade(x-X),v=fade(y-Y),w=fade(z-Z);
+    return lerp(lerp(lerp(hash(X,Y,Z),hash(X+1,Y,Z),u),lerp(hash(X,Y+1,Z),hash(X+1,Y+1,Z),u),v),lerp(lerp(hash(X,Y,Z+1),hash(X+1,Y,Z+1),u),lerp(hash(X,Y+1,Z+1),hash(X+1,Y+1,Z+1),u),v),w)}
+  const fbm=(x,y,z)=>{let s=0,a=.5,f=1;for(let o=0;o<5;o++){s+=a*noise(x*f,y*f,z*f);f*=2.03;a*=.5}return s};
+  for(let j=0;j<H;j++){const lat=(j/H-.5)*Math.PI,cl=Math.cos(lat),sl=Math.sin(lat);
+    const band=.55+.45*Math.abs(Math.sin(lat*2.2)); // more cloud in storm belts, less in the subtropics
+    for(let i=0;i<W;i++){const lon=i/W*2*Math.PI,x=cl*Math.cos(lon)*2.4,y=sl*2.4,z=cl*Math.sin(lon)*2.4;
+      const q=fbm(x+1.7,y+9.2,z+5.1);const n=fbm(x+q*1.6,y+q*1.6,z+q*1.6);
+      const a=clamp((n*band-.42)/.22);const k=(j*W+i)*4;d[k]=d[k+1]=d[k+2]=255;d[k+3]=a*235}}
+  ctx.putImageData(img,0,0);
+  const soft=document.createElement('canvas');soft.width=W;soft.height=H;const sc=soft.getContext('2d');
+  sc.filter=`blur(${isPhone?2:3}px)`;sc.drawImage(cv,0,0);sc.filter='none';sc.globalAlpha=.55;sc.drawImage(cv,0,0); // blurred base + a little crisp detail
+  const tex=new T.CanvasTexture(soft);tex.colorSpace=T.SRGBColorSpace;
+  clouds=new T.Mesh(new T.SphereGeometry(world.getGlobeRadius()*1.008,72,72),new T.MeshLambertMaterial({map:tex,transparent:true,depthWrite:false,opacity:.85}));
+  world.scene().add(clouds);
+  (function drift(){clouds.rotation.y+=.00025;requestAnimationFrame(drift)})();
+  onGlobeZoom(world.pointOfView());
+}
+function onGlobeZoom(pov){
+  const a=pov.altitude;
+  if(clouds)clouds.material.opacity=.85*clamp((a-.55)/1.3);   // clouds part as you descend
+  stage.classList.toggle('far',a>1.7);
+  stage.style.setProperty('--pin',clamp(1.25-a*.18,.78,1.2).toFixed(2));
+}
+
+/* Zoom controls: buttons, pinch, double-tap, trackpad pinch. One-finger vertical swipes still scroll the page. */
+function setAlt(a,ms){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(a,.28,7)},ms)}
+function zoomBy(f){if(!world)return;userZoom=true;world.controls().autoRotate=false;setAlt(world.pointOfView().altitude*f,600)}
 if(world){
   const el=$('#earth'),dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
   let pinch=null,lastTap=0;
+  ['gesturestart','gesturechange','gestureend'].forEach(ev=>stage.addEventListener(ev,e=>e.preventDefault())); // iOS: stop page zoom
   el.addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:dist(e.touches),a:world.pointOfView().altitude};world.controls().autoRotate=false}},{passive:true});
   el.addEventListener('touchmove',e=>{if(pinch&&e.touches.length===2){e.preventDefault();userZoom=true;setAlt(pinch.a*pinch.d/dist(e.touches),0)}},{passive:false});
   el.addEventListener('touchend',e=>{
@@ -208,69 +258,135 @@ if(world){
   el.addEventListener('dblclick',()=>zoomBy(.55));
   el.addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();userZoom=true;setAlt(world.pointOfView().altitude*Math.exp(e.deltaY*.01),0)}},{passive:false});
 }
-$('#zIn').onclick=()=>zoomBy(.6);$('#zOut').onclick=()=>zoomBy(1.6);
+$('#zIn').onclick=()=>zoomBy(.55);$('#zOut').onclick=()=>zoomBy(1.8);
 $('#zSpin').onclick=()=>{if(world){const c=world.controls();c.autoRotate=!c.autoRotate}};
 
+/* Calendar + info card */
 $('#months').innerHTML=TRIPS.map(t=>`<button class="m" data-m="${t.m}" role="tab"><b>${MON[t.m]}</b><span>${t.name}</span></button>`).join('');
 $('#months').addEventListener('click',e=>{const b=e.target.closest('.m');if(b){stopPlay();selectMonth(+b.dataset.m)}});
 function renderInfo(t){
-  info.innerHTML=t?`<div class="mo">${MONTH_FULL[t.m]} · month ${t.m+1} of 12</div><h3>${t.name}</h3><div class="pl">${t.place} · ${t.days} days · from ${money(t.price)}</div><p>${t.hook}</p><button class="btn" data-open="${t.id}">See the itinerary</button>`
-   :`<div class="mo">Year one</div><h3>12 months,<br>12 places</h3><p>Pick a month, or hit play. Every pin is a trip, joined in the order you'll take them.</p>`;
+  info.hidden=!t;stage.classList.toggle('picked',!!t);
+  if(world){const e=$('#earth');world.width(e.clientWidth).height(e.clientHeight)}
+  if(!t)return;
+  info.innerHTML=`<button class="info-x" type="button" aria-label="Back to the whole globe" data-reset>✕</button>
+   <div class="info-ph">${t.photos[0]?`<img src="${t.photos[0]}" alt="${t.name}">`:''}</div>
+   <div class="info-body"><div class="mo">${MONTH_FULL[t.m]} · month ${t.m+1} of 12</div><h3>${t.name}</h3><div class="pl">${t.place} · ${t.days} days · from ${money(t.price)}</div>
+   <p>${t.hook}</p><button class="btn" type="button" data-open="${t.id}">Explore ${t.name} →</button></div>`;
 }
-info.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openTrip(o.dataset.open)});
+info.addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]');if(o){stopPlay();openTrip(o.dataset.open,{fly:true});return}
+  if(e.target.closest('[data-reset]'))resetGlobe();
+});
+function pinTap(t){
+  stopPlay();
+  const near=world&&world.pointOfView().altitude<NEAR+.15;
+  if(month===t.m&&near)openTrip(t.id,{fly:true}); // second tap on the place you're looking at opens its page
+  else selectMonth(t.m);
+}
 function selectMonth(m){
   const t=TRIPS.find(x=>x.m===m);if(!t)return;month=m;
   $$('#months .m').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));
+  $$('.gpin').forEach(p=>p.classList.toggle('on',+p.dataset.m===m));
   const sel=$(`#months .m[data-m="${m}"]`);sel&&sel.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
   renderInfo(t);
-  if(world){
-    world.controls().autoRotate=false;
-    world.pointAltitude(x=>x.m===m?.16:.04).pointRadius(x=>x.m===m?.7:.4).ringsData([t]).ringLat('lat').ringLng('lng');
-    world.pointOfView({lat:t.lat,lng:t.lng,altitude:1.25},1800);
-  }
+  if(world){world.controls().autoRotate=false;world.ringsData([t]).ringLat('lat').ringLng('lng');
+    world.pointOfView({lat:t.lat-(isPhone?6:0),lng:t.lng+(isPhone?0:-14),altitude:NEAR},1800)}
+}
+function resetGlobe(){
+  month=-1;renderInfo(null);$$('#months .m,.gpin').forEach(b=>b.classList.remove('on'));
+  if(world){world.ringsData([]);const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:isPhone?2.6:2.2},1400);world.controls().autoRotate=true}
 }
 function stopPlay(){clearInterval(playTimer);playTimer=null;$('#playYear').textContent='▶ Play the year'}
 $('#playYear').onclick=()=>{
   if(playTimer)return stopPlay();
   $('#playYear').textContent='⏸ Pause';let i=month<0||month>=11?0:month+1;selectMonth(i);
-  playTimer=setInterval(()=>{i++;if(i>11)return stopPlay();selectMonth(i)},3600);
+  playTimer=setInterval(()=>{i++;if(i>11)return stopPlay();selectMonth(i)},4200);
 };
-renderInfo(null);
+addEventListener('scroll',()=>nav.classList.toggle('solid',zoom.getBoundingClientRect().bottom<innerHeight*.5),{passive:true});
 
-function onScroll(){
-  const r=zoom.getBoundingClientRect(),p=clamp(-r.top/(r.height-innerHeight));
-  if(world&&month<0&&!userZoom&&p<.7){const cur=world.pointOfView();world.pointOfView({lat:cur.lat,lng:cur.lng,altitude:5-clamp(p/.6)*3.7},0)}
-  zc.style.opacity=clamp(1-p/.2);zc.style.transform=`translateY(${-p*160}px)`;
-  zr.style.opacity=clamp(Math.min((p-.2)/.12,(.55-p)/.1));
-  zUI.classList.toggle('on',p>.5);
-  $('#zEyebrow').textContent=p<.1?'The whole world':'Zooming in…';
-  nav.classList.toggle('solid',r.bottom<innerHeight*.5);
-}
-addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);onScroll();
-
-/* ---------- DRAWER (itinerary) ---------- */
+/* ---------- DESTINATION PAGE (full screen, own link: #kyoto) ---------- */
 const drawer=$('#drawer'),sheet=$('#sheet');
-function openTrip(id){
-  const t=TRIPS.find(x=>x.id===id);
+let pushed=false;
+function monthOptions(t){
+  const now=new Date(),opts=[];
+  for(let k=0;k<12;k++){const d=new Date(now.getFullYear(),now.getMonth()+1+k,1);
+    opts.push(`<option value="${d.getFullYear()}-${d.getMonth()+1}" ${d.getMonth()===t.m&&!opts.some(o=>o.includes('selected'))?'selected':''}>${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}</option>`)}
+  return opts.join('');
+}
+function renderDest(t){
   const tile=(n)=>`<div class="${n===2&&!t.photos.length?'play':''}">${scape({...t,image:t.photos[n]||'',video:'',sky:[...t.sky].reverse().slice(n%2,3).concat(t.sky).slice(0,3)})}</div>`;
   const nTiles=t.photos.length>=3?3:5;
-  sheet.innerHTML=`<button class="close" data-close aria-label="Close">✕</button>
-   <div class="drawer-hero">${scape(t)}<div class="t"><p class="eyebrow">${t.place} · ${t.days} days</p><h2>${t.name}</h2></div></div>
+  const idx=TRIPS.indexOf(t),prev=TRIPS[(idx+11)%12],next=TRIPS[(idx+1)%12];
+  sheet.dataset.id=t.id;
+  sheet.innerHTML=`<button class="close" data-close aria-label="Back to the globe">← Globe</button>
+   <header class="d-hero">${scape(t)}
+    <div class="d-hero-copy"><p class="eyebrow">${MONTH_FULL[t.m]} · month ${t.m+1} of 12 · ${fmtCoord(t)}</p><h2>${t.name}</h2><p class="d-hook">${t.hook}</p>
+     <div class="d-chips"><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)} / person</span></div>
+     <button class="btn" type="button" data-go-book>Book this trip</button></div>
+    <span class="d-scroll" aria-hidden="true">↓</span></header>
    <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
    <section class="tale in-drawer">${storyBanner(t)}</section>
    <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>
     <div class="tl">${t.plan.map((d,i)=>`<div class="day"><small>Day ${i+1}</small><h4>${d[0]}</h4><p>${d[1]}</p></div>`).join('')}</div></div>
-    <aside class="book"><div class="p">${money(t.price)} <span>/ person</span></div>
-     <ul><li>🗓 ${t.days} days, flexible dates</li><li>📸 Photo & video guide</li><li>🧭 Local host included</li><li>↩ Free cancellation 30 days</li></ul>
-     <button class="btn" data-plan="${t.id}">Unbucket this trip</button><button class="btn" data-save="${t.id}">${wish.has(t.id)?'♥ Saved':'♡ Save for later'}</button></aside></div>`;
-  drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';sheet.scrollTop=0;
+    <form class="book" id="bookForm" novalidate>
+     <div class="p">${money(t.price)} <span>/ person</span></div>
+     <label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select>
+     <label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select>
+     <label for="bkName">Your name</label><input id="bkName" autocomplete="name" required>
+     <label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required>
+     <div class="total"><span>Estimated total</span><b id="bkTotal">${money(t.price*2)}</b></div>
+     <p class="err" id="bkErr" hidden></p>
+     <button class="btn" type="submit">Request to book</button>
+     <button class="btn ghost2" type="button" data-save="${t.id}">${wish.has(t.id)?'♥ Saved':'♡ Save for later'}</button>
+     <p class="fine">Preview: booking requests are not collected yet, so nothing is sent.</p>
+    </form></div>
+   <nav class="d-next"><button type="button" data-goto="${prev.id}">← ${MON[prev.m]} · ${prev.name}</button><button type="button" data-goto="${next.id}">${MON[next.m]} · ${next.name} →</button></nav>
+   <div class="d-bar"><span><b>${money(t.price)}</b> / person · ${t.days} days</span><button class="btn" type="button" data-go-book>Book</button></div>`;
+  sheet.scrollTop=0;
   const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{root:sheet,threshold:.2});$$('.day',sheet).forEach(d=>o.observe(d));
-  history.replaceState(null,'','#'+id);
+  const f=$('#bookForm',sheet);
+  f.addEventListener('input',()=>{$('#bkTotal',f).textContent=money(t.price*+$('#bkPax',f).value)});
+  f.addEventListener('submit',e=>{
+    e.preventDefault();
+    const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
+    if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
+    const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=$('#bkPax',f).value;
+    f.innerHTML=`<div class="p">Almost there, ${esc(name.split(' ')[0])}</div><p class="ok">${t.name} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(t.price*pax)}</p>
+     <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
+  });
 }
-function closeTrip(){drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.style.overflow='';history.replaceState(null,'',location.pathname)}
+function openTrip(id,{fly=false,push=true}={}){
+  const t=TRIPS.find(x=>x.id===id);if(!t)return;
+  const show=()=>{
+    renderDest(t);
+    drawer.classList.add('open');drawer.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+    if(push&&location.hash!=='#'+id){history.pushState({dest:id},'','#'+id);pushed=true}
+    $('.close',sheet).focus({preventScroll:true});
+  };
+  if(fly&&world&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    // fly down through the clouds into the place, then the page takes over
+    world.pointOfView({lat:t.lat,lng:t.lng,altitude:.3},1100);
+    veil.classList.add('on');
+    setTimeout(()=>{show();setTimeout(()=>veil.classList.remove('on'),350)},1050);
+  }else show();
+}
+function closeTrip({fromHistory=false}={}){
+  if(!drawer.classList.contains('open'))return;
+  drawer.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.style.overflow='';
+  if(!fromHistory){if(pushed){pushed=false;history.back()}else history.replaceState(null,'',location.pathname)}
+  if(world&&month>=0){const t=TRIPS.find(x=>x.m===month);world.pointOfView({lat:t.lat,lng:t.lng,altitude:NEAR},1200)}
+}
+function routeFromHash(){
+  const id=location.hash.slice(1),t=TRIPS.find(x=>x.id===id);
+  if(t){if(!drawer.classList.contains('open')||sheet.dataset.id!==id)openTrip(id,{push:false});selectMonthQuiet(t.m)}
+  else closeTrip({fromHistory:true});
+}
+function selectMonthQuiet(m){month=m;$$('#months .m').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));$$('.gpin').forEach(p=>p.classList.toggle('on',+p.dataset.m===m));renderInfo(TRIPS.find(x=>x.m===m))}
+addEventListener('popstate',()=>{pushed=false;routeFromHash()});
 drawer.addEventListener('click',e=>{
   if(e.target.closest('[data-close]'))return closeTrip();
-  const p=e.target.closest('[data-plan]');if(p){toast('Nice. We’ll be in touch to plan it ✈');return}
+  if(e.target.closest('[data-go-book]')){$('#bookForm',sheet).scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#bkName',sheet)?.focus({preventScroll:true}),600);return}
+  const g=e.target.closest('[data-goto]');if(g){const t=TRIPS.find(x=>x.id===g.dataset.goto);selectMonthQuiet(t.m);renderDest(t);history.replaceState({dest:t.id},'','#'+t.id);return}
   const s=e.target.closest('[data-save]');if(s){const id=s.dataset.save;wish.has(id)?(wish.delete(id),s.textContent='♡ Save for later'):(wish.add(id),s.textContent='♥ Saved');saveWish();renderCards()}
 });
 addEventListener('keydown',e=>e.key==='Escape'&&closeTrip());
@@ -281,4 +397,4 @@ $('#wishBtn').addEventListener('click',()=>{const n=[...wish].map(id=>TRIPS.find
 $('#notify').addEventListener('submit',e=>{e.preventDefault();toast('Thanks! We’ll be in touch ✈');e.target.reset()});
 $('#yr').textContent=new Date().getFullYear();
 renderChips();renderCards();saveWish();
-if(TRIPS.some(t=>'#'+t.id===location.hash))openTrip(location.hash.slice(1));
+routeFromHash();
