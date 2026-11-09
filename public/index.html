@@ -20,35 +20,27 @@
   <button class="wish" id="wishBtn">♡ Wishlist <em id="wishCount">0</em></button>
 </header>
 
-<!-- 1. ZOOM OUT → ZOOM IN -->
+<!-- 1. LIVE EARTH: zoom out -> zoom in, plus the first-12-months calendar -->
 <section class="zoom" id="top">
   <div class="zoom-stage">
-    <div class="space"></div>
-    <div class="globe" id="globe">
-      <svg viewBox="0 0 400 400" aria-hidden="true">
-        <defs>
-          <radialGradient id="g1" cx="38%" cy="32%"><stop offset="0" stop-color="#5fb6c9"/><stop offset="1" stop-color="#0b3b57"/></radialGradient>
-          <clipPath id="gc"><circle cx="200" cy="200" r="190"/></clipPath>
-        </defs>
-        <circle cx="200" cy="200" r="190" fill="url(#g1)"/>
-        <g clip-path="url(#gc)" fill="#d9c58a" opacity=".92">
-          <path d="M70 120c30-30 80-25 100 5s-10 45-35 55-60 30-75 5-15-45 10-65z"/>
-          <path d="M215 80c35-20 90-5 105 30s-20 40-40 55-55 5-70-20-15-50 5-65z"/>
-          <path d="M150 250c25-15 60-5 70 25s-5 60-30 70-50-20-55-45 0-35 15-50z"/>
-          <path d="M290 230c20-10 50 5 50 30s-25 40-45 30-20-45-5-60z"/>
-        </g>
-        <g id="pins"></g>
-      </svg>
-    </div>
-    <div class="zoom-copy">
+    <div id="earth" aria-label="Interactive 3D Earth"></div>
+    <div class="zoom-copy" id="zCopy">
       <p class="eyebrow" id="zEyebrow">The whole world</p>
-      <h1 id="zTitle">Your bucket list is <em>too big.</em></h1>
+      <h1>Your bucket list is <em>too big.</em></h1>
       <p class="scrollhint">Scroll to zoom in ↓</p>
     </div>
     <div class="zoom-reveal" id="zReveal">
       <p class="eyebrow">Here's the thing</p>
       <h2>We help you <em>unbucket</em><br>your bucket list.</h2>
-      <p>Pick an experience. See it in photos and video. Go where you wanna go.</p>
+      <p>Twelve months. Twelve places. One a month.</p>
+    </div>
+    <div class="zoom-ui" id="zUI">
+      <div class="zoom-btns"><button id="zIn" aria-label="Zoom in">+</button><button id="zOut" aria-label="Zoom out">−</button><button id="zSpin" aria-label="Toggle rotation" title="Toggle rotation">⟳</button></div>
+      <article class="info" id="info"></article>
+      <div class="months-wrap">
+        <div class="months-head"><b>Your first 12 months</b><button id="playYear">▶ Play the year</button></div>
+        <div class="months" id="months" role="tablist"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -86,6 +78,7 @@
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 </aside>
 
+<script src="vendor/globe.gl.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

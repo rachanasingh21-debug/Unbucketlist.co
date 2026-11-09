@@ -30,6 +30,35 @@ const TRIPS = [
   plan:[['Arusha','Briefing and bush-plane transfer.'],['Central Serengeti','First game drive, camp dinner.'],['Migration route','Full day following the herds.'],['Balloon sunrise','Champagne breakfast on the plains.'],['Ngorongoro','Crater floor safari.'],['Maasai village','Cultural visit.'],['Depart','Fly home.']]}
 ];
 
+
+TRIPS.push(
+ {id:'rajasthan',cat:['culture','food'],name:'Rajasthan',place:'India',tag:'Palaces & spice',days:7,price:1650,sky:['#ffd6a5','#ff9a76','#7b2d5e'],land:['#8a4b2a','#5a2f1a','#33190d'],image:'',video:'',
+  hook:'Hill forts, havelis and a thali you will talk about for years.',story:'Sleep in a palace in Udaipur, haggle in Jaipur, and watch the Thar desert turn to rose at dusk.',
+  plan:[['Jaipur','Amber Fort and old-city bazaars.'],['Cooking class','Learn the thali from a local family.'],['Jodhpur','The blue city and Mehrangarh at sunset.'],['Desert camp','Camel ride and a night under stars.'],['Udaipur','Lake palace boat ride.'],['Free day','Markets, tailors, chai.'],['Depart','Fly home from Udaipur.']]},
+ {id:'maldives',cat:['beach'],name:'Maldives',place:'Indian Ocean',tag:'Overwater calm',days:5,price:2750,sky:['#c9f2ff','#6ed0e8','#0e5f8a'],land:['#f4e7c5','#c9b98a','#8f8260'],image:'',video:'',
+  hook:'Water in colours you did not know water could be.',story:'Seaplane in, phone off. Snorkel with turtles before breakfast and watch the lagoon glow at night.',
+  plan:[['Seaplane','Arrive at your atoll villa.'],['House reef','Guided snorkel with turtles and rays.'],['Sandbank picnic','Private sandbank lunch.'],['Dolphin cruise','Sunset boat and bioluminescence.'],['Depart','Slow morning, seaplane out.']]},
+ {id:'iceland',cat:['adventure','mountain'],name:'Iceland',place:'Iceland',tag:'Fire & ice',days:6,price:2600,sky:['#cfe8ff','#8fb8e8','#2a3f6b'],land:['#2f3b3a','#1c2625','#0e1514'],image:'',video:'',
+  hook:'Midnight sun, black beaches and waterfalls on every corner.',story:'Drive the Ring Road with the sun that never quite sets. Soak in a geothermal lagoon when your legs give up.',
+  plan:[['Reykjavik','Golden Circle: Gullfoss and Geysir.'],['South coast','Skógafoss and Reynisfjara black sand.'],['Glacier day','Hike on Sólheimajökull.'],['Jökulsárlón','Ice lagoon and diamond beach.'],['Blue Lagoon','Soak before your flight.'],['Depart','Fly home.']]},
+ {id:'peru',cat:['culture','adventure','mountain'],name:'Peru',place:'Peru',tag:'Machu Picchu & beyond',days:8,price:2450,sky:['#ffe8c2','#9fd3b4','#2f6b5a'],land:['#2d5a3d','#1d3d29','#0e2418'],image:'',video:'',
+  hook:'Lost cities in the clouds, and the best ceviche on Earth.',story:'Walk in at sunrise when the mist lifts off the stones. Then eat your way back to Cusco.',
+  plan:[['Cusco','Acclimatise and wander San Blas.'],['Sacred Valley','Pisac market and Ollantaytambo.'],['Train to Aguas Calientes','Evening in the cloud forest.'],['Machu Picchu','Sunrise entry with a guide.'],['Rainbow Mountain','Optional high-altitude hike.'],['Lima','Ceviche masterclass.'],['Depart','Fly home.'],['Spare day','Slack for weather.']]},
+ {id:'morocco',cat:['culture','food'],name:'Morocco',place:'Morocco',tag:'Souks & Sahara',days:7,price:1750,sky:['#ffcf9e','#e8825a','#5e2b3a'],land:['#b5703a','#7d4a22','#4a2a12'],image:'',video:'',
+  hook:'Blue alleys, spice-piled souks and a night in the dunes.',story:'Get lost in the Marrakech medina on purpose, then cross the Atlas to a camp in the Sahara.',
+  plan:[['Marrakech','Medina and Jemaa el-Fnaa at dusk.'],['Atlas Mountains','Berber village lunch.'],['Aït Benhaddou','Kasbah and film-set walk.'],['Merzouga','Camel trek to desert camp.'],['Fes','Tanneries and the old medina.'],['Chefchaouen','The blue city.'],['Depart','Fly home from Tangier.']]},
+ {id:'newzealand',cat:['adventure','mountain'],name:'New Zealand',place:'New Zealand',tag:'Middle-earth, for real',days:9,price:3600,sky:['#bfe3f5','#7fb7d9','#2c5d8a'],land:['#3d6b4a','#27472f','#142a1a'],image:'',video:'',
+  hook:'Fjords, glaciers and long summer evenings.',story:'Summer down south: kayak Milford Sound, jump off something in Queenstown, sleep under the Milky Way.',
+  plan:[['Queenstown','Lake walk and fergburger.'],['Milford Sound','Cruise the fjord.'],['Glenorchy','Scenic drive and hike.'],['Wanaka','Roy’s Peak sunrise.'],['Mt Cook','Hooker Valley walk.'],['Tekapo','Stargazing reserve.'],['Christchurch','Gardens and markets.'],['Free day','Your pick.'],['Depart','Fly home.']]}
+);
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+/* YOUR FIRST 12 MONTHS: one trip per month. m = month index (0=Jan). Edit freely; lat/lng put the pin on the globe. */
+const CAL={patagonia:[0,-51.0,-73.1],lofoten:[1,68.2,13.6],kyoto:[2,35.01,135.77],rajasthan:[3,26.9,75.8],santorini:[4,36.4,25.4],maldives:[5,3.2,73.2],
+ iceland:[6,64.9,-19.0],serengeti:[7,-2.33,34.8],bali:[8,-8.4,115.2],peru:[9,-13.16,-72.55],morocco:[10,31.6,-8.0],newzealand:[11,-44.7,169.1]};
+TRIPS.forEach(t=>{[t.m,t.lat,t.lng]=CAL[t.id]});
+TRIPS.sort((a,b)=>a.m-b.m);
+
 const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
 const money=n=>'$'+n.toLocaleString();
 const wish=new Set(JSON.parse((()=>{try{return localStorage.getItem('ubl-wish')||'[]'}catch(e){return'[]'}})()));
@@ -57,7 +86,7 @@ function renderCards(){
   const list=TRIPS.filter(t=>cat==='all'||t.cat.includes(cat));
   $('#cards').innerHTML=list.map((t,i)=>`<article class="card" data-id="${t.id}" style="animation-delay:${i*70}ms">
    <div class="art">${scape(t)}<span class="tag">${t.tag}</span><button class="heart ${wish.has(t.id)?'on':''}" data-h="${t.id}" aria-label="Save">${wish.has(t.id)?'♥':'♡'}</button></div>
-   <h3>${t.name}, ${t.place}</h3><p>${t.days} days · ${t.cat.join(' · ')}</p><p class="price"><b>${money(t.price)}</b> per person</p></article>`).join('');
+   <h3>${t.name}, ${t.place}</h3><p>${t.days} days · best in ${MON[t.m]}</p><p class="price"><b>${money(t.price)}</b> per person</p></article>`).join('');
 }
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderChips();renderCards()});
 $('#cards').addEventListener('click',e=>{
@@ -69,7 +98,7 @@ $('#cards').addEventListener('click',e=>{
 /* ---------- 3. REELS ---------- */
 $('#reels').innerHTML=TRIPS.map((t,i)=>{const n=TRIPS[(i+1)%TRIPS.length];return `<section class="reel" data-i="${i}">
  <div class="reel-bg">${scape(t)}</div>
- <div class="reel-copy"><div class="reel-meta"><span>${String(i+1).padStart(2,'0')} / ${String(TRIPS.length).padStart(2,'0')}</span><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)}</span></div>
+ <div class="reel-copy"><div class="reel-meta"><span>${String(i+1).padStart(2,'0')} / ${String(TRIPS.length).padStart(2,'0')}</span><span>${MONTH_FULL[t.m]}</span><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)}</span></div>
   <h3>${t.name}</h3><p>${t.hook}</p><button class="btn" data-open="${t.id}">See the itinerary</button><button class="btn ghost" data-h2="${t.id}">♡ Save</button></div>
  <div class="reel-next">Next · ${n.name}<b>↓</b></div></section>`}).join('');
 document.body.insertAdjacentHTML('beforeend',`<nav class="dots" id="dots">${TRIPS.map((t,i)=>`<button data-d="${i}" aria-label="${t.name}"></button>`).join('')}</nav>`);
@@ -102,20 +131,68 @@ function chapter(i){if(i===cur)return;cur=i;const [k,txt,t]=CH[i];st.classList.a
 {const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)chapter(+e.target.dataset.s)}),{threshold:.55});$$('#storySteps div').forEach(d=>o.observe(d))}
 chapter(0);
 
-/* ---------- ZOOM OUT → IN (scroll-driven) ---------- */
-const zoom=$('.zoom'),globe=$('#globe'),zc=$('.zoom-copy'),zr=$('#zReveal'),nav=$('#nav');
-const pinsG=$('#pins');
-[[110,150],[250,115],[190,290],[310,250],[95,215]].forEach(([x,y],i)=>pinsG.insertAdjacentHTML('beforeend',`<circle class="pin-pulse" cx="${x}" cy="${y}" r="5" style="animation-delay:${i*.4}s"/><circle class="pin" cx="${x}" cy="${y}" r="5"/>`));
+/* ---------- LIVE EARTH: zoom out -> zoom in + 12-month calendar ---------- */
+const zoom=$('.zoom'),zc=$('#zCopy'),zr=$('#zReveal'),nav=$('#nav'),zUI=$('#zUI'),info=$('#info');
 const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+let world=null,month=-1,playTimer=null;
+try{
+  if(typeof Globe==='function'){
+    world=Globe({animateIn:false})($('#earth'))
+      .globeImageUrl('img/earth-blue-marble.jpg').bumpImageUrl('img/earth-topology.png')
+      .backgroundColor('rgba(0,0,0,0)').atmosphereColor('#7fc4ff').atmosphereAltitude(.24)
+      .width(innerWidth).height(innerHeight)
+      .pointsData(TRIPS).pointLat('lat').pointLng('lng').pointColor(()=>'#ff5a3c').pointAltitude(.05).pointRadius(.45).pointResolution(12)
+      .labelsData(TRIPS).labelLat('lat').labelLng('lng').labelText(t=>t.name).labelSize(1.15).labelDotRadius(.35).labelColor(()=>'rgba(255,255,255,.95)').labelAltitude(.012).labelResolution(2)
+      .arcsData(TRIPS.slice(0,-1).map((t,i)=>({startLat:t.lat,startLng:t.lng,endLat:TRIPS[i+1].lat,endLng:TRIPS[i+1].lng})))
+      .arcColor(()=>['rgba(255,90,60,.9)','rgba(255,200,120,.55)']).arcStroke(.35).arcDashLength(.45).arcDashGap(.25).arcDashAnimateTime(3500).arcAltitudeAutoScale(.16)
+      .ringsData([]).ringColor(()=>t=>`rgba(255,120,80,${1-t})`).ringMaxRadius(5).ringPropagationSpeed(2.2).ringRepeatPeriod(900)
+      .onPointClick(t=>selectMonth(t.m)).onLabelClick(t=>selectMonth(t.m));
+    world.renderer().setPixelRatio(Math.min(devicePixelRatio,2));
+    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.7;c.enableZoom=false;c.enablePan=false;
+    world.pointOfView({lat:18,lng:60,altitude:5},0);
+    addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
+    new IntersectionObserver(([e])=>e.isIntersecting?world.resumeAnimation():world.pauseAnimation()).observe(zoom);
+  }
+}catch(err){console.warn('Globe unavailable',err);world=null}
+
+function zoomBy(f){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(p.altitude*f,.35,7)},500)}
+$('#zIn').onclick=()=>zoomBy(.6);$('#zOut').onclick=()=>zoomBy(1.6);
+$('#zSpin').onclick=()=>{if(world){const c=world.controls();c.autoRotate=!c.autoRotate}};
+
+$('#months').innerHTML=TRIPS.map(t=>`<button class="m" data-m="${t.m}" role="tab"><b>${MON[t.m]}</b><span>${t.name}</span></button>`).join('');
+$('#months').addEventListener('click',e=>{const b=e.target.closest('.m');if(b){stopPlay();selectMonth(+b.dataset.m)}});
+function renderInfo(t){
+  info.innerHTML=t?`<div class="mo">${MONTH_FULL[t.m]} · month ${t.m+1} of 12</div><h3>${t.name}</h3><div class="pl">${t.place} · ${t.days} days · from ${money(t.price)}</div><p>${t.hook}</p><button class="btn" data-open="${t.id}">See the itinerary</button>`
+   :`<div class="mo">Year one</div><h3>12 months,<br>12 places</h3><p>Pick a month, or hit play. Every pin is a trip, joined in the order you'll take them.</p>`;
+}
+info.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o)openTrip(o.dataset.open)});
+function selectMonth(m){
+  const t=TRIPS.find(x=>x.m===m);if(!t)return;month=m;
+  $$('#months .m').forEach(b=>b.classList.toggle('on',+b.dataset.m===m));
+  const sel=$(`#months .m[data-m="${m}"]`);sel&&sel.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+  renderInfo(t);
+  if(world){
+    world.controls().autoRotate=false;
+    world.pointAltitude(x=>x.m===m?.16:.04).pointRadius(x=>x.m===m?.7:.4).ringsData([t]).ringLat('lat').ringLng('lng');
+    world.pointOfView({lat:t.lat,lng:t.lng,altitude:1.25},1800);
+  }
+}
+function stopPlay(){clearInterval(playTimer);playTimer=null;$('#playYear').textContent='▶ Play the year'}
+$('#playYear').onclick=()=>{
+  if(playTimer)return stopPlay();
+  $('#playYear').textContent='⏸ Pause';let i=month<0||month>=11?0:month+1;selectMonth(i);
+  playTimer=setInterval(()=>{i++;if(i>11)return stopPlay();selectMonth(i)},3600);
+};
+renderInfo(null);
+
 function onScroll(){
   const r=zoom.getBoundingClientRect(),p=clamp(-r.top/(r.height-innerHeight));
-  const eased=p*p;
-  globe.style.transform=`scale(${.7+eased*14})`;
-  globe.style.opacity=clamp(1-(p-.55)/.2);
-  zc.style.opacity=clamp(1-p/.28);zc.style.transform=`translateY(${-p*120}px)`;
-  zr.style.opacity=clamp((p-.62)/.2);
-  nav.classList.toggle('solid',scrollY>innerHeight*3.5);
-  $('#zEyebrow').textContent=p<.15?'The whole world':'Zooming in…';
+  if(world&&month<0&&p<.7){const cur=world.pointOfView();world.pointOfView({lat:cur.lat,lng:cur.lng,altitude:5-clamp(p/.6)*3.7},0)}
+  zc.style.opacity=clamp(1-p/.2);zc.style.transform=`translateY(${-p*160}px)`;
+  zr.style.opacity=clamp(Math.min((p-.2)/.12,(.55-p)/.1));
+  zUI.classList.toggle('on',p>.5);
+  $('#zEyebrow').textContent=p<.1?'The whole world':'Zooming in…';
+  nav.classList.toggle('solid',r.bottom<innerHeight*.5);
 }
 addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onScroll);onScroll();
 
