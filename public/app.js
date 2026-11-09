@@ -186,14 +186,28 @@ try{
       .ringsData([]).ringColor(()=>t=>`rgba(255,120,80,${1-t})`).ringMaxRadius(5).ringPropagationSpeed(2.2).ringRepeatPeriod(900)
       .onPointClick(t=>selectMonth(t.m)).onLabelClick(t=>selectMonth(t.m));
     world.renderer().setPixelRatio(Math.min(devicePixelRatio,2));
-    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.7;c.enableZoom=false;c.enablePan=false;
+    const c=world.controls();c.autoRotate=true;c.autoRotateSpeed=.7;c.enableZoom=false;c.enablePan=false;c.minPolarAngle=Math.PI*.3;c.maxPolarAngle=Math.PI*.7;
     world.pointOfView({lat:18,lng:60,altitude:5},0);
     addEventListener('resize',()=>world.width(innerWidth).height(innerHeight));
     new IntersectionObserver(([e])=>e.isIntersecting?world.resumeAnimation():world.pauseAnimation()).observe(zoom);
   }
 }catch(err){console.warn('Globe unavailable',err);world=null}
 
-function zoomBy(f){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(p.altitude*f,.35,7)},500)}
+let userZoom=false; // once someone zooms by hand, scrolling no longer overrides their zoom level
+function setAlt(a,ms){if(!world)return;const p=world.pointOfView();world.pointOfView({lat:p.lat,lng:p.lng,altitude:clamp(a,.35,7)},ms)}
+function zoomBy(f){if(!world)return;userZoom=true;setAlt(world.pointOfView().altitude*f,500)}
+if(world){
+  const el=$('#earth'),dist=t=>Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY);
+  let pinch=null,lastTap=0;
+  el.addEventListener('touchstart',e=>{if(e.touches.length===2){pinch={d:dist(e.touches),a:world.pointOfView().altitude};world.controls().autoRotate=false}},{passive:true});
+  el.addEventListener('touchmove',e=>{if(pinch&&e.touches.length===2){e.preventDefault();userZoom=true;setAlt(pinch.a*pinch.d/dist(e.touches),0)}},{passive:false});
+  el.addEventListener('touchend',e=>{
+    if(e.touches.length<2&&pinch){pinch=null;return}
+    if(e.changedTouches.length===1&&e.touches.length===0){const now=Date.now();if(now-lastTap<300){e.preventDefault();zoomBy(.55);lastTap=0}else lastTap=now}
+  },{passive:false});
+  el.addEventListener('dblclick',()=>zoomBy(.55));
+  el.addEventListener('wheel',e=>{if(e.ctrlKey){e.preventDefault();userZoom=true;setAlt(world.pointOfView().altitude*Math.exp(e.deltaY*.01),0)}},{passive:false});
+}
 $('#zIn').onclick=()=>zoomBy(.6);$('#zOut').onclick=()=>zoomBy(1.6);
 $('#zSpin').onclick=()=>{if(world){const c=world.controls();c.autoRotate=!c.autoRotate}};
 
@@ -225,7 +239,7 @@ renderInfo(null);
 
 function onScroll(){
   const r=zoom.getBoundingClientRect(),p=clamp(-r.top/(r.height-innerHeight));
-  if(world&&month<0&&p<.7){const cur=world.pointOfView();world.pointOfView({lat:cur.lat,lng:cur.lng,altitude:5-clamp(p/.6)*3.7},0)}
+  if(world&&month<0&&!userZoom&&p<.7){const cur=world.pointOfView();world.pointOfView({lat:cur.lat,lng:cur.lng,altitude:5-clamp(p/.6)*3.7},0)}
   zc.style.opacity=clamp(1-p/.2);zc.style.transform=`translateY(${-p*160}px)`;
   zr.style.opacity=clamp(Math.min((p-.2)/.12,(.55-p)/.1));
   zUI.classList.toggle('on',p>.5);

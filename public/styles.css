@@ -26,7 +26,7 @@ button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 .zoom-stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;color:#fff;background:#02040a url(img/night-sky.png) center/cover}
 #earth{position:absolute;inset:0;cursor:grab}
 #earth:active{cursor:grabbing}
-#earth canvas{outline:0;touch-action:pan-y}
+#earth canvas{outline:0;touch-action:pan-y!important}
 .zoom-copy{position:absolute;top:17vh;left:0;right:0;text-align:center;padding:0 20px;pointer-events:none;will-change:transform,opacity;text-shadow:0 2px 30px rgba(0,0,0,.6)}
 .zoom-copy h1{font-size:clamp(2.4rem,7vw,5.5rem)}
 .scrollhint{margin-top:1.5rem;font-size:.8rem;opacity:.8;animation:bob 2s ease-in-out infinite}
@@ -37,7 +37,7 @@ button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 .zoom-ui{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s}
 .zoom-ui.on{opacity:1}
 .zoom-ui.on>*{pointer-events:auto}
-.zoom-btns{position:absolute;right:clamp(14px,3vw,36px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.zoom-btns{position:absolute;z-index:3;color:#fff;right:clamp(14px,3vw,36px);top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
 .zoom-btns button{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.25);font-size:1.3rem;transition:.2s}
 .zoom-btns button:hover{background:rgba(255,255,255,.28)}
 .info{position:absolute;left:clamp(14px,3vw,36px);top:96px;width:min(320px,calc(100% - 100px));background:rgba(12,16,28,.72);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.16);border-radius:var(--r);padding:18px;transition:.4s}
