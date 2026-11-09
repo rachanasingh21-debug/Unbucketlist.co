@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unbucketlist — unbucket your bucket list</title>
+<meta name="description" content="Zoom out to zoom in. Pick an experience, see it in photos and video, and go where you wanna go.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <a class="logo" href="#top">unbucket<span>list</span></a>
+  <button class="pill" id="pillBtn" aria-label="Search experiences">
+    <span>Anywhere</span><i></i><span>Any experience</span><i></i><span class="muted">Add dates</span>
+    <b class="go">⌕</b>
+  </button>
+  <button class="wish" id="wishBtn">♡ Wishlist <em id="wishCount">0</em></button>
+</header>
+
+<!-- 1. ZOOM OUT → ZOOM IN -->
+<section class="zoom" id="top">
+  <div class="zoom-stage">
+    <div class="space"></div>
+    <div class="globe" id="globe">
+      <svg viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <radialGradient id="g1" cx="38%" cy="32%"><stop offset="0" stop-color="#5fb6c9"/><stop offset="1" stop-color="#0b3b57"/></radialGradient>
+          <clipPath id="gc"><circle cx="200" cy="200" r="190"/></clipPath>
+        </defs>
+        <circle cx="200" cy="200" r="190" fill="url(#g1)"/>
+        <g clip-path="url(#gc)" fill="#d9c58a" opacity=".92">
+          <path d="M70 120c30-30 80-25 100 5s-10 45-35 55-60 30-75 5-15-45 10-65z"/>
+          <path d="M215 80c35-20 90-5 105 30s-20 40-40 55-55 5-70-20-15-50 5-65z"/>
+          <path d="M150 250c25-15 60-5 70 25s-5 60-30 70-50-20-55-45 0-35 15-50z"/>
+          <path d="M290 230c20-10 50 5 50 30s-25 40-45 30-20-45-5-60z"/>
+        </g>
+        <g id="pins"></g>
+      </svg>
+    </div>
+    <div class="zoom-copy">
+      <p class="eyebrow" id="zEyebrow">The whole world</p>
+      <h1 id="zTitle">Your bucket list is <em>too big.</em></h1>
+      <p class="scrollhint">Scroll to zoom in ↓</p>
+    </div>
+    <div class="zoom-reveal" id="zReveal">
+      <p class="eyebrow">Here's the thing</p>
+      <h2>We help you <em>unbucket</em><br>your bucket list.</h2>
+      <p>Pick an experience. See it in photos and video. Go where you wanna go.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2. PICK AN EXPERIENCE (Airbnb-style) -->
+<section class="pick" id="pick">
+  <h2>What do you wanna <em>feel?</em></h2>
+  <div class="chips" id="chips" role="tablist"></div>
+  <div class="cards" id="cards"></div>
+</section>
+
+<!-- 3. REELS-STYLE TRIPS -->
+<section class="reels-intro"><p class="eyebrow">Trip by trip</p><h2>Keep scrolling.<br><em>Each screen is a trip.</em></h2></section>
+<section class="reels" id="reels"></section>
+
+<!-- 4. STORYTELLING -->
+<section class="story" id="story">
+  <div class="story-sticky">
+    <div class="story-bg" id="storyBg"></div>
+    <div class="story-text" id="storyText"></div>
+  </div>
+  <div class="story-steps" id="storySteps"></div>
+</section>
+
+<footer>
+  <h2>Ready to <em>unbucket</em> one?</h2>
+  <p>Tell us where you wanna go and we'll plan the rest.</p>
+  <form id="notify"><input type="email" placeholder="you@email.com" required><button>Start unbucketing</button></form>
+  <small>© <span id="yr"></span> Unbucketlist.co</small>
+</footer>
+
+<!-- TRIP DETAIL (itinerary) -->
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-bg" data-close></div>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</aside>
+
+<script src="app.js"></script>
+</body>
+</html>
