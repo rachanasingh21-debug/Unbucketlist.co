@@ -1,0 +1,307 @@
+{
+ "lofoten": [
+  {
+   "file": "lofoten-1.jpg",
+   "title": "File:Reine_i_Lofoten_LC0148.jpg",
+   "author": "Jörg Hempel",
+   "license": "CC BY-SA 2.0 de",
+   "source": "https://commons.wikimedia.org/wiki/File:Reine_i_Lofoten_LC0148.jpg",
+   "caption": "Reine"
+  },
+  {
+   "file": "lofoten-2.jpg",
+   "title": "File:At_Eliassen_Rorbuer_fishermen_cabin_area_in_Hamnøya,_Moskenes,_Lofoten,_Norway,_2015_April_-_2.jpg",
+   "author": "Ximonic (Simo Räsänen)",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:At_Eliassen_Rorbuer_fishermen_cabin_area_in_Hamn%C3%B8ya%2C_Moskenes%2C_Lofoten%2C_Norway%2C_2015_April_-_2.jpg",
+   "caption": "Rorbu cabins, Hamnøy"
+  },
+  {
+   "file": "lofoten-3.jpg",
+   "title": "File:Aurora_Borealis_(Northern_Light)_over_Reine,_Lofoten,_Norway.jpg",
+   "author": "Christoph Strässler",
+   "license": "CC BY-SA 2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Aurora_Borealis_%28Northern_Light%29_over_Reine%2C_Lofoten%2C_Norway.jpg",
+   "caption": "Northern lights over Reine"
+  }
+ ],
+ "patagonia": [
+  {
+   "file": "patagonia-1.jpg",
+   "title": "File:Towers_of_Paine_-_Torres_del_Paine_National_Park_13.jpg",
+   "author": "Thomas Fuhrmann",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Towers_of_Paine_-_Torres_del_Paine_National_Park_13.jpg",
+   "caption": "The towers of Paine"
+  },
+  {
+   "file": "patagonia-2.jpg",
+   "title": "File:Cuernos_del_Paine_in_Torres_del_Paine_National_Park.jpg",
+   "author": "Pedro Szekely from Los Angeles, USA",
+   "license": "CC BY-SA 2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Cuernos_del_Paine_in_Torres_del_Paine_National_Park.jpg",
+   "caption": "Cuernos del Paine"
+  },
+  {
+   "file": "patagonia-3.jpg",
+   "title": "File:Glaciar_Grey,_Parque_Nacional_Torres_del_Paine,_Chile4.jpg",
+   "author": "Diego Delso",
+   "license": "CC BY-SA 3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Glaciar_Grey%2C_Parque_Nacional_Torres_del_Paine%2C_Chile4.jpg",
+   "caption": "Grey Glacier"
+  }
+ ],
+ "kyoto": [
+  {
+   "file": "kyoto-1.jpg",
+   "title": "File:Torii_path_with_lantern_at_Fushimi_Inari_Taisha_Shrine,_Kyoto,_Japan.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Torii_path_with_lantern_at_Fushimi_Inari_Taisha_Shrine%2C_Kyoto%2C_Japan.jpg",
+   "caption": "Fushimi Inari Taisha"
+  },
+  {
+   "file": "kyoto-2.jpg",
+   "title": "File:Water_reflection_of_Kinkaku-ji_Temple_a_sunny_day,_Kyoto,_Japan.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Water_reflection_of_Kinkaku-ji_Temple_a_sunny_day%2C_Kyoto%2C_Japan.jpg",
+   "caption": "Kinkaku-ji, the Golden Pavilion"
+  },
+  {
+   "file": "kyoto-3.jpg",
+   "title": "File:Bamboo_Forest,_Arashiyama,_Kyoto,_Japan.jpg",
+   "author": "Basile Morin",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Bamboo_Forest%2C_Arashiyama%2C_Kyoto%2C_Japan.jpg",
+   "caption": "Arashiyama bamboo grove"
+  }
+ ],
+ "rajasthan": [
+  {
+   "file": "rajasthan-1.jpg",
+   "title": "File:East_facade_Hawa_Mahal_Jaipur_from_ground_level_(July_2022)_-_img_01.jpg",
+   "author": "Chainwit.",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:East_facade_Hawa_Mahal_Jaipur_from_ground_level_%28July_2022%29_-_img_01.jpg",
+   "caption": "Hawa Mahal, Jaipur"
+  },
+  {
+   "file": "rajasthan-3.jpg",
+   "title": "File:Jaisalmer_Fort,_India.jpg",
+   "author": "Clément Bardot",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jaisalmer_Fort%2C_India.jpg",
+   "caption": "Jaisalmer Fort"
+  }
+ ],
+ "santorini": [
+  {
+   "file": "santorini-1.jpg",
+   "title": "File:Oia_-_Santorini_2019.jpg",
+   "author": "User:Anna.Tsolidou",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Oia_-_Santorini_2019.jpg",
+   "caption": "Oia"
+  },
+  {
+   "file": "santorini-2.jpg",
+   "title": "File:Santorin_(GR),_Fira,_Caldera_--_2017_--_2615.jpg",
+   "author": "Dietmar Rabich",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Santorin_%28GR%29%2C_Fira%2C_Caldera_--_2017_--_2615.jpg",
+   "caption": "The caldera from Fira"
+  },
+  {
+   "file": "santorini-3.jpg",
+   "title": "File:Ship_procession_fresco,_part_1,_Akrotiri,_Greece.jpg",
+   "author": "Unknown (public domain)",
+   "license": "Public domain",
+   "source": "https://commons.wikimedia.org/wiki/File:Ship_procession_fresco%2C_part_1%2C_Akrotiri%2C_Greece.jpg",
+   "caption": "Ship fresco from Akrotiri"
+  }
+ ],
+ "maldives": [
+  {
+   "file": "maldives-1.jpg",
+   "title": "File:Maldives_-_aerial_view4.jpg",
+   "author": "Hotel Kaesong",
+   "license": "CC BY-SA 2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Maldives_-_aerial_view4.jpg",
+   "caption": "Atolls from the air"
+  },
+  {
+   "file": "maldives-2.jpg",
+   "title": "File:Diamonds_Thudufushi_Beach_and_Water_Villas,_May_2017_-03.jpg",
+   "author": "Martin Falbisoner (1978–)",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Diamonds_Thudufushi_Beach_and_Water_Villas%2C_May_2017_-03.jpg",
+   "caption": "Overwater villas"
+  },
+  {
+   "file": "maldives-3.jpg",
+   "title": "File:Beach_under_palm_trees._Eriyadu,_Maldives.jpg",
+   "author": "Ввласенко",
+   "license": "CC BY-SA 3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Beach_under_palm_trees._Eriyadu%2C_Maldives.jpg",
+   "caption": "Eriyadu beach"
+  }
+ ],
+ "iceland": [
+  {
+   "file": "iceland-1.jpg",
+   "title": "File:Skógafoss_July_2014.JPG",
+   "author": "Martin Falbisoner (1978–)",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Sk%C3%B3gafoss_July_2014.JPG",
+   "caption": "Skógafoss",
+   "pos": "78% 50%"
+  },
+  {
+   "file": "iceland-2.jpg",
+   "title": "File:021_Wild_smiling_harbor_seal_at_Jökulsárlón_(Iceland)_Photo_by_Giles_Laurent.jpg",
+   "author": "© Giles Laurent , gileslaurent.com , License CC BY-SA",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:021_Wild_smiling_harbor_seal_at_J%C3%B6kuls%C3%A1rl%C3%B3n_%28Iceland%29_Photo_by_Giles_Laurent.jpg",
+   "caption": "Harbour seal, Jökulsárlón"
+  },
+  {
+   "file": "iceland-3.jpg",
+   "title": "File:Island_Vatnajökull_02.JPG",
+   "author": "Zairon",
+   "license": "CC BY-SA 3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Island_Vatnaj%C3%B6kull_02.JPG",
+   "caption": "Vatnajökull"
+  }
+ ],
+ "serengeti": [
+  {
+   "file": "serengeti-1.jpg",
+   "title": "File:Serengeti_wildebeest_migration_JF.jpg",
+   "author": "Wolves201",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Serengeti_wildebeest_migration_JF.jpg",
+   "caption": "The wildebeest migration"
+  },
+  {
+   "file": "serengeti-2.jpg",
+   "title": "File:020_The_lion_king_Snyggve_in_the_Serengeti_National_Park_Photo_by_Giles_Laurent.jpg",
+   "author": "© Giles Laurent , gileslaurent.com , License CC BY-SA",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:020_The_lion_king_Snyggve_in_the_Serengeti_National_Park_Photo_by_Giles_Laurent.jpg",
+   "caption": "Lion on the kopjes"
+  },
+  {
+   "file": "serengeti-3.jpg",
+   "title": "File:Acacia_tree_on_a_sunrise_safari_at_the_Serengeti_National_Park,_Tanzania.jpg",
+   "author": "Daniel Zaas",
+   "license": "Public domain",
+   "source": "https://commons.wikimedia.org/wiki/File:Acacia_tree_on_a_sunrise_safari_at_the_Serengeti_National_Park%2C_Tanzania.jpg",
+   "caption": "Acacia at sunrise"
+  }
+ ],
+ "bali": [
+  {
+   "file": "bali-1.jpg",
+   "title": "File:Rice_terraces,_Bali.jpg",
+   "author": "© Vyacheslav Argenberg / https://www.vascoplanet.com/",
+   "license": "CC BY 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Rice_terraces%2C_Bali.jpg",
+   "caption": "Rice terraces"
+  },
+  {
+   "file": "bali-2.jpg",
+   "title": "File:Brantan_Bali_Pura-Ulun-Danu-Bratan-01.jpg",
+   "author": "Photo by CEphoto, Uwe Aranas or alternatively © CEphoto, Uwe Aranas",
+   "license": "CC BY-SA 3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Brantan_Bali_Pura-Ulun-Danu-Bratan-01.jpg",
+   "caption": "Pura Ulun Danu Bratan"
+  },
+  {
+   "file": "bali-3.jpg",
+   "title": "File:Jatiluwih_rice_terraces_SF0002.jpg",
+   "author": "Stefan Fussan",
+   "license": "CC BY-SA 3.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jatiluwih_rice_terraces_SF0002.jpg",
+   "caption": "Jatiluwih terraces"
+  }
+ ],
+ "peru": [
+  {
+   "file": "peru-1.jpg",
+   "title": "File:Machu_Picchu,_Perú,_2015-07-30,_DD_47.JPG",
+   "author": "Diego Delso",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Machu_Picchu%2C_Per%C3%BA%2C_2015-07-30%2C_DD_47.JPG",
+   "caption": "Machu Picchu"
+  },
+  {
+   "file": "peru-2.jpg",
+   "title": "File:Machu_Picchu,_Perú,_2015-07-30,_DD_60.JPG",
+   "author": "Diego Delso",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Machu_Picchu%2C_Per%C3%BA%2C_2015-07-30%2C_DD_60.JPG",
+   "caption": "The citadel and Huayna Picchu"
+  },
+  {
+   "file": "peru-3.jpg",
+   "title": "File:Vinicunca,_Rainbow_Mountain.jpg",
+   "author": "Yifan Wang",
+   "license": "CC BY 2.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Vinicunca%2C_Rainbow_Mountain.jpg",
+   "caption": "Vinicunca, Rainbow Mountain"
+  }
+ ],
+ "morocco": [
+  {
+   "file": "morocco-1.jpg",
+   "title": "File:2018_01_(Blue)_-_Chaouen.jpg",
+   "author": "Fbrandao.1963",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:2018_01_%28Blue%29_-_Chaouen.jpg",
+   "caption": "Chefchaouen"
+  },
+  {
+   "file": "morocco-2.jpg",
+   "title": "File:Erg_Chebbi_sunset.jpg",
+   "author": "Thomas Fuhrmann",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Erg_Chebbi_sunset.jpg",
+   "caption": "Erg Chebbi at sunset"
+  },
+  {
+   "file": "morocco-3.jpg",
+   "title": "File:Jamaa_El_Fna,_Marrakesh,_Morocco,_20250124_1804_7017.jpg",
+   "author": "Jakub Hałun",
+   "license": "CC BY 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Jamaa_El_Fna%2C_Marrakesh%2C_Morocco%2C_20250124_1804_7017.jpg",
+   "caption": "Jemaa el-Fnaa, Marrakesh"
+  }
+ ],
+ "newzealand": [
+  {
+   "file": "newzealand-1.jpg",
+   "title": "File:Milford_Sound_in_Fiordland_National_Park_01.jpg",
+   "author": "Krzysztof Golik (1987–)",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Milford_Sound_in_Fiordland_National_Park_01.jpg",
+   "caption": "Milford Sound"
+  },
+  {
+   "file": "newzealand-2.jpg",
+   "title": "File:Valley_of_Hooker_River_02.jpg",
+   "author": "Krzysztof Golik",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Valley_of_Hooker_River_02.jpg",
+   "caption": "Hooker Valley"
+  },
+  {
+   "file": "newzealand-3.jpg",
+   "title": "File:Church_of_the_Good_Shepherd,_Lake_Tekapo,_New_Zealand_03.jpg",
+   "author": "Michal Klajban",
+   "license": "CC BY-SA 4.0",
+   "source": "https://commons.wikimedia.org/wiki/File:Church_of_the_Good_Shepherd%2C_Lake_Tekapo%2C_New_Zealand_03.jpg",
+   "caption": "Church of the Good Shepherd, Tekapo"
+  }
+ ]
+}

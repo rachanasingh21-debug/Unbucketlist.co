@@ -58,6 +58,8 @@ const CAL={patagonia:[0,-51.0,-73.1],lofoten:[1,68.2,13.6],kyoto:[2,35.01,135.77
  iceland:[6,64.9,-19.0],serengeti:[7,-2.33,34.8],bali:[8,-8.4,115.2],peru:[9,-13.16,-72.55],morocco:[10,31.6,-8.0],newzealand:[11,-44.7,169.1]};
 TRIPS.forEach(t=>{[t.m,t.lat,t.lng]=CAL[t.id]});
 TRIPS.sort((a,b)=>a.m-b.m);
+const CREDITS=window.CREDITS||{};
+TRIPS.forEach(t=>{t.credits=CREDITS[t.id]||[];t.photos=t.credits.map(c=>'media/'+c.file);if(!t.image&&t.photos.length){t.image=t.photos[0];t.pos=t.credits[0].pos||''}});
 
 const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
 const money=n=>'$'+n.toLocaleString();
@@ -75,13 +77,41 @@ function ambient(){
 /* A layered SVG landscape + optional real photo/video (media wins when provided) */
 function scape(t,id){
   const [a,b,c]=t.land;
-  const media=t.video?`<video class="media" src="${t.video}" ${t.image?`poster="${t.image}"`:''} autoplay muted loop playsinline></video>`:t.image?`<img class="media" src="${t.image}" alt="${t.name}" loading="lazy">`:'';
+  const media=t.video?`<video class="media" src="${t.video}" ${t.image?`poster="${t.image}"`:''} autoplay muted loop playsinline></video>`:t.image?`<img class="media" style="object-position:${t.pos||"50% 50%"}" src="${t.image}" alt="${t.name}" loading="lazy">`:'';
   return `<div style="position:absolute;inset:0;background:linear-gradient(180deg,${t.sky[0]},${t.sky[1]} 55%,${t.sky[2]})"></div>
   <svg class="scape" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
    <circle cx="285" cy="110" r="34" fill="#fff" opacity=".55"/>
    <path d="M0 190 L70 120 L120 175 L190 90 L260 180 L330 130 L400 195 V300 H0Z" fill="${c}" opacity=".55"/>
    <path d="M0 220 Q80 160 160 215 T320 205 T400 225 V300 H0Z" fill="${b}"/>
-   <path d="M0 255 Q100 215 200 250 T400 245 V300 H0Z" fill="${a}"/></svg>${media||ambient()}`;
+   <path d="M0 255 Q100 215 200 250 T400 245 V300 H0Z" fill="${a}"/></svg>${media}${ambient()}`;
+}
+
+/* ---------- STORY BANNER: a drifting collage of photos, facts and quotes per destination ---------- */
+const fmtCoord=t=>`${Math.abs(t.lat).toFixed(1)}°${t.lat<0?'S':'N'} · ${Math.abs(t.lng).toFixed(1)}°${t.lng<0?'W':'E'}`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function photoTile(t,i,shape){
+  const n=t.photos.length, src=n?t.photos[i%n]:'', c=n?t.credits[i%n]:null;
+  // "File:Machu_Picchu,_Perú,_2015-07-30,_DD_47.JPG" -> "Machu Picchu, Perú"
+  const cap=c?c.caption||c.title.replace(/^File:/,'').replace(/\.\w+$/,'').replace(/_/g,' ').replace(/\(.*?\)/g,'').replace(/(\s*[,\-–]?\s*(\S*\d\S*|[A-Z]{2,3}))+\s*$/,'').trim():t.name;
+  const inner=src?`<img src="${src}" alt="${esc(cap)}" loading="lazy">`:scape({...t,image:'',video:''});
+  return `<figure class="tile ph ${shape}">${inner}${c?`<figcaption>${esc(cap)}</figcaption>`:''}</figure>`;
+}
+function storyTiles(t){
+  const F=(window.FACTS||{})[t.id]||{q:t.tag,f:[]};
+  const fact=(f,i)=>`<div class="tile fact"><small>${t.name} · fact ${String(i+1).padStart(2,'0')}</small><b>${f.k}</b><p>${f.t}</p></div>`;
+  const seq=[photoTile(t,0,'tall'), F.f[0]?fact(F.f[0],0):'', `<div class="tile quote"><span>“</span>${F.q}<small>${t.place}</small></div>`,
+    photoTile(t,1,'wide'), F.f[1]?fact(F.f[1],1):'', `<div class="tile kraft"><small>Month ${t.m+1} of 12</small><b>${MONTH_FULL[t.m]}</b><span>${fmtCoord(t)}</span><i>${t.name}</i></div>`,
+    photoTile(t,2,'tall'), F.f[2]?fact(F.f[2],2):'', photoTile(t,0,'wide'), F.f[3]?fact(F.f[3],3):''];
+  const Y=[18,-26,10,-8,30,-20,6,-30,22,-12];
+  return seq.filter(Boolean).map((h,i)=>h.replace('class="tile',`style="--y:${Y[i%10]}px" class="tile`)).join('');
+}
+function storyBanner(t){
+  const tiles=storyTiles(t);
+  const cred=t.credits.length?'Photos: '+t.credits.map(c=>`<a href="${c.source}" target="_blank" rel="noopener">${esc(c.author)}</a> (${esc(c.license)})`).join(', ')+', via Wikimedia Commons.':'';
+  return `<div class="tale-in">
+   <header class="tale-head"><p class="eyebrow">The story of</p><h3>${t.name}</h3><span>${fmtCoord(t)}</span></header>
+   <div class="tale-track-wrap"><div class="tale-track" style="--dur:${60+t.m*2}s">${tiles}${tiles.replace(/class="tile/g,'aria-hidden="true" class="tile')}</div></div>
+   <div class="tale-foot"><p class="tale-lead">${t.story}</p><p class="tale-credit">${cred}</p></div></div>`;
 }
 
 /* ---------- 2. PICK ---------- */
@@ -107,20 +137,21 @@ $('#reels').innerHTML=TRIPS.map((t,i)=>{const n=TRIPS[(i+1)%TRIPS.length];return
  <div class="reel-bg">${scape(t)}</div>
  <div class="reel-copy"><div class="reel-meta"><span>${String(i+1).padStart(2,'0')} / ${String(TRIPS.length).padStart(2,'0')}</span><span>${MONTH_FULL[t.m]}</span><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)}</span></div>
   <h3>${t.name}</h3><p>${t.hook}</p><button class="btn" data-open="${t.id}">See the itinerary</button><button class="btn ghost" data-h2="${t.id}">♡ Save</button></div>
- <div class="reel-next">Next · ${n.name}<b>↓</b></div></section>`}).join('');
+ <div class="reel-next">The story of ${t.name}<b>↓</b></div></section>
+ <section class="reel tale" data-i="${i}">${storyBanner(t)}<div class="reel-next">Next · ${n.name}<b>↓</b></div></section>`}).join('');
 document.body.insertAdjacentHTML('beforeend',`<nav class="dots" id="dots">${TRIPS.map((t,i)=>`<button data-d="${i}" aria-label="${t.name}"></button>`).join('')}</nav>`);
 const reels=$('#reels');
 $('#reels').addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o)openTrip(o.dataset.open);
   const h=e.target.closest('[data-h2]');if(h){const id=h.dataset.h2;wish.has(id)?(wish.delete(id),h.textContent='♡ Save'):(wish.add(id),h.textContent='♥ Saved',toast('Saved to your wishlist ♥'));saveWish();renderCards()}
 });
-$('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)$$('.reel')[b.dataset.d].scrollIntoView({behavior:'smooth'})});
+$('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)$(`.reel[data-i="${b.dataset.d}"]`).scrollIntoView({behavior:'smooth'})});
 const io=new IntersectionObserver(es=>es.forEach(en=>{
   if(en.isIntersecting){en.target.classList.add('in');$$('#dots button').forEach((d,i)=>d.classList.toggle('on',i==en.target.dataset.i))}
 }),{root:reels,threshold:.6});
 $$('.reel').forEach(r=>io.observe(r));
 // parallax inside the reels scroller
-reels.addEventListener('scroll',()=>{const h=reels.clientHeight;$$('.reel').forEach((r,i)=>{const d=(reels.scrollTop-i*h)/h;$('.reel-bg',r).style.transform=`translateY(${d*-8}%) scale(${1+Math.abs(d)*.08})`})},{passive:true});
+reels.addEventListener('scroll',()=>{const h=reels.clientHeight;$$('.reel').forEach((r,i)=>{const bg=$('.reel-bg',r);if(!bg)return;const d=(reels.scrollTop-i*h)/h;bg.style.transform=`translateY(${d*-8}%) scale(${1+Math.abs(d)*.08})`})},{passive:true});
 new IntersectionObserver(([e])=>$('#dots').classList.toggle('show',e.isIntersecting),{threshold:.5}).observe(reels);
 
 /* ---------- 4. STORY ---------- */
@@ -207,10 +238,12 @@ addEventListener('scroll',onScroll,{passive:true});addEventListener('resize',onS
 const drawer=$('#drawer'),sheet=$('#sheet');
 function openTrip(id){
   const t=TRIPS.find(x=>x.id===id);
-  const tile=(n)=>`<div class="${n===2?'play':''}">${scape({...t,sky:[...t.sky].reverse().slice(n%2,3).concat(t.sky).slice(0,3)})}</div>`;
+  const tile=(n)=>`<div class="${n===2&&!t.photos.length?'play':''}">${scape({...t,image:t.photos[n]||'',video:'',sky:[...t.sky].reverse().slice(n%2,3).concat(t.sky).slice(0,3)})}</div>`;
+  const nTiles=t.photos.length>=3?3:5;
   sheet.innerHTML=`<button class="close" data-close aria-label="Close">✕</button>
    <div class="drawer-hero">${scape(t)}<div class="t"><p class="eyebrow">${t.place} · ${t.days} days</p><h2>${t.name}</h2></div></div>
-   <div class="gallery">${[0,1,2,3,4].map(tile).join('')}</div>
+   <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
+   <section class="tale in-drawer">${storyBanner(t)}</section>
    <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>
     <div class="tl">${t.plan.map((d,i)=>`<div class="day"><small>Day ${i+1}</small><h4>${d[0]}</h4><p>${d[1]}</p></div>`).join('')}</div></div>
     <aside class="book"><div class="p">${money(t.price)} <span>/ person</span></div>
