@@ -303,3 +303,24 @@ html,body{overflow-x:clip}
 .d-bar span{display:block;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#ff8a6e;font-weight:600;margin-top:2px}
 .d-bar .btn{padding:12px 22px;white-space:nowrap}
 @media(max-width:820px){.d-bar{padding:8px 8px 8px 16px}.d-bar b{font-size:1.1rem}.d-bar .btn{padding:11px 16px}}
+
+/* place card: full, then melts into a slim bar while you explore */
+.map-card{display:grid;grid-template-rows:1fr 0fr;transition:opacity .35s,transform .45s cubic-bezier(.2,.7,.2,1),grid-template-rows .5s cubic-bezier(.2,.7,.2,1),padding .45s,border-radius .45s,background .45s,bottom .45s,width .45s,box-shadow .45s}
+.map-card>*{min-height:0;overflow:hidden}
+.mc-full{transition:opacity .3s}
+.mc-inner{position:relative}
+.mc-min{position:absolute;top:-6px;right:-6px;width:34px;height:34px;border-radius:50%;color:var(--muted);font-size:1.1rem;line-height:1}
+.mc-min:hover{background:#efe7da;color:var(--ink)}
+.mc-bar{display:flex;align-items:center;gap:8px;opacity:0;transition:opacity .3s}
+.mc-expand{flex:1;min-width:0;display:flex;align-items:baseline;gap:10px;text-align:left;padding:6px 4px;color:var(--ink)}
+.mc-expand b{font-family:var(--serif);font-weight:400;font-size:1.25rem;white-space:nowrap}
+.mc-expand span{font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-expand i{font-style:normal;margin-left:auto;color:var(--muted);font-size:.9rem}
+.mc-bar .btn{padding:10px 16px;font-size:.85rem;white-space:nowrap}
+.map-card.mini{grid-template-rows:0fr 1fr;padding:6px 6px 6px 16px;border-radius:99px;background:rgba(255,253,248,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 8px 24px rgba(10,20,40,.18);bottom:18px;width:min(460px,calc(100% - 32px))}
+.map-card.mini .mc-full{opacity:0}
+.map-card.mini .mc-bar{opacity:1}
+.map-wrap.carded .see-all{opacity:0;pointer-events:none}
+.see-all{transition:opacity .3s}
+@media(max-width:760px){.map-card.mini{left:12px;right:12px;width:auto;bottom:14px}.map-wrap.mini.carded .map-btns{top:auto;bottom:80px}}
+@media(prefers-reduced-motion:reduce){.map-card{transition:opacity .2s}}

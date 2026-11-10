@@ -240,11 +240,17 @@ function render(){
   if(dusk>0){ctx.fillStyle=`rgba(18,28,58,${.14*dusk})`;ctx.fillRect(0,0,W,H);
     const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(10,16,40,0)');vg.addColorStop(1,`rgba(10,16,40,${.38*dusk})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   // journeys (constellations) and place markers
-  starHits=[];hits=[];placed=[];
+  starHits=[];hits=[];placed=[];reserveUI();
   for(const d of DEST)drawJourney(d);
   for(const d of DEST)drawMarker(d);
 }
 let placed=[];
+const btns=document.querySelector('.map-btns');
+function reserveUI(){ // screen areas labels must not use: the site header, the zoom buttons, the place card
+  placed.push([0,0,W,W<760?74:72]);
+  const wr=wrap.getBoundingClientRect();
+  for(const el of [btns,card]){if(!el||(el===card&&!card.classList.contains('on')))continue;const r=el.getBoundingClientRect();placed.push([r.left-wr.left-6,r.top-wr.top-6,r.width+12,r.height+12])}
+}
 const KIND={arrive:'#3ccf86',depart:'#3ccf86',stop:'#ff6a45',side:'#f6b84b'};
 const KIND_RGB={arrive:'60,207,134',depart:'60,207,134',stop:'255,106,69',side:'246,184,75'};
 function fit(text,max){if(ctx.measureText(text).width<=max)return text;while(text.length>3&&ctx.measureText(text+'…').width>max)text=text.slice(0,-1);return text.trim()+'…'}
@@ -307,30 +313,41 @@ function updateFocus(){
   let best=null,bd=1e9;
   for(const d of DEST){const q=V.k/fitK(d.id);if(q<.3)continue;const b=routeBox(R[d.id]);const dx=(V.x-b.cx)*V.k,dy=(V.y-b.cy)*V.k,dist=Math.hypot(dx,dy);
     if(dist<Math.max(W,H)*.6&&dist<bd){bd=dist;best=d.id}}
-  if(best!==focus){focus=best;showCard(best)}
+  if(best!==focus){focus=best;movedInFocus=false;showCard(best)}
+  if(anim&&anim.place)openK=V.k; // while flying to a place, the card stays open
+  if(focus&&!cardMini&&!(anim&&anim.place)&&(V.k/openK>1.12||movedInFocus))setMini(true);
   if(heroCopy)heroCopy.classList.toggle('away',!!focus||interacted&&V.k>kStart*1.8);
 }
 function showCard(id){
   tip.hidden=true;wrap.classList.toggle('carded',!!id);
-  if(!id){card.classList.remove('on');return}
+  if(!id){card.classList.remove('on');setMini(false,true);return}
   const t=TRIPS.find(x=>x.id===id),r=R[id],offers=(window.OFFERS||{})[id]||[];
   const route=r.stops.map(s=>s[0]).join(' · ')+(r.loop?' · back to '+r.stops[0][0]:'');
-  card.innerHTML=`<p class="mc-eye">Best in ${MONTH_FULL[t.m]} · ${t.place}</p><h3>${t.name}</h3>
+  card.innerHTML=`<div class="mc-full"><div class="mc-inner"><button class="mc-min" type="button" data-minimise aria-label="Minimise">⌄</button>
+   <p class="mc-eye">Best in ${MONTH_FULL[t.m]} · ${t.place}</p><h3>${t.name}</h3>
    <p class="mc-route">${route}</p><p class="mc-meta">${t.days} days · from ${money(t.price)} · ${offers.length} way${offers.length===1?'':'s'} to go</p>
    <p class="legend"><i class="k-arrive"></i>Arrive &amp; depart<i class="k-stop"></i>Stops<i class="k-side"></i>Side trips</p>
    <div class="mc-row"><button class="btn" type="button" data-unbucket="${id}">Unbucket this for me</button><button class="btn ghost3" type="button" data-explore="${id}">Explore ${t.name}</button></div>
-   <button class="mc-back" type="button" data-world>← Back to the world</button>`;
-  card.classList.add('on');
+   <button class="mc-back" type="button" data-world>← Back to the world</button></div></div>
+   <div class="mc-bar"><button class="mc-expand" type="button" data-expand aria-label="Show details for ${t.name}"><b>${t.name}</b><span>${t.days} days · from ${money(t.price)}</span><i aria-hidden="true">⌃</i></button>
+    <button class="btn" type="button" data-unbucket="${id}">Unbucket</button></div>`;
+  setMini(false,true);card.classList.add('on');
 }
 card.addEventListener('click',e=>{
   const u=e.target.closest('[data-unbucket]');if(u)return openTrip(u.dataset.unbucket,{book:true});
   const x=e.target.closest('[data-explore]');if(x)return openTrip(x.dataset.explore);
-  if(e.target.closest('[data-world]'))flyTo(worldView());
+  if(e.target.closest('[data-world]'))return flyTo(worldView());
+  if(e.target.closest('[data-expand]'))return setMini(false);
+  if(e.target.closest('[data-minimise]'))return setMini(true);
 });
+// the card minimises once you zoom in or move around a place, and stays slim until you tap it
+let cardMini=false,movedInFocus=false,openK=1;
+function setMini(m,force){if(m===cardMini&&!force)return;cardMini=m;card.classList.toggle('mini',m);wrap.classList.toggle('mini',m);if(!m){movedInFocus=false;openK=V.k}
+  const f=card.querySelector('.mc-full'),b=card.querySelector('.mc-bar');if(f)f.inert=m;if(b)b.inert=!m} // only the visible half can be clicked or tabbed to
 
 /* ---------- smooth flights (van Wijk & Nuij zoom-pan) ---------- */
 let anim=null;
-function flyTo(to,ms){
+function flyTo(to,ms,place){
   const p0=[V.x,V.y,W/V.k],p1=[to.x,to.y,W/to.k],rho=1.35,r2=rho*rho;
   const dx=p1[0]-p0[0],dy=p1[1]-p0[1],d2=dx*dx+dy*dy,d1=Math.sqrt(d2);let S,f;
   if(d2<1e-12){S=Math.log(p1[2]/p0[2])/rho;f=t=>[p0[0],p0[1],p0[2]*Math.exp(rho*t*S)]}
@@ -339,11 +356,11 @@ function flyTo(to,ms){
     const cosh=x=>(Math.exp(x)+Math.exp(-x))/2,sinh=x=>(Math.exp(x)-Math.exp(-x))/2,tanh=x=>sinh(x)/cosh(x);
     f=t=>{const s=t*S,c0=cosh(r0),u=p0[2]/(r2*d1)*(c0*tanh(rho*s+r0)-sinh(r0));return [p0[0]+u*dx,p0[1]+u*dy,p0[2]*c0/cosh(rho*s+r0)]}}
   const dur=reduce?1:(ms||cl(Math.abs(S)*700,900,3200));const t0=performance.now();
-  anim={step(now){const t=cl((now-t0)/dur),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;const [x,y,w]=f(e);V.x=x;V.y=y;V.k=W/w;if(t>=1)anim=null}};
+  anim={place,step(now){const t=cl((now-t0)/dur),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;const [x,y,w]=f(e);V.x=x;V.y=y;V.k=W/w;if(t>=1)anim=null}};
   wake();
 }
 function worldView(){return {x:W<760?80:42,y:W<760?-36:-20,k:kStart}}
-window.mapFlyTo=id=>{if(R[id])flyTo(fitView(id))};
+window.mapFlyTo=id=>{if(R[id])flyTo(fitView(id),0,true)};
 window.mapScreenPos=id=>{const d=TRIPS.find(t=>t.id===id);return d?{x:sx(d.lng),y:sy(-d.lat)}:null}; // where a place's dot is on screen
 
 /* ---------- gestures: drag to move, pinch / buttons / double-tap / ctrl+scroll to zoom ---------- */
@@ -352,6 +369,8 @@ function zoomAt(f,px,py){const x=wx(px),y=wy(py);V.k=cl(V.k*f,kMin,kMax);V.x=x-(
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});anim=null;interacted=true;
   if(ptrs.size===1){drag={x:e.clientX,y:e.clientY};vel={x:0,y:0};tapStart={x:e.clientX,y:e.clientY,t:performance.now()}}else tapStart=null;wake()});
 cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const prev=ptrs.get(e.pointerId);const cur={x:e.clientX,y:e.clientY};
+  if(focus&&Math.hypot(cur.x-(tapStart?tapStart.x:cur.x),cur.y-(tapStart?tapStart.y:cur.y))>10)movedInFocus=true;
+  if(ptrs.size===2&&focus)movedInFocus=true;
   if(ptrs.size===1&&drag){const dx=cur.x-prev.x,dy=cur.y-prev.y;V.x-=dx/V.k;V.y-=dy/V.k;clampView();const now=performance.now(),dt=Math.max(8,now-lastMove);vel={x:dx/dt,y:dy/dt};lastMove=now}
   else if(ptrs.size===2){const [a,b]=[...ptrs.values()];const other=a===prev?b:a;const d0=Math.hypot(prev.x-other.x,prev.y-other.y),d1=Math.hypot(cur.x-other.x,cur.y-other.y);
     const r=cv.getBoundingClientRect(),mx=(cur.x+other.x)/2-r.left,my=(cur.y+other.y)/2-r.top;if(d0>0)zoomAt(d1/d0,mx,my);V.x-=(cur.x-prev.x)/2/V.k;V.y-=(cur.y-prev.y)/2/V.k;clampView()}
@@ -366,7 +385,7 @@ function inertia(v){let last=performance.now();anim={step(now){const dt=now-last
 let lastTap=0;
 function handleTap(x,y){
   const now=performance.now();
-  for(const h of hits)if(Math.hypot(h.x-x,h.y-y)<24){lastTap=0;return flyTo(fitView(h.id))}
+  for(const h of hits)if(Math.hypot(h.x-x,h.y-y)<24){lastTap=0;return flyTo(fitView(h.id),0,true)}
   for(const s of starHits)if(Math.hypot(s.x-x,s.y-y)<20){const st=R[s.id].stops[s.i];tip.textContent=`${st[0]} · ${st[3]}${st[4]?' · '+st[4]:''}`;tip.style.left=x+'px';tip.style.top=y+'px';tip.hidden=false;lastTap=0;return}
   tip.hidden=true;
   if(now-lastTap<320){lastTap=0;zoomSmooth(2.2,x,y)}else lastTap=now;
