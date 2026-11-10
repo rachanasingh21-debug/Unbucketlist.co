@@ -7,7 +7,7 @@
 <meta name="description" content="Zoom out to zoom in. Pick an experience, see it in photos and video, and go where you wanna go.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=11">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 
@@ -29,7 +29,9 @@
       <h1>Where do you <em>wanna go?</em></h1>
       <p>Tap a dot to fly there.<span class="more"> Keep zooming to see the journey.</span></p>
     </div>
-    <div class="map-btns"><button id="mzIn" type="button" aria-label="Zoom in">+</button><button id="mzOut" type="button" aria-label="Zoom out">−</button><button id="mzWorld" type="button" aria-label="Back to the whole world" title="Whole world">◎</button></div>
+    <div class="map-btns"><button id="mzIn" type="button" aria-label="Zoom in">+</button><button id="mzOut" type="button" aria-label="Zoom out">−</button><button id="mzWorld" type="button" aria-label="Back to the whole world" title="Whole world">◎</button><button id="mzLook" type="button" aria-label="Map colours" title="Map colours"><i class="look-dot"></i></button></div>
+    <div class="look-menu" id="lookMenu" hidden></div>
+    <div class="wild-tip" id="wildTip" hidden></div>
     <p class="zoom-hint" id="zoomHint" hidden>Hold Ctrl (⌘ on Mac) and scroll to zoom, or use + and −</p>
     <aside class="map-card" id="mapCard" aria-live="polite"></aside>
     <p class="star-tip" id="starTip" hidden></p>
@@ -71,11 +73,12 @@
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
 </aside>
 
-<script src="facts.js?v=11"></script>
-<script src="media/photos.js?v=11"></script>
-<script src="offers.js?v=11"></script>
-<script src="routes.js?v=11"></script>
-<script src="app.js?v=11"></script>
-<script src="map.js?v=11"></script>
+<script src="facts.js?v=12"></script>
+<script src="media/photos.js?v=12"></script>
+<script src="offers.js?v=12"></script>
+<script src="routes.js?v=12"></script>
+<script src="wildlife.js?v=12"></script>
+<script src="app.js?v=12"></script>
+<script src="map.js?v=12"></script>
 </body>
 </html>

@@ -8,7 +8,8 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 S = os.path.dirname(os.path.abspath(__file__))
-OUT = '/home/user/Unbucketlist.co/public/data/'
+BASE = '/home/user/Unbucketlist.co/public/data/'
+OUT = BASE
 CACHE = S + '/terrain/'
 D = json.load(open(S + '/mapdata.json'))
 URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
@@ -70,6 +71,24 @@ def hexrgb(h): h = h.lstrip('#'); return np.array([int(h[i:i + 2], 16) for i in 
 def sstep(a, b, v): t = np.clip((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 def mix(c, col, w): return c * (1 - w[..., None]) + col * w[..., None]
 
+LOOKS = {
+ # the current, calm natural look
+ 'natural': dict(dry='#dcc796', mid='#b9c287', wet='#6f9a5c', boreal='#5f8560', dune='#e2c48a', rock='#a99272', high='#bdb3a3', snow='#f6f7f3',
+                 warm='#fff0d2', cool='#44557a', sea=['#a6dbd6', '#93cfd2', '#7cbccb', '#5f9fbd', '#4785ad'], sat=1.12, lift=0, tint=.55),
+ # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
+ 'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
+                warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
+ # dreamy pastel: mint and peach, rose rock, lavender shade, aqua to periwinkle sea
+ 'pastel': dict(dry='#f6d6ae', mid='#cfe4b2', wet='#94d0a2', boreal='#86bba3', dune='#f4c7a1', rock='#dcb0b4', high='#ead0e4', snow='#ffffff',
+                warm='#fff1e4', cool='#8a82cf', sea=['#d2f6ef', '#b4ebec', '#9bdbe8', '#86c1e6', '#7aa4de'], sat=1.0, lift=.09, tint=.3),
+ # vivid explorer: jade and lime, saffron sand, terracotta mountains, ultramarine sea with bright cyan shallows
+ 'vivid': dict(dry='#f4c25f', mid='#a5d153', wet='#119a64', boreal='#127a58', dune='#f5ab4e', rock='#c76844', high='#eda57b', snow='#ffffff',
+               warm='#ffe0a0', cool='#283f96', sea=['#7df4e2', '#36dcd6', '#10b5d3', '#0f78c4', '#103f9b'], sat=1.42, lift=0, tint=.32),
+}
+PAL = LOOKS['natural']
+DEST_GREEN = {'ladakh': .08, 'rajasthan': .1, 'morocco': .15, 'santorini': .2, 'maldives': .3, 'iceland': .35, 'patagonia': .4,
+              'serengeti': .45, 'lofoten': .5, 'peru': .55, 'newzealand': .7, 'kyoto': .85, 'bali': .95}
+
 def colourise(elev, lon, lat, exag, palette=None, patches=()):
     H, W = elev.shape
     # region colours, painted the same way as the map's soft regions
@@ -90,23 +109,25 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
         elif col in ('#86a774', '#a8bd86'): G = G + w * .35                                  # forests
         else: special.append((col, w))                                                       # tundra, ice, plateaus
     G = np.clip(G, 0, 1)
-    dry, mid, wet, boreal = hexrgb('#dcc796'), hexrgb('#b9c287'), hexrgb('#6f9a5c'), hexrgb('#5f8560')
+    dry, mid, wet, boreal = hexrgb(PAL['dry']), hexrgb(PAL['mid']), hexrgb(PAL['wet']), hexrgb(PAL['boreal'])
     c = mix(np.broadcast_to(dry, (H, W, 3)).copy(), mid, sstep(.1, .5, G))
     c = mix(c, wet, sstep(.5, .95, G))
     c = mix(c, boreal, sstep(50, 60, al) * (1 - sstep(64, 70, al)) * sstep(.5, .8, G) * .7)
     for col, w in special: c = mix(c, hexrgb(col), w * .9)
     c = c * (0.94 + 0.12 * N)[..., None]            # gentle mottling across plains
-    if palette: c = mix(c, hexrgb(palette), np.full(elev.shape, .55, np.float32))
+    if palette is not None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
+        pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
+        c = mix(c, pc, np.full(elev.shape, PAL['tint'], np.float32))
     for kind, la, lo, r in patches:
         if kind in ('dune', 'snow'):
             w = np.clip(1 - (((lon - lo) ** 2 + (lat - la) ** 2) / (r * 1.3) ** 2), 0, 1) ** .7 * .85
-            c = mix(c, hexrgb('#e2c48a' if kind == 'dune' else '#f4f5f1'), w)
+            c = mix(c, hexrgb(PAL['dune'] if kind == 'dune' else PAL['snow']), w)
     # height: green lowlands -> warm rock -> pale high rock -> snow above a latitude-aware snowline
     land = elev > 0
-    c = mix(c, hexrgb('#a99272'), sstep(900, 2800, elev) * .6)
-    c = mix(c, hexrgb('#bdb3a3'), sstep(3600, 5200, elev) * .6)
+    c = mix(c, hexrgb(PAL['rock']), sstep(900, 2800, elev) * .6)
+    c = mix(c, hexrgb(PAL['high']), sstep(3600, 5200, elev) * .6)
     snowline = 6100 - np.maximum(0, np.abs(lat) - 33) * 140   # ~6,000 m in the Himalaya, lower towards the poles
-    c = mix(c, hexrgb('#f6f7f3'), sstep(snowline - 250, snowline + 450, elev) * .95)
+    c = mix(c, hexrgb(PAL['snow']), sstep(snowline - 250, snowline + 450, elev) * .95)
     # soft sunlight from the north-west
     lat_r = np.radians(lat)
     dlon = (lon[0, 1] - lon[0, 0]) if W > 1 else 1; dlat = (lat[0, 0] - lat[1, 0]) if H > 1 else 1
@@ -128,16 +149,17 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     k = k + .32 * np.tanh(lr / sc)
     kk = np.clip(k, -1, 1)
     c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
-    c = mix(c, hexrgb('#fff0d2'), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
-    c = mix(c, hexrgb('#44557a'), np.clip(-kk, 0, 1) * np.where(land, .3, .1))       # cool shade
-    g = c.mean(axis=2, keepdims=True); c = g + (c - g) * 1.12                          # a touch richer
+    c = mix(c, hexrgb(PAL['warm']), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
+    c = mix(c, hexrgb(PAL['cool']), np.clip(-kk, 0, 1) * np.where(land, .3, .1))       # cool shade
+    g = c.mean(axis=2, keepdims=True); c = g + (c - g) * PAL['sat']                          # a touch richer
     # sea floor: turquoise shelves, deep blue ocean
     d = np.clip(-elev, 0, None)
-    sea = np.broadcast_to(hexrgb('#a6dbd6'), c.shape).copy()
-    for lim, col in ((60, '#93cfd2'), (300, '#7cbccb'), (2000, '#5f9fbd'), (5000, '#4785ad')):
+    sea = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape).copy()
+    for lim, col in zip((60, 300, 2000, 5000), PAL['sea'][1:]):
         sea = mix(sea, hexrgb(col), sstep(0, lim, d))
     seac = sea * (1 + kk[..., None] * .25)
     out = np.where(land[..., None], c, seac)
+    out = out + (255 - out) * PAL['lift']  # pastel looks are lighter overall
     return np.clip(out, 0, 255).astype(np.uint8), land
 
 def world():
@@ -182,20 +204,23 @@ def crops(only=None):
         lon = np.linspace(x0, x1, W)[None, :].repeat(H, 0); lat = np.linspace(y1, y0, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px - tx0 * 256, py - ty0 * 256)
         exag = 2.2 if span > 1 else 3.2
-        rgb, land = colourise(el, lon, lat, exag=exag, palette=LOOK_PALETTE.get(rid), patches=r.get('patches', []))
+        rgb, land = colourise(el, lon, lat, exag=exag, palette=DEST_GREEN.get(rid), patches=r.get('patches', []))
         # feathered edges so the close-up melts into the world layer
         yy, xx = np.mgrid[0:H, 0:W]; e = np.minimum.reduce([xx, W - 1 - xx, yy, H - 1 - yy]).astype(np.float32)
         alpha = (np.clip(e / (min(W, H) * .12), 0, 1) ** 1.5 * 255).astype(np.uint8)
         Image.fromarray(np.dstack([rgb, alpha])).save(OUT + f'relief-{rid}.webp', quality=78, method=6)
         meta[rid] = [round(x0, 4), round(y0, 4), round(x1, 4), round(y1, 4)]
         print(rid, 'z', z, 'tiles', (tx1 - tx0 + 1) * (ty1 - ty0 + 1), 'size', W, H, f'{os.path.getsize(OUT + f"relief-{rid}.webp") // 1024}KB', flush=True)
-    p = OUT + 'relief.json'
+    p = BASE + 'relief.json'
     old = json.load(open(p)) if os.path.exists(p) else {}
     old.update(meta); json.dump(old, open(p, 'w'))
 
 if __name__ == '__main__':
     args = sys.argv[1:]
-    if not args or 'world' in args: world()
-    if not args or 'crops' in args: crops([a for a in args if a not in ('world', 'crops')] or None)
-    for f in sorted(os.listdir(OUT)):
-        if f.startswith(('world-', 'relief')): print(f, os.path.getsize(OUT + f) // 1024, 'KB')
+    looks = [a for a in args if a in LOOKS] or list(LOOKS)
+    rest = [a for a in args if a not in LOOKS]
+    for look in looks:
+        PAL = LOOKS[look]; OUT = BASE + f'looks/{look}/'; os.makedirs(OUT, exist_ok=True); print('== look', look, flush=True)
+        if not rest or 'world' in rest: world()
+        if not rest or 'crops' in rest: crops([a for a in rest if a not in ('world', 'crops')] or None)
+        print(look, sum(os.path.getsize(OUT + f) for f in os.listdir(OUT)) // 1024, 'KB total', flush=True)

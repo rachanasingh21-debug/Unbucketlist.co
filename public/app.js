@@ -205,6 +205,7 @@ function renderDest(t){
       <button class="btn" type="button" data-pick="${i}">Choose this</button></div></article>`).join('')}</div>
 </section>
    ${route?routeCard(t,route):''}
+   ${((window.WILDLIFE||{})[t.id]||[]).length?`<section class="wild"><p class="eyebrow">Wild things to spot</p><div class="wild-list">${window.WILDLIFE[t.id].map(w=>`<article class="wild-card"><div class="e" aria-hidden="true">${w[0]}</div><h4>${esc(w[1])}</h4><p class="w">${esc(w[4])} · best ${esc(w[6])}</p><p>${esc(w[5])}</p></article>`).join('')}</div></section>`:''}
    <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
    <section class="tale in-drawer">${storyBanner(t)}</section>
    <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>

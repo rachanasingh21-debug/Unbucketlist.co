@@ -6,7 +6,7 @@ const wrap=document.getElementById('mapWrap'),cv=document.getElementById('map');
 if(!wrap||!cv)return;
 const ctx=cv.getContext('2d');
 const R=window.ROUTES||{},DEST=TRIPS.filter(t=>R[t.id]);
-const card=document.getElementById('mapCard'),tip=document.getElementById('starTip'),heroCopy=document.getElementById('heroCopy');
+const wildTip=document.getElementById('wildTip'),card=document.getElementById('mapCard'),tip=document.getElementById('starTip'),heroCopy=document.getElementById('heroCopy');
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let W=0,H=0,DPR=1;
 const V={x:60,y:-20,k:4};                 // centre (lng, -lat) and pixels per degree
@@ -182,8 +182,20 @@ function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
 
 /* ---------- render ---------- */
 const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
+/* Colour looks: each is a full set of relief images in data/looks/<id>/ plus light, haze and vignette colours */
+const LOOKS={
+ natural:{name:'Natural',note:'Calm, true-to-life colours',sw:['#6f9a5c','#dcc796','#5f9fbd'],sun:'255,214,160',haze:'214,232,242',vig:'16,34,52',sea:['#7fb9cc','#5f9fbd']},
+ golden:{name:'Golden hour',note:'Emerald, honey and turquoise, in warm light',sw:['#3f9a5b','#f3cf86','#33b6c9'],sun:'255,184,110',haze:'255,226,200',vig:'70,30,70',sea:['#5ac7cf','#2584b4']},
+ pastel:{name:'Dreamy pastel',note:'Mint, peach, rose and soft aqua',sw:['#94d0a2','#f6d6ae','#9bdbe8'],sun:'255,206,226',haze:'248,234,248',vig:'110,96,160',sea:['#b4ebec','#86c1e6']},
+ vivid:{name:'Vivid explorer',note:'Jade, saffron and ultramarine, full of energy',sw:['#119a64','#f4c25f','#10b5d3'],sun:'255,214,140',haze:'205,238,255',vig:'10,30,90',sea:['#36dcd6','#0f78c4']}};
+let look=(()=>{const q=new URLSearchParams(location.search).get('look');if(LOOKS[q])return q;try{const v=localStorage.getItem('ubl-look');if(LOOKS[v])return v}catch(e){}return 'golden'})();
+function setLook(id){if(!LOOKS[id]||id===look)return;look=id;try{localStorage.setItem('ubl-look',id)}catch(e){}
+  // load the new set, then swap in one go so there is no flash
+  let n=0;const next={crop:{}},done=()=>{if(++n<3)return;IMG.ocean=next.ocean;IMG.land1=next.land1;IMG.land3=next.land3;IMG.crop={};statKey='';wake()};
+  img(`data/looks/${id}/world-ocean.jpg`,i=>{next.ocean=i;done()});img(`data/looks/${id}/world-land-1k.jpg`,i=>{next.land1=i;done()});img(`data/looks/${id}/world-land-3k.jpg`,i=>{next.land3=i;done()});
+  renderLookMenu()}
 function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
-function loadCrop(id){IMG.crop[id]='loading';img(`data/relief-${id}.webp`,i=>IMG.crop[id]=i)}
+function loadCrop(id){IMG.crop[id]='loading';const lk=look;img(`data/looks/${lk}/relief-${id}.webp`,i=>{if(lk===look)IMG.crop[id]=i;else delete IMG.crop[id]})}
 const omask=document.createElement('canvas'),mctx=omask.getContext('2d');    // where the sea is (for the shimmer)
 const shim=document.createElement('canvas'),hctx=shim.getContext('2d');
 const dof=document.createElement('canvas'),dctx=dof.getContext('2d');let dofOn=false; // miniature depth of field
@@ -199,7 +211,7 @@ function drawStatic(){
   const vx0=wx(0),vx1=wx(W),vy0=wy(0),vy1=wy(H);
   // sea: depth-shaded (turquoise shelves, deep blue ocean)
   c.setTransform(DPR,0,0,DPR,0,0);
-  const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,'#7fb9cc');og.addColorStop(1,'#5f9fbd');c.fillStyle=og;c.fillRect(0,0,W,H);
+  const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,LOOKS[look].sea[0]);og.addColorStop(1,LOOKS[look].sea[1]);c.fillStyle=og;c.fillRect(0,0,W,H);
   c.setTransform(...T);
   if(IMG.ocean)c.drawImage(IMG.ocean,-180,-90,360,180);
   const did=activeDetail();
@@ -273,21 +285,39 @@ function render(){
   ctx.globalAlpha=1;
   // atmosphere: warm light from the top-left, a soft haze and vignette at the edges
   ctx.globalCompositeOperation='soft-light';
-  const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);sun.addColorStop(0,'rgba(255,214,160,.55)');sun.addColorStop(1,'rgba(255,214,160,0)');ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
+  const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);const L=LOOKS[look];sun.addColorStop(0,`rgba(${L.sun},.55)`);sun.addColorStop(1,`rgba(${L.sun},0)`);ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
   ctx.globalCompositeOperation='source-over';
-  const hz=ctx.createLinearGradient(0,0,0,H);hz.addColorStop(0,'rgba(214,232,242,.28)');hz.addColorStop(.22,'rgba(214,232,242,0)');hz.addColorStop(.85,'rgba(214,232,242,0)');hz.addColorStop(1,'rgba(214,232,242,.18)');
+  const hz=ctx.createLinearGradient(0,0,0,H);hz.addColorStop(0,`rgba(${L.haze},.3)`);hz.addColorStop(.22,`rgba(${L.haze},0)`);hz.addColorStop(.85,`rgba(${L.haze},0)`);hz.addColorStop(1,`rgba(${L.haze},.2)`);
   ctx.fillStyle=hz;ctx.fillRect(0,0,W,H);
-  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,'rgba(16,34,52,0)');vg0.addColorStop(1,'rgba(16,34,52,.22)');ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
+  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,`rgba(${L.vig},0)`);vg0.addColorStop(1,`rgba(${L.vig},.22)`);ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
   // dusk, so the journey's stars can shine
   let dusk=0;for(const d of DEST)dusk=Math.max(dusk,starAlpha(d.id)*onScreen(d.id));
   if(dusk>0){ctx.fillStyle=`rgba(18,28,58,${.14*dusk})`;ctx.fillRect(0,0,W,H);
     const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(10,16,40,0)');vg.addColorStop(1,`rgba(10,16,40,${.38*dusk})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   // journeys (constellations) and place markers
-  starHits=[];hits=[];placed=[];reserveUI();
+  starHits=[];hits=[];placed=[];wildHits=[];reserveUI();
+  const flags=wildFlags();for(const f of flags)placed.push([f.x-4,f.y-48,44,50]);
   for(const d of DEST)drawJourney(d);
+  drawFlags(flags);
   for(const d of DEST)drawMarker(d);
 }
 let placed=[];
+/* Wildlife: little flags at real spots near each journey; tap one to meet the animal */
+const WILD=window.WILDLIFE||{};let wildHits=[];
+function wildFlags(){const out=[];for(const d of DEST){const list=WILD[d.id];if(!list)continue;const a=ramp(V.k/fitK(d.id),.25,.45)*onScreen(d.id);if(a<=.02)continue;
+  list.forEach((w,i)=>{const x=sx(w[3]),y=sy(-w[2]);if(x<-40||x>W+40||y<-10||y>H+60)return;out.push({x,y,a,w,id:d.id,i})})}return out}
+function drawFlags(flags){
+  for(const f of flags){const {x,y,a,w}=f,sway=reduce?0:Math.sin(tNow*.003+f.i*1.3)*2;
+    ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x,y,5,2,0,0,7);ctx.fill();               // ground shadow
+    ctx.strokeStyle='#3a2f2a';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y-40);ctx.stroke(); // pole
+    ctx.fillStyle='#fffaf2';ctx.shadowColor='rgba(0,0,0,.28)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;
+    ctx.beginPath();ctx.moveTo(x,y-40);ctx.lineTo(x+34,y-37+sway);ctx.lineTo(x+30,y-28+sway*.6);ctx.lineTo(x+34,y-19+sway);ctx.lineTo(x,y-22);ctx.closePath();ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.fillStyle='#ff6a45';ctx.fillRect(x,y-40,3,18);                                                        // a bit of brand colour at the hoist
+    ctx.font='15px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(w[0],x+16,y-30+sway*.5);
+    ctx.globalAlpha=1;wildHits.push({x:x+16,y:y-30,f})}
+}
 const btns=document.querySelector('.map-btns');
 function reserveUI(){ // screen areas labels must not use: the site header, the zoom buttons, the place card
   placed.push([0,0,W,W<760?74:72]);
@@ -362,6 +392,11 @@ function updateFocus(){
   if(focus&&!cardMini&&!(anim&&anim.place)&&(V.k/openK>1.12||movedInFocus))setMini(true);
   if(heroCopy)heroCopy.classList.toggle('away',!!focus||interacted&&V.k>kStart*1.8);
 }
+function showWild(f,x,y){const w=f.w;tip.hidden=true;
+  wildTip.innerHTML=`<button type="button" class="wt-x" aria-label="Close">✕</button><div class="wt-e" aria-hidden="true">${w[0]}</div><p class="wt-k">Wild things near ${TRIPS.find(t=>t.id===f.id).name}</p><h4>${w[1]}</h4><p class="wt-w">${w[4]} · best ${w[6]}</p><p>${w[5]}</p>`;
+  wildTip.hidden=false;const r=wildTip.getBoundingClientRect();
+  wildTip.style.left=Math.max(12,Math.min(W-r.width-12,x-r.width/2))+'px';wildTip.style.top=Math.max(80,Math.min(H-r.height-12,y-r.height-18))+'px'}
+wildTip.addEventListener('click',e=>{if(e.target.closest('.wt-x'))wildTip.hidden=true});
 function showCard(id){
   tip.hidden=true;wrap.classList.toggle('carded',!!id);
   if(!id){card.classList.remove('on');setMini(false,true);return}
@@ -370,6 +405,7 @@ function showCard(id){
   card.innerHTML=`<div class="mc-full"><div class="mc-inner"><button class="mc-min" type="button" data-minimise aria-label="Minimise">⌄</button>
    <p class="mc-eye">Best in ${MONTH_FULL[t.m]} · ${t.place}</p><h3>${t.name}</h3>
    <p class="mc-route">${route}</p><p class="mc-meta">${t.days} days · from ${money(t.price)} · ${offers.length} way${offers.length===1?'':'s'} to go</p>
+   ${(WILD[id]||[]).length?`<p class="mc-wild">${WILD[id].slice(0,5).map(w=>w[0]).join(' ')} <span>${WILD[id].length} wild things to spot. Look for the flags.</span></p>`:''}
    <p class="legend"><i class="k-arrive"></i>Arrive &amp; depart<i class="k-stop"></i>Stops<i class="k-side"></i>Side trips</p>
    <div class="mc-row"><button class="btn" type="button" data-unbucket="${id}">Unbucket this for me</button><button class="btn ghost3" type="button" data-explore="${id}">Explore ${t.name}</button></div>
    <button class="mc-back" type="button" data-world>← Back to the world</button></div></div>
@@ -430,6 +466,8 @@ let lastTap=0;
 function handleTap(x,y){
   const now=performance.now();
   for(const h of hits)if(Math.hypot(h.x-x,h.y-y)<24){lastTap=0;return flyTo(fitView(h.id),0,true)}
+  for(const h of wildHits)if(Math.abs(h.x-x)<22&&Math.abs(h.y-y)<22){lastTap=0;return showWild(h.f,x,y)}
+  wildTip.hidden=true;
   for(const s of starHits)if(Math.hypot(s.x-x,s.y-y)<20){const st=R[s.id].stops[s.i];tip.textContent=`${st[0]} · ${st[3]}${st[4]?' · '+st[4]:''}`;tip.style.left=x+'px';tip.style.top=y+'px';tip.hidden=false;lastTap=0;return}
   tip.hidden=true;
   if(now-lastTap<320){lastTap=0;zoomSmooth(2.2,x,y)}else lastTap=now;
@@ -443,6 +481,12 @@ cv.addEventListener('wheel',e=>{
 let hintT;function showHint(){const h=document.getElementById('zoomHint');if(!h)return;h.hidden=false;clearTimeout(hintT);hintT=setTimeout(()=>h.hidden=true,1600)}
 document.getElementById('mzIn').onclick=()=>{interacted=true;zoomSmooth(2)};
 document.getElementById('mzOut').onclick=()=>{interacted=true;zoomSmooth(.5)};
+const lookBtn=document.getElementById('mzLook'),lookMenu=document.getElementById('lookMenu');
+function renderLookMenu(){lookMenu.innerHTML=`<p class="lm-t">Map colours</p>`+Object.entries(LOOKS).map(([id,L])=>`<button type="button" class="lm-o${id===look?' on':''}" data-look="${id}" aria-pressed="${id===look}">
+  <i style="background:conic-gradient(${L.sw[0]} 0 33%,${L.sw[1]} 0 66%,${L.sw[2]} 0)"></i><span><b>${L.name}</b><small>${L.note}</small></span></button>`).join('')}
+lookBtn.onclick=e=>{e.stopPropagation();renderLookMenu();lookMenu.hidden=!lookMenu.hidden};
+lookMenu.addEventListener('click',e=>{const b=e.target.closest('[data-look]');if(b){setLook(b.dataset.look);lookMenu.hidden=true}});
+document.addEventListener('click',e=>{if(!lookMenu.hidden&&!e.target.closest('#lookMenu,#mzLook'))lookMenu.hidden=true});
 document.getElementById('mzWorld').onclick=()=>{interacted=true;flyTo(worldView())};
 cv.addEventListener('keydown',e=>{const m={ArrowLeft:[-60,0],ArrowRight:[60,0],ArrowUp:[0,-60],ArrowDown:[0,60]}[e.key];
   if(m){e.preventDefault();V.x+=m[0]/V.k;V.y+=m[1]/V.k;clampView();wake()}else if(e.key==='+'||e.key==='=')zoomSmooth(2);else if(e.key==='-')zoomSmooth(.5)});
@@ -467,8 +511,8 @@ async function load(){
   const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);
   // opening move: a little further out, then glide in
   const w=worldView();Object.assign(V,{x:w.x-20,y:w.y,k:w.k*.62});clampView();flyTo(w,reduce?1:2200);
-  img('data/world-ocean.jpg',i=>IMG.ocean=i);
-  img('data/world-land-1k.jpg',i=>{IMG.land1=i;img('data/world-land-3k.jpg',j=>IMG.land3=j)});
+  img(`data/looks/${look}/world-ocean.jpg`,i=>IMG.ocean=i);
+  img(`data/looks/${look}/world-land-1k.jpg`,i=>{IMG.land1=i;img(`data/looks/${look}/world-land-3k.jpg`,j=>IMG.land3=j)});
   fetch('data/relief.json').then(r=>r.json()).then(j=>{RELIEF=j;statKey='';wake()});
   fetch('data/land-50.json').then(r=>r.json()).then(b=>{land.b=decode(b);landB=toPath(land.b);statKey='';wake()});
   fetch('data/land-detail.json').then(r=>r.json()).then(d=>{for(const id in d){land.detail[id]=decode(d[id]);detailPath[id]=toPath(land.detail[id]);delete GD[id]}statKey='';wake()});
