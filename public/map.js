@@ -140,17 +140,33 @@ function drawGlyphs(list,lo,hi,mul=1){
 }
 
 /* ---------- clouds ---------- */
-const SPR=[0,1,2].map(i=>{const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d');seed=31+i*13;
-  for(let n=0;n<14;n++){const x=60+rnd()*136,y=96+rnd()*70,r=26+rnd()*46;const gr=g.createRadialGradient(x,y,0,x,y,r);
-    gr.addColorStop(0,'rgba(255,255,255,.95)');gr.addColorStop(.55,'rgba(255,255,255,.55)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill()}
-  g.globalCompositeOperation='source-atop';const sh=g.createLinearGradient(0,90,0,200);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(120,140,170,.35)');g.fillStyle=sh;g.fillRect(0,0,256,256);return c});
+function cloudSprite(kind,sd){
+  const N=256,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d'),im=g.createImageData(N,N),d=im.data;
+  seed=sd;const P=new Float32Array(64*64);for(let i=0;i<P.length;i++)P[i]=rnd();
+  const vn=(x,y)=>{x=((x%64)+64)%64;y=((y%64)+64)%64;const X=Math.floor(x),Y=Math.floor(y),fx=x-X,fy=y-Y,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy),X1=(X+1)%64,Y1=(Y+1)%64;
+    return (P[Y*64+X]*(1-u)+P[Y*64+X1]*u)*(1-v)+(P[Y1*64+X]*(1-u)+P[Y1*64+X1]*u)*v};
+  const wisp=kind==='wisp';
+  const ss=(e0,e1,v)=>{const t=Math.max(0,Math.min(1,(v-e0)/(e1-e0)));return t*t*(3-2*t)};
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+    const nx=(i-N/2)/(N/2),ny=(j-N/2)/(N/2)*(wisp?2.2:1.35),r=Math.hypot(nx,ny);if(r>=1)continue;
+    const fall=1-Math.pow(r,wisp?1.3:1.7);
+    // broad shape first, finer billows on top; wisps are noise stretched into long streaks
+    let f=0,a=.5,fr=wisp?3:2.2;for(let o=0;o<5;o++){f+=a*vn(i/N*fr*(wisp?.18:1)+o*7.3,j/N*fr+o*3.1);fr*=2.05;a*=.5}
+    const v=wisp?ss(.32,.95,fall*.55+(f-.5)*2.6)*Math.pow(fall,.7):ss(.28,.72,fall*.95+(f-.5)*1.1);if(v<=0)continue;
+    const top=wisp?1:1-.22*Math.max(0,ny/1.35+.15);           // sunlit tops, soft grey undersides
+    const k=(j*N+i)*4;d[k]=255*top;d[k+1]=255*top;d[k+2]=Math.min(255,266*top);d[k+3]=v*(wisp?160:245)}
+  g.putImageData(im,0,0);
+  const s2=document.createElement('canvas');s2.width=s2.height=N;const h=s2.getContext('2d');h.drawImage(c,0,0);h.globalCompositeOperation='source-in';h.fillStyle='rgb(28,40,58)';h.fillRect(0,0,N,N);
+  c.shadow=s2;return c}
+const WISP=cloudSprite('wisp',12),SPR=[cloudSprite('cum',31),cloudSprite('cum',57),cloudSprite('cum',83),WISP,WISP];
 seed=99;
 const CLOUDS=[];
-for(let i=0;i<80;i++)CLOUDS.push({x:-180+rnd()*360,y:-(-50+rnd()*115),s:4.5+rnd()*6,i:i%3,v:.02+rnd()*.04,g:true});
+for(let i=0;i<42;i++)CLOUDS.push({x:-180+rnd()*360,y:-(-50+rnd()*115),s:7+rnd()*7,i:i%3,v:.02+rnd()*.03,g:true,p:1});
+for(let i=0;i<18;i++)CLOUDS.push({x:-180+rnd()*360,y:-(-45+rnd()*105),s:12+rnd()*9,i:3+i%2,v:.04+rnd()*.04,g:true,p:1.18,wisp:true});
 for(const d of DEST){const b=routeBox(R[d.id]);for(let i=0;i<9;i++){const a=i/9*Math.PI*2+rnd(),rr=b.span*(.6+rnd()*1.1);
-  CLOUDS.push({x:b.cx+Math.cos(a)*rr,y:b.cy+Math.sin(a)*rr*.7,s:b.span*(1.1+rnd()*1.2),i:i%3,v:b.span*.004,d:d.id})}}
+  CLOUDS.push({x:b.cx+Math.cos(a)*rr,y:b.cy+Math.sin(a)*rr*.7,s:b.span*(1.1+rnd()*1.2),i:i%3,v:b.span*.004,d:d.id,p:1})}}
 function cloudAlpha(c){
-  if(c.g)return .22+.3*ramp(V.k,kMin*1.4,10)*(1-ramp(V.k,16,40))-.22*ramp(V.k,16,40);
+  if(c.g)return (c.wisp?.42:.5)*(1-ramp(V.k,14,40));
   const f=fitK(c.d),q=V.k/f;return .9*ramp(q,.05,.16)*(1-ramp(q,.26,.5));
 }
 
@@ -168,6 +184,9 @@ function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
 const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
 function loadCrop(id){IMG.crop[id]='loading';img(`data/relief-${id}.webp`,i=>IMG.crop[id]=i)}
+const omask=document.createElement('canvas'),mctx=omask.getContext('2d');    // where the sea is (for the shimmer)
+const shim=document.createElement('canvas'),hctx=shim.getContext('2d');
+const dof=document.createElement('canvas'),dctx=dof.getContext('2d');let dofOn=false; // miniature depth of field
 let tNow=0;const stat=document.createElement('canvas'),sctx=stat.getContext('2d');let statKey='';
 let landA=null,landB=null;const detailPath={};
 const prog={};let hits=[],starHits=[];
@@ -201,10 +220,21 @@ function drawStatic(){
   c.setTransform(...T);
   const lakes=[...LAKES.map(l=>l),...DEST.flatMap(d=>(R[d.id].lakes||[]).map(([la,lo,rx,ry,rot])=>[lo,la,rx,ry,rot||0,R[d.id].lakeColor]))];
   for(const [lo,la,rx,ry,rot,lc] of lakes){if(lo+rx<vx0||lo-rx>vx1||-la+ry<vy0||-la-ry>vy1)continue;if(rx*V.k<1.5)continue;
-    c.save();c.translate(lo,-la);c.rotate((rot||0)*Math.PI/180);c.fillStyle=lc||'#8cc6d0';c.strokeStyle='rgba(236,250,244,.8)';c.lineWidth=2/V.k;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.stroke();c.restore()}
-  if(V.k>25)for(const d of DEST)for(const rv of R[d.id].rivers||[]){c.strokeStyle='#8cc6d0';c.lineWidth=Math.min(4,Math.max(1.2,V.k/150))/V.k;c.lineCap='round';c.beginPath();rv.forEach(([la,lo],i)=>i?c.lineTo(lo,-la):c.moveTo(lo,-la));c.stroke()}
+    c.save();c.translate(lo,-la);c.rotate((rot||0)*Math.PI/180);c.scale(rx,ry);
+    const lg=c.createRadialGradient(0,0,0,0,0,1);const col=lc||'#4f98ad';lg.addColorStop(0,col);lg.addColorStop(.82,col);lg.addColorStop(1,'rgba(120,170,170,0)'); // soft natural shoreline
+    c.globalAlpha=.88;c.fillStyle=lg;c.beginPath();c.arc(0,0,1,0,7);c.fill();c.globalAlpha=1;c.restore()}
+  if(V.k>25)for(const d of DEST)for(const rv of R[d.id].rivers||[]){c.strokeStyle='rgba(92,150,170,.55)';c.lineWidth=Math.min(4,Math.max(1.2,V.k/150))/V.k;c.lineCap='round';c.beginPath();rv.forEach(([la,lo],i)=>i?c.lineTo(lo,-la):c.moveTo(lo,-la));c.stroke()}
   // coastline
   c.strokeStyle='rgba(70,105,110,.45)';c.lineWidth=.8/V.k;c.stroke(path);if(coastal)c.stroke(extra);
+  // sea mask for the shimmer (land cut out)
+  omask.width=W;omask.height=H;mctx.setTransform(V.k,0,0,V.k,W/2-V.x*V.k,H/2-V.y*V.k);mctx.fillStyle='#000';mctx.fill(clipPath);
+  // depth of field: when you are inside a place, the top and bottom of the view soften like a tilt-shift photo
+  let near=0;for(const d of DEST)near=Math.max(near,ramp(V.k/fitK(d.id),.45,.8)*onScreen(d.id));
+  dofOn=near>.05&&!ptrs.size&&!anim&&!reduce;
+  if(dofOn){dof.width=W*DPR;dof.height=H*DPR;dctx.setTransform(1,0,0,1,0,0);dctx.filter=`blur(${(W<760?2.2:3)*DPR}px)`;dctx.drawImage(stat,0,0);dctx.filter='none';
+    dctx.globalCompositeOperation='destination-in';const gm=dctx.createLinearGradient(0,0,0,H*DPR);
+    gm.addColorStop(0,`rgba(0,0,0,${near})`);gm.addColorStop(.26,'rgba(0,0,0,0)');gm.addColorStop(.74,'rgba(0,0,0,0)');gm.addColorStop(1,`rgba(0,0,0,${near})`);
+    dctx.fillStyle=gm;dctx.fillRect(0,0,W*DPR,H*DPR);dctx.globalCompositeOperation='source-over'}
   // ocean names
   c.setTransform(DPR,0,0,DPR,0,0);
   if(V.k<16){c.font='italic 300 15px Fraunces, Georgia, serif';c.fillStyle='rgba(38,82,96,.5)';c.textAlign='center';
@@ -219,7 +249,7 @@ let wavePat=null;const waveTile=(()=>{const c=document.createElement('canvas');c
   for(const [x,y] of [[14,20],[60,42],[30,74],[78,82]]){g.beginPath();g.arc(x,y,7,Math.PI*1.15,Math.PI*1.85);g.arc(x+12,y,7,Math.PI*1.15,Math.PI*1.85);g.stroke()}return c})();
 
 function render(){
-  const key=[V.x.toFixed(5),V.y.toFixed(5),V.k.toFixed(4),W,H,landB?1:0,Object.keys(land.detail).length].join('|');
+  const key=[V.x.toFixed(5),V.y.toFixed(5),V.k.toFixed(4),W,H,landB?1:0,Object.keys(land.detail).length,ptrs.size?1:0,anim?1:0].join('|');
   if(key!==statKey){drawStatic();statKey=key}
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(stat,0,0);
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -227,11 +257,27 @@ function render(){
 
   for(const d of DEST){const b=routeBox(R[d.id]),m=b.span*1.4;if(V.x<b.x0-m-W/V.k||V.x>b.x1+m+W/V.k||V.y<b.y0-m-H/V.k||V.y>b.y1+m+H/V.k)continue;
   }
-  // clouds
-  for(const c of CLOUDS){const a=cloudAlpha(c);if(a<.02)continue;const s=c.s*V.k;if(s<8||s>W*3)continue;
-    const x=sx(c.x+(reduce?0:tNow*c.v*.001)),y=sy(c.y);if(x<-s||x>W+s||y<-s||y>H+s)continue;
-    ctx.globalAlpha=a;ctx.drawImage(SPR[c.i],x-s/2,y-s/2,s,s)}
+  if(dofOn)ctx.drawImage(dof,0,0,W,H);
+  // sun shimmer drifting across the water (masked to the sea)
+  if(!reduce){hctx.setTransform(1,0,0,1,0,0);shim.width=Math.ceil(W/2);shim.height=Math.ceil(H/2);
+    const gx=shim.width*(.5+.35*Math.cos(tNow*.00007)),gy=shim.height*(.35+.2*Math.sin(tNow*.00005));
+    const gl=hctx.createRadialGradient(gx,gy,0,gx,gy,shim.width*.55);gl.addColorStop(0,'rgba(255,248,228,.55)');gl.addColorStop(1,'rgba(255,248,228,0)');
+    hctx.fillStyle=gl;hctx.fillRect(0,0,shim.width,shim.height);hctx.globalCompositeOperation='destination-out';hctx.drawImage(omask,0,0,shim.width,shim.height);hctx.globalCompositeOperation='source-over';
+    ctx.globalCompositeOperation='screen';ctx.globalAlpha=.22;ctx.drawImage(shim,0,0,W,H);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+  // clouds: soft shadows on the land first, then the clouds; high wisps drift with more parallax
+  const vis=[];
+  for(const c of CLOUDS){const a=cloudAlpha(c);if(a<.02)continue;const s=c.s*V.k*(c.p>1?1.08:1);if(s<36||s>W*3)continue;
+    const x=W/2+(c.x+(reduce?0:tNow*c.v*.001)-V.x)*V.k*c.p,y=H/2+(c.y-V.y)*V.k*c.p;if(x<-s||x>W+s||y<-s||y>H+s)continue;vis.push([c,a,s,x,y])}
+  for(const [c,a,s,x,y] of vis){const o=s*(c.wisp?.16:.1);ctx.globalAlpha=a*(c.wisp?.12:.2);ctx.drawImage(SPR[c.i].shadow,x-s/2+o*.6,y-s/2+o,s,s)}
+  for(const [c,a,s,x,y] of vis){ctx.globalAlpha=a;ctx.drawImage(SPR[c.i],x-s/2,y-s/2,s,s)}
   ctx.globalAlpha=1;
+  // atmosphere: warm light from the top-left, a soft haze and vignette at the edges
+  ctx.globalCompositeOperation='soft-light';
+  const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);sun.addColorStop(0,'rgba(255,214,160,.55)');sun.addColorStop(1,'rgba(255,214,160,0)');ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='source-over';
+  const hz=ctx.createLinearGradient(0,0,0,H);hz.addColorStop(0,'rgba(214,232,242,.28)');hz.addColorStop(.22,'rgba(214,232,242,0)');hz.addColorStop(.85,'rgba(214,232,242,0)');hz.addColorStop(1,'rgba(214,232,242,.18)');
+  ctx.fillStyle=hz;ctx.fillRect(0,0,W,H);
+  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,'rgba(16,34,52,0)');vg0.addColorStop(1,'rgba(16,34,52,.22)');ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
   // dusk, so the journey's stars can shine
   let dusk=0;for(const d of DEST)dusk=Math.max(dusk,starAlpha(d.id)*onScreen(d.id));
   if(dusk>0){ctx.fillStyle=`rgba(18,28,58,${.14*dusk})`;ctx.fillRect(0,0,W,H);

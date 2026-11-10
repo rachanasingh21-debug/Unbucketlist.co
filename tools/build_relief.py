@@ -57,6 +57,15 @@ def noise(lon, lat):
     px = (lon + 180) / 360 * 2047; py = (90 - lat) / 180 * 1023
     return sample(_NOISE, px, py)
 
+def smooth(a, r):  # three box blurs ~ a gaussian, edge-padded
+    def box(x, r, axis):
+        pad = [(0, 0)] * x.ndim; pad[axis] = (r + 1, r); x = np.pad(x, pad, mode='edge')
+        cs = np.cumsum(x, axis=axis, dtype=np.float64)
+        hi = np.take(cs, range(2 * r + 1, x.shape[axis]), axis=axis); lo = np.take(cs, range(0, x.shape[axis] - 2 * r - 1), axis=axis)
+        return ((hi - lo) / (2 * r + 1)).astype(np.float32)
+    for _ in range(3): a = box(box(a, r, 0), r, 1)
+    return a
+
 def hexrgb(h): h = h.lstrip('#'); return np.array([int(h[i:i + 2], 16) for i in (0, 2, 4)], np.float32)
 def sstep(a, b, v): t = np.clip((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 def mix(c, col, w): return c * (1 - w[..., None]) + col * w[..., None]
@@ -104,21 +113,30 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     dx = dlon * 111320 * np.cos(lat_r); dy = dlat * 110540
     gy, gx = np.gradient(elev * exag)
     sx_ = gx / np.maximum(dx, 1); sy_ = -gy / dy
-    az, alt = math.radians(315), math.radians(42)
     nx, ny, nz = -sx_, -sy_, np.ones_like(sx_)
     nl = np.sqrt(nx * nx + ny * ny + nz * nz)
-    lx_, ly_, lz_ = math.cos(alt) * math.sin(az), math.cos(alt) * math.cos(az), math.sin(alt)
-    shade = np.clip((nx * lx_ + ny * ly_ + nz * lz_) / nl, 0, 1)
-    flat = math.sin(alt)
-    k = (shade - flat)  # 0 on flat ground, + sunlit, - shadow
-    kk = np.clip(k, -1, 1); c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .5, .85), .3)[..., None])
-    c = mix(c, hexrgb('#4d5d78'), np.clip(-k, 0, 1) * .22)
+    def light(az_deg, alt_deg):  # 0 on flat ground, + sunlit, - shadow
+        az, alt = math.radians(az_deg), math.radians(alt_deg)
+        lx_, ly_, lz_ = math.cos(alt) * math.sin(az), math.cos(alt) * math.cos(az), math.sin(alt)
+        return np.clip((nx * lx_ + ny * ly_ + nz * lz_) / nl, 0, 1) - math.sin(alt)
+    # key light from the north-west plus a softer fill from the west: sculpted, not flat
+    k = .72 * light(315, 38) + .28 * light(255, 28)
+    # local relief: ridges catch light, valleys sit in soft shadow (a cheap ambient occlusion)
+    r = max(3, int(min(H, W) / 160))
+    blur = smooth(elev.astype(np.float32), r)
+    lr = elev - blur; sc = np.percentile(np.abs(lr[land]), 92) + 1 if land.any() else 1
+    k = k + .32 * np.tanh(lr / sc)
+    kk = np.clip(k, -1, 1)
+    c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
+    c = mix(c, hexrgb('#fff0d2'), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
+    c = mix(c, hexrgb('#44557a'), np.clip(-kk, 0, 1) * np.where(land, .3, .1))       # cool shade
+    g = c.mean(axis=2, keepdims=True); c = g + (c - g) * 1.12                          # a touch richer
     # sea floor: turquoise shelves, deep blue ocean
     d = np.clip(-elev, 0, None)
     sea = np.broadcast_to(hexrgb('#a6dbd6'), c.shape).copy()
     for lim, col in ((60, '#93cfd2'), (300, '#7cbccb'), (2000, '#5f9fbd'), (5000, '#4785ad')):
         sea = mix(sea, hexrgb(col), sstep(0, lim, d))
-    seac = sea * (1 + np.clip(k, -1, 1)[..., None] * .25)
+    seac = sea * (1 + kk[..., None] * .25)
     out = np.where(land[..., None], c, seac)
     return np.clip(out, 0, 255).astype(np.uint8), land
 

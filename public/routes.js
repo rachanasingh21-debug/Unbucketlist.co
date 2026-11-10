@@ -4,7 +4,7 @@
    lakes: [lat, lng, rx(deg), ry(deg), rotation(deg)]   rivers: [[lat,lng],...]   patches: [kind, lat, lng, r(deg)] */
 window.ROUTES = {
  ladakh:{loop:true,stops:[['Leh',34.164,77.585,'Days 1–2','Arrive, acclimatise, Shanti Stupa','arrive'],['Khardung La',34.278,77.604,'Day 3','Over the 5,359 m pass','stop'],['Nubra Valley',34.58,77.5,'Days 3–4','Dunes and Diskit monastery','stop'],['Turtuk',34.847,76.826,'Day 5','Apricot village by the border','side'],['Pangong Tso',33.96,78.42,'Days 6–7','Sunrise on the lake','stop'],['Hanle',32.779,78.973,'Day 8','Stargazing at the observatory','stop'],['Tso Moriri',32.92,78.30,'Day 9','The quiet lake, then back to Leh','stop']],
-  look:{mtn:1,snow:.6,dune:.35,tree:0,rock:.8},lakeColor:'#4fbfc6',
+  look:{mtn:1,snow:.6,dune:.35,tree:0,rock:.8},lakeColor:'#2f93a8',
   lakes:[[33.83,78.62,.4,.065,-38],[32.9,78.31,.07,.12,10],[33.1,78.0,.05,.04,0]],
   rivers:[[[32.6,79.3],[33.0,78.6],[33.55,77.95],[34.0,77.75],[34.16,77.58],[34.4,77.0],[34.75,76.3]],[[34.05,78.2],[34.3,77.9],[34.55,77.6],[34.75,77.15],[34.9,76.7]]],
   patches:[['dune',34.57,77.45,.22],['dune',34.64,77.66,.14],['snow',34.9,77.9,.3],['snow',33.3,77.4,.25]]},

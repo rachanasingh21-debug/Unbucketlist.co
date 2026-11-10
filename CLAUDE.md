@@ -28,4 +28,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   Zooming into a place: clouds, then its terrain, then the route as a constellation of stars. A card offers "Unbucket this for me" / "Explore".
 - `public/offers.js`: 2-3 offerings per destination, shown on the destination page and in the booking form.
 - Destination pages are a full-screen overlay routed by hash (`#ladakh`).
+- Map layering (map.js render): relief layers, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
+  warm light / haze / vignette, tilt-shift blur at top and bottom when zoomed into a place. Lakes are soft-edged, not outlined.
+- Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in
+  index.html when shipping big changes (old copies were cached for an hour before this rule).
 - Booking form is a preview: it does not send or store anything yet (no backend chosen).
