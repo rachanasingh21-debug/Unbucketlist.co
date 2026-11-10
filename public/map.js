@@ -183,17 +183,9 @@ function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
 /* ---------- render ---------- */
 const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 /* Colour looks: each is a full set of relief images in data/looks/<id>/ plus light, haze and vignette colours */
-const LOOKS={
- natural:{name:'Natural',note:'Calm, true-to-life colours',sw:['#6f9a5c','#dcc796','#5f9fbd'],sun:'255,214,160',haze:'214,232,242',vig:'16,34,52',sea:['#7fb9cc','#5f9fbd']},
- golden:{name:'Golden hour',note:'Emerald, honey and turquoise, in warm light',sw:['#3f9a5b','#f3cf86','#33b6c9'],sun:'255,184,110',haze:'255,226,200',vig:'70,30,70',sea:['#5ac7cf','#2584b4']},
- pastel:{name:'Dreamy pastel',note:'Mint, peach, rose and soft aqua',sw:['#94d0a2','#f6d6ae','#9bdbe8'],sun:'255,206,226',haze:'248,234,248',vig:'110,96,160',sea:['#b4ebec','#86c1e6']},
- vivid:{name:'Vivid explorer',note:'Jade, saffron and ultramarine, full of energy',sw:['#119a64','#f4c25f','#10b5d3'],sun:'255,214,140',haze:'205,238,255',vig:'10,30,90',sea:['#36dcd6','#0f78c4']}};
-let look=(()=>{const q=new URLSearchParams(location.search).get('look');if(LOOKS[q])return q;try{const v=localStorage.getItem('ubl-look');if(LOOKS[v])return v}catch(e){}return 'golden'})();
-function setLook(id){if(!LOOKS[id]||id===look)return;look=id;try{localStorage.setItem('ubl-look',id)}catch(e){}
-  // load the new set, then swap in one go so there is no flash
-  let n=0;const next={crop:{}},done=()=>{if(++n<3)return;IMG.ocean=next.ocean;IMG.land1=next.land1;IMG.land3=next.land3;IMG.crop={};statKey='';wake()};
-  img(`data/looks/${id}/world-ocean.jpg`,i=>{next.ocean=i;done()});img(`data/looks/${id}/world-land-1k.jpg`,i=>{next.land1=i;done()});img(`data/looks/${id}/world-land-3k.jpg`,i=>{next.land3=i;done()});
-  renderLookMenu()}
+/* Map colours: Vivid explorer (jade, saffron, ultramarine), chosen by the client. Relief images live in data/looks/vivid/ */
+const LOOKS={vivid:{sun:'255,214,140',haze:'205,238,255',vig:'10,30,90',sea:['#36dcd6','#0f78c4']}};
+const look='vivid';
 function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
 function loadCrop(id){IMG.crop[id]='loading';const lk=look;img(`data/looks/${lk}/relief-${id}.webp`,i=>{if(lk===look)IMG.crop[id]=i;else delete IMG.crop[id]})}
 const omask=document.createElement('canvas'),mctx=omask.getContext('2d');    // where the sea is (for the shimmer)
@@ -481,12 +473,6 @@ cv.addEventListener('wheel',e=>{
 let hintT;function showHint(){const h=document.getElementById('zoomHint');if(!h)return;h.hidden=false;clearTimeout(hintT);hintT=setTimeout(()=>h.hidden=true,1600)}
 document.getElementById('mzIn').onclick=()=>{interacted=true;zoomSmooth(2)};
 document.getElementById('mzOut').onclick=()=>{interacted=true;zoomSmooth(.5)};
-const lookBtn=document.getElementById('mzLook'),lookMenu=document.getElementById('lookMenu');
-function renderLookMenu(){lookMenu.innerHTML=`<p class="lm-t">Map colours</p>`+Object.entries(LOOKS).map(([id,L])=>`<button type="button" class="lm-o${id===look?' on':''}" data-look="${id}" aria-pressed="${id===look}">
-  <i style="background:conic-gradient(${L.sw[0]} 0 33%,${L.sw[1]} 0 66%,${L.sw[2]} 0)"></i><span><b>${L.name}</b><small>${L.note}</small></span></button>`).join('')}
-lookBtn.onclick=e=>{e.stopPropagation();renderLookMenu();lookMenu.hidden=!lookMenu.hidden};
-lookMenu.addEventListener('click',e=>{const b=e.target.closest('[data-look]');if(b){setLook(b.dataset.look);lookMenu.hidden=true}});
-document.addEventListener('click',e=>{if(!lookMenu.hidden&&!e.target.closest('#lookMenu,#mzLook'))lookMenu.hidden=true});
 document.getElementById('mzWorld').onclick=()=>{interacted=true;flyTo(worldView())};
 cv.addEventListener('keydown',e=>{const m={ArrowLeft:[-60,0],ArrowRight:[60,0],ArrowUp:[0,-60],ArrowDown:[0,60]}[e.key];
   if(m){e.preventDefault();V.x+=m[0]/V.k;V.y+=m[1]/V.k;clampView();wake()}else if(e.key==='+'||e.key==='=')zoomSmooth(2);else if(e.key==='-')zoomSmooth(.5)});

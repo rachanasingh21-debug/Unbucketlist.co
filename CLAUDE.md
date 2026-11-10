@@ -22,9 +22,9 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Front page hero is an illustrated, zoomable flat map (`public/map.js`, canvas). No globe, no satellite data, no month strip, no photo pins (the user rejected those).
   Coastlines: Natural Earth via world-atlas, pre-converted to `public/data/land-110.json`, `land-50.json`, `land-detail.json` (10m, clipped around each destination).
   Natural look: relief layers built from open elevation data (AWS Terrain Tiles) with designed colours (climate-style greenness, region tints,
-  height tints, latitude-aware snowline, NW sun), one full set per colour look in `public/data/looks/<look>/` (natural, golden, pastel, vivid)
-  with `world-ocean.jpg`, `world-land-1k/3k.jpg`, `relief-<id>.webp`; boxes in `public/data/relief.json`. The map has a colour picker (palette button);
-  default look is `golden` until the user picks one. Look colours live in LOOKS in tools/build_relief.py and map.js.
+  height tints, latitude-aware snowline, NW sun). The client chose the **Vivid explorer** look (jade, saffron, ultramarine) and asked for
+  no colour picker: only `public/data/looks/vivid/` ships (`world-ocean.jpg`, `world-land-1k/3k.jpg`, `relief-<id>.webp`; boxes in
+  `public/data/relief.json`). Rebuild just that look with `python3 tools/build_relief.py vivid`.
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
   Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
   Zooming into a place: clouds, then its terrain, then the route as a constellation of stars. A card offers "Unbucket this for me" / "Explore".
