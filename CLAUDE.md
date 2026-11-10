@@ -21,7 +21,10 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - `public/media/`: Wikimedia Commons photos; `credits.json` is the source of truth, regenerate `photos.js` from it. Keep photo credits (licences require attribution).
 - Front page hero is an illustrated, zoomable flat map (`public/map.js`, canvas). No globe, no satellite data, no month strip, no photo pins (the user rejected those).
   Coastlines: Natural Earth via world-atlas, pre-converted to `public/data/land-110.json`, `land-50.json`, `land-detail.json` (10m, clipped around each destination).
-  Look (colours, regions, ranges, lakes, glyphs, clouds) is hand-designed in map.js. Each destination's journey + terrain personality is in `public/routes.js`.
+  Natural look: relief layers built from open elevation data (AWS Terrain Tiles) with designed colours (climate-style greenness, region tints,
+  height tints, latitude-aware snowline, NW sun): `public/data/world-ocean.jpg`, `world-land-1k/3k.jpg`, `relief-<id>.webp` (+ `relief.json` boxes).
+  Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
+  Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
   Zooming into a place: clouds, then its terrain, then the route as a constellation of stars. A card offers "Unbucket this for me" / "Explore".
 - `public/offers.js`: 2-3 offerings per destination, shown on the destination page and in the booking form.
 - Destination pages are a full-screen overlay routed by hash (`#ladakh`).

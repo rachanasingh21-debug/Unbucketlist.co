@@ -324,3 +324,6 @@ html,body{overflow-x:clip}
 .see-all{transition:opacity .3s}
 @media(max-width:760px){.map-card.mini{left:12px;right:12px;width:auto;bottom:14px}.map-wrap.mini.carded .map-btns{top:auto;bottom:80px}}
 @media(prefers-reduced-motion:reduce){.map-card{transition:opacity .2s}}
+
+.map-credit{position:absolute;z-index:2;right:10px;bottom:4px;font-size:.58rem;color:rgba(20,40,50,.55);pointer-events:none}
+@media(max-width:760px){.map-credit{font-size:.52rem;right:6px}}

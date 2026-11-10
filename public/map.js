@@ -165,6 +165,9 @@ function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
   V.x=360<2*hw?0:cl(V.x,-180+hw,180-hw);V.y=144<2*hh?-11:cl(V.y,-84+hh,60-hh)}
 
 /* ---------- render ---------- */
+const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
+function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
+function loadCrop(id){IMG.crop[id]='loading';img(`data/relief-${id}.webp`,i=>IMG.crop[id]=i)}
 let tNow=0;const stat=document.createElement('canvas'),sctx=stat.getContext('2d');let statKey='';
 let landA=null,landB=null;const detailPath={};
 const prog={};let hits=[],starHits=[];
@@ -172,34 +175,28 @@ function activeDetail(){ // the destination whose detailed coastline should be a
   if(V.k<25)return null;for(const d of DEST){const dd=land.detail[d.id];if(!dd||!dd.length)continue;const b=routeBox(R[d.id]),m=2.2;
     if(V.x>b.x0-m&&V.x<b.x1+m&&V.y>b.y0-m&&V.y<b.y1+m)return d.id}return null}
 function drawStatic(){
-  const c=sctx;stat.width=W*DPR;stat.height=H*DPR;
-  // ocean
+  const c=sctx;stat.width=W*DPR;stat.height=H*DPR;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+  const T=[V.k*DPR,0,0,V.k*DPR,(W/2-V.x*V.k)*DPR,(H/2-V.y*V.k)*DPR];
+  const vx0=wx(0),vx1=wx(W),vy0=wy(0),vy1=wy(H);
+  // sea: depth-shaded (turquoise shelves, deep blue ocean)
   c.setTransform(DPR,0,0,DPR,0,0);
-  const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,'#a9d4d9');og.addColorStop(1,'#87bccb');c.fillStyle=og;c.fillRect(0,0,W,H);
-  if(!wavePat)wavePat=c.createPattern(waveTile,'repeat');
-  c.globalAlpha=.35;c.fillStyle=wavePat;const ox=((-V.x*V.k)%96+96)%96,oy=((-V.y*V.k)%96+96)%96;c.translate(ox,oy);c.fillRect(-96,-96,W+192,H+192);c.setTransform(DPR,0,0,DPR,0,0);c.globalAlpha=1;
-  // land
+  const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,'#7fb9cc');og.addColorStop(1,'#5f9fbd');c.fillStyle=og;c.fillRect(0,0,W,H);
+  c.setTransform(...T);
+  if(IMG.ocean)c.drawImage(IMG.ocean,-180,-90,360,180);
   const did=activeDetail();
   const base=V.k<10||!landB?landA:landB;if(!base)return;const extra=did?detailPath[did]:null,coastal=extra&&COASTAL.has(did);
-  const path=base;
-  const T=[V.k*DPR,0,0,V.k*DPR,(W/2-V.x*V.k)*DPR,(H/2-V.y*V.k)*DPR];
-  c.setTransform(...T);c.lineJoin='round';
-  for(const p of coastal?[path,extra]:[path]){c.strokeStyle='rgba(220,244,236,.55)';c.lineWidth=18/V.k;c.stroke(p);c.strokeStyle='rgba(236,250,244,.7)';c.lineWidth=7/V.k;c.stroke(p)}
-  if(did==='maldives')drawAtolls(c);
-  c.fillStyle='#cdd3a0';c.fill(path);if(extra)c.fill(extra);
+  const path=base;c.lineJoin='round';
+  for(const p of coastal?[path,extra]:[path]){c.strokeStyle='rgba(225,246,240,.35)';c.lineWidth=6/V.k;c.stroke(p)}
+  // land: natural relief (real elevation, designed colours), kept to the coastline
   const clipPath=extra?(()=>{const p=new Path2D(path);p.addPath(extra);return p})():path;
-  // regions, softly blended, kept on land
   c.save();c.clip(clipPath);
-  const vx0=wx(0),vx1=wx(W),vy0=wy(0),vy1=wy(H);
-  for(const b of BIOME){const [lx,la,rx,ry,col,a]=b;if(lx+rx<vx0||lx-rx>vx1||-la+ry<vy0||-la-ry>vy1)continue;
-    c.setTransform(T[0]*rx,0,0,T[3]*ry,T[4]+lx*T[0],T[5]-la*T[3]);c.fillStyle=b.g||(b.g=grad(c,col,a));c.fillRect(-1,-1,2,2)}
-  // rocky colour under mountain ranges
-  RANGES.forEach((line,ri)=>{for(const [lx,la] of line){if(lx+3<vx0||lx-3>vx1||-la+3<vy0||-la-3>vy1)continue;
-    c.setTransform(T[0]*1.6,0,0,T[3]*1.2,T[4]+lx*T[0],T[5]-la*T[3]);c.fillStyle=rockG||(rockG=grad(c,'#b49b78',.55));c.fillRect(-1,-1,2,2)}});
-  // destination patches (snowfields, dune seas)
-  for(const d of DEST){for(const p of R[d.id].patches||[]){const [kind,la,lo,r]=p;if(kind!=='snow'&&kind!=='dune')continue;
-    c.setTransform(T[0]*r*1.3,0,0,T[3]*r*1.3,T[4]+lo*T[0],T[5]-la*T[3]);c.fillStyle=kind==='snow'?(snowG||(snowG=grad(c,'#f6f6f2',.9))):(duneG||(duneG=grad(c,'#e7c88f',.9)));c.fillRect(-1,-1,2,2)}}
+  const land=IMG.land3||IMG.land1;
+  if(land)c.drawImage(land,-180,-90,360,180);else{c.fillStyle='#c4ca97';c.fillRect(-180,-90,360,180)}
   c.restore();
+  // sharper close-ups melt in as you zoom into a place
+  if(V.k>9)for(const id in RELIEF){const bx=RELIEF[id];if(bx[2]<vx0||bx[0]>vx1||-bx[1]<vy0||-bx[3]>vy1)continue;
+    const img=IMG.crop[id];if(!img){loadCrop(id);continue}if(img==='loading')continue;
+    c.globalAlpha=ramp(V.k,9,20);c.drawImage(img,bx[0],-bx[3],bx[2]-bx[0],bx[3]-bx[1]);c.globalAlpha=1}
   // lakes and rivers
   c.setTransform(...T);
   const lakes=[...LAKES.map(l=>l),...DEST.flatMap(d=>(R[d.id].lakes||[]).map(([la,lo,rx,ry,rot])=>[lo,la,rx,ry,rot||0,R[d.id].lakeColor]))];
@@ -207,7 +204,7 @@ function drawStatic(){
     c.save();c.translate(lo,-la);c.rotate((rot||0)*Math.PI/180);c.fillStyle=lc||'#8cc6d0';c.strokeStyle='rgba(236,250,244,.8)';c.lineWidth=2/V.k;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.fill();c.stroke();c.restore()}
   if(V.k>25)for(const d of DEST)for(const rv of R[d.id].rivers||[]){c.strokeStyle='#8cc6d0';c.lineWidth=Math.min(4,Math.max(1.2,V.k/150))/V.k;c.lineCap='round';c.beginPath();rv.forEach(([la,lo],i)=>i?c.lineTo(lo,-la):c.moveTo(lo,-la));c.stroke()}
   // coastline
-  c.strokeStyle='rgba(84,120,112,.55)';c.lineWidth=1/V.k;c.stroke(path);if(coastal)c.stroke(extra);
+  c.strokeStyle='rgba(70,105,110,.45)';c.lineWidth=.8/V.k;c.stroke(path);if(coastal)c.stroke(extra);
   // ocean names
   c.setTransform(DPR,0,0,DPR,0,0);
   if(V.k<16){c.font='italic 300 15px Fraunces, Georgia, serif';c.fillStyle='rgba(38,82,96,.5)';c.textAlign='center';
@@ -227,9 +224,9 @@ function render(){
   ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(stat,0,0);
   ctx.setTransform(DPR,0,0,DPR,0,0);
   // relief
-  drawGlyphs(G1,6,46);drawGlyphs(G2,7,40,.95);
+
   for(const d of DEST){const b=routeBox(R[d.id]),m=b.span*1.4;if(V.x<b.x0-m-W/V.k||V.x>b.x1+m+W/V.k||V.y<b.y0-m-H/V.k||V.y>b.y1+m+H/V.k)continue;
-    if(V.k<fitK(d.id)*.12||!land.a)continue;if(!GD[d.id])genDestGlyphs(d.id);drawGlyphs(GD[d.id],6,70)}
+  }
   // clouds
   for(const c of CLOUDS){const a=cloudAlpha(c);if(a<.02)continue;const s=c.s*V.k;if(s<8||s>W*3)continue;
     const x=sx(c.x+(reduce?0:tNow*c.v*.001)),y=sy(c.y);if(x<-s||x>W+s||y<-s||y>H+s)continue;
@@ -293,8 +290,9 @@ function drawJourney(d){
     if(big){ctx.strokeStyle=`rgba(${rgb},${.6*a})`;ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(x,y,11,0,7);ctx.stroke()}
     const sub=`${s[3]} · ${s[4]||''}`,pl=placeLabel(s[0],sub,x,y);
     if(pl){ctx.textAlign=pl.al;ctx.textBaseline='middle';ctx.shadowColor='rgba(0,0,0,.65)';ctx.shadowBlur=6;
-      ctx.font='600 13px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
-      if(pl.s){ctx.font='400 11px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(255,240,225,${.85*a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}ctx.shadowBlur=0}
+      ctx.lineJoin='round';ctx.strokeStyle=`rgba(20,22,30,${.55*a})`;
+      ctx.font='600 13px Inter, system-ui, sans-serif';ctx.lineWidth=3.5;ctx.strokeText(pl.n,pl.x,pl.s?pl.y-7:pl.y);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
+      if(pl.s){ctx.font='500 11px Inter, system-ui, sans-serif';ctx.lineWidth=3;ctx.strokeText(pl.s,pl.x,pl.y+8);ctx.fillStyle=`rgba(255,244,232,${.92*a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}ctx.shadowBlur=0}
     starHits.push({x,y,id:d.id,i})});
 }
 function drawMarker(d){
@@ -420,9 +418,12 @@ function resize(){
 addEventListener('resize',resize);
 async function load(){
   resize();
-  const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);genWorldGlyphs(land.a);
+  const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);
   // opening move: a little further out, then glide in
   const w=worldView();Object.assign(V,{x:w.x-20,y:w.y,k:w.k*.62});clampView();flyTo(w,reduce?1:2200);
+  img('data/world-ocean.jpg',i=>IMG.ocean=i);
+  img('data/world-land-1k.jpg',i=>{IMG.land1=i;img('data/world-land-3k.jpg',j=>IMG.land3=j)});
+  fetch('data/relief.json').then(r=>r.json()).then(j=>{RELIEF=j;statKey='';wake()});
   fetch('data/land-50.json').then(r=>r.json()).then(b=>{land.b=decode(b);landB=toPath(land.b);statKey='';wake()});
   fetch('data/land-detail.json').then(r=>r.json()).then(d=>{for(const id in d){land.detail[id]=decode(d[id]);detailPath[id]=toPath(land.detail[id]);delete GD[id]}statKey='';wake()});
 }
