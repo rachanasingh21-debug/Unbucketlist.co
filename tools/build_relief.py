@@ -75,6 +75,9 @@ LOOKS = {
  # the current, calm natural look
  'natural': dict(dry='#dcc796', mid='#b9c287', wet='#6f9a5c', boreal='#5f8560', dune='#e2c48a', rock='#a99272', high='#bdb3a3', snow='#f6f7f3',
                  warm='#fff0d2', cool='#44557a', sea=['#a6dbd6', '#93cfd2', '#7cbccb', '#5f9fbd', '#4785ad'], sat=1.12, lift=0, tint=.55),
+ # satellite: natural, muted land (forest, olive, tan, grey rock, white ice) on one flat, calm ocean colour
+ 'satellite': dict(dry='#cfbb93', mid='#8f9b63', wet='#3d6a3a', boreal='#34563b', dune='#dcc79c', rock='#8d7c68', high='#aba095', snow='#f5f7f7',
+                   warm='#fff3dc', cool='#26364c', sea=['#1c3a54'] * 5, sat=1.02, lift=0, tint=.5, flat_sea=True),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -158,6 +161,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     for lim, col in zip((60, 300, 2000, 5000), PAL['sea'][1:]):
         sea = mix(sea, hexrgb(col), sstep(0, lim, d))
     seac = sea * (1 + kk[..., None] * .25)
+    if PAL.get('flat_sea'): seac = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape)
     out = np.where(land[..., None], c, seac)
     out = out + (255 - out) * PAL['lift']  # pastel looks are lighter overall
     return np.clip(out, 0, 255).astype(np.uint8), land

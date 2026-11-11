@@ -22,9 +22,10 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Front page hero is an illustrated, zoomable flat map (`public/map.js`, canvas). No globe, no satellite data, no month strip, no photo pins (the user rejected those).
   Coastlines: Natural Earth via world-atlas, pre-converted to `public/data/land-110.json`, `land-50.json`, `land-detail.json` (10m, clipped around each destination).
   Natural look: relief layers built from open elevation data (AWS Terrain Tiles) with designed colours (climate-style greenness, region tints,
-  height tints, latitude-aware snowline, NW sun). The client chose the **Vivid explorer** look (jade, saffron, ultramarine) and asked for
-  no colour picker: only `public/data/looks/vivid/` ships (`world-ocean.jpg`, `world-land-1k/3k.jpg`, `relief-<id>.webp`; boxes in
-  `public/data/relief.json`). Rebuild just that look with `python3 tools/build_relief.py vivid`.
+  height tints, latitude-aware snowline, NW sun). Current look: **satellite** (natural muted land on one flat navy ocean), built after the
+  client shared a "World Satellite Map, flat ocean" poster as the tone to aim for ("cooler on the eyes"). They had earlier picked "vivid"
+  (in git history; `LOOKS.vivid` is still defined in map.js). Only `public/data/looks/satellite/` ships (`world-land-1k/3k.jpg`,
+  `relief-<id>.webp`; boxes in `public/data/relief.json`). Rebuild with `python3 tools/build_relief.py satellite`.
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
   Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
   Flow (rebuilt after a phone walkthrough): hero with a dark scrim -> tap a place -> fly in -> arrival title -> journey draws -> slim place bar

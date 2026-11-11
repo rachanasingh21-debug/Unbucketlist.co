@@ -252,7 +252,7 @@ footer small{color:var(--muted)}
 
 /* ===== THE MAP (landing) ===== */
 html,body{overflow-x:clip}
-.maphero{position:relative;background:#0f78c4}
+.maphero{position:relative;background:#1c3a54}
 .map-wrap{position:relative;height:88vh;height:88svh;min-height:540px;overflow:hidden;isolation:isolate}
 #map{position:absolute;inset:0;display:block;touch-action:none;cursor:grab;outline:0}
 #map:active{cursor:grabbing}

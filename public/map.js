@@ -83,10 +83,14 @@ function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
 /* ---------- render ---------- */
 const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 /* Colour looks: each is a full set of relief images in data/looks/<id>/ plus light, haze and vignette colours */
-/* Map colours: Vivid explorer (jade, saffron, ultramarine), chosen by the client. Relief images live in data/looks/vivid/ */
-const LOOK={sun:'255,214,140',vig:'10,30,90',sea:['#36dcd6','#0f78c4']};
+/* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
+   satellite: natural, muted land on one flat, calm ocean colour (the client's reference: a "satellite map, flat ocean" poster).
+   vivid:     jade, saffron and ultramarine with a depth-shaded sea. To switch back: LOOK=LOOKS.vivid and restore data/looks/vivid from git. */
+const LOOKS={satellite:{dir:'satellite',flat:true,sun:'255,236,205',sunA:.3,vig:'4,12,26',sea:['#1c3a54','#1c3a54'],shade:'0,6,18',shimmer:.1},
+             vivid:{dir:'vivid',flat:false,sun:'255,214,140',sunA:.55,vig:'10,30,90',sea:['#36dcd6','#0f78c4'],shade:'6,28,80',shimmer:.22}};
+const LOOK=LOOKS.satellite;
 function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
-function loadCrop(id){IMG.crop[id]='loading';img(`data/looks/vivid/relief-${id}.webp`,i=>IMG.crop[id]=i)}
+function loadCrop(id){IMG.crop[id]='loading';img(`data/looks/${LOOK.dir}/relief-${id}.webp`,i=>IMG.crop[id]=i)}
 const omask=document.createElement('canvas'),mctx=omask.getContext('2d');    // where the sea is (for the shimmer)
 const shim=document.createElement('canvas'),hctx=shim.getContext('2d');
 const dof=document.createElement('canvas'),dctx=dof.getContext('2d');let dofOn=false; // miniature depth of field
@@ -103,13 +107,13 @@ function drawStatic(){
   c.setTransform(DPR,0,0,DPR,0,0);
   const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,LOOK.sea[0]);og.addColorStop(1,LOOK.sea[1]);c.fillStyle=og;c.fillRect(0,0,W,H);
   c.setTransform(...T);
-  if(IMG.ocean)c.drawImage(IMG.ocean,-180,-90,360,180);
+  if(IMG.ocean&&!LOOK.flat)c.drawImage(IMG.ocean,-180,-90,360,180);
   const did=activeDetail();
   const base=V.k<10||!landB?landA:landB;if(!base)return;const extra=did?detailPath[did]:null,coastal=extra&&COASTAL.has(did);
   const path=base;c.lineJoin='round';
-  for(const p of coastal?[path,extra]:[path]){c.strokeStyle='rgba(225,246,240,.35)';c.lineWidth=6/V.k;c.stroke(p)}
+  for(const p of coastal?[path,extra]:[path]){c.strokeStyle=LOOK.flat?'rgba(150,196,214,.22)':'rgba(225,246,240,.35)';c.lineWidth=6/V.k;c.stroke(p)}
   // the land sits a little proud of the sea, like a relief model: a soft shadow falls to the south-east
-  for(const [ox,oy,al] of [[2,3,.16],[4,7,.12],[7,12,.07]]){c.setTransform(T[0],0,0,T[3],T[4]+ox*DPR,T[5]+oy*DPR);c.fillStyle=`rgba(6,28,80,${al})`;c.fill(path);if(coastal)c.fill(extra)}
+  for(const [ox,oy,al] of [[2,3,.16],[4,7,.12],[7,12,.07]]){c.setTransform(T[0],0,0,T[3],T[4]+ox*DPR,T[5]+oy*DPR);c.fillStyle=`rgba(${LOOK.shade},${al*(LOOK.flat?1.6:1)})`;c.fill(path);if(coastal)c.fill(extra)}
   c.setTransform(...T);
   // land: natural relief (real elevation, designed colours), kept to the coastline
   const clipPath=extra?(()=>{const p=new Path2D(path);p.addPath(extra);return p})():path;
@@ -159,7 +163,7 @@ function render(){
     const gx=shim.width*(.5+.35*Math.cos(tNow*.00007)),gy=shim.height*(.35+.2*Math.sin(tNow*.00005));
     const gl=hctx.createRadialGradient(gx,gy,0,gx,gy,shim.width*.55);gl.addColorStop(0,'rgba(255,248,228,.55)');gl.addColorStop(1,'rgba(255,248,228,0)');
     hctx.fillStyle=gl;hctx.fillRect(0,0,shim.width,shim.height);hctx.globalCompositeOperation='destination-out';hctx.drawImage(omask,0,0,shim.width,shim.height);hctx.globalCompositeOperation='source-over';
-    ctx.globalCompositeOperation='screen';ctx.globalAlpha=.22;ctx.drawImage(shim,0,0,W,H);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
+    ctx.globalCompositeOperation='screen';ctx.globalAlpha=LOOK.shimmer;ctx.drawImage(shim,0,0,W,H);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over'}
   drawLife();
   // clouds: soft shadows on the land first, then the clouds; high wisps drift with more parallax
   const vis=[];
@@ -171,12 +175,12 @@ function render(){
   // atmosphere: warm light from the top-left, a soft haze and vignette at the edges
   const L=LOOK;
   ctx.globalCompositeOperation='soft-light';
-  const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);sun.addColorStop(0,`rgba(${L.sun},.55)`);sun.addColorStop(1,`rgba(${L.sun},0)`);ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
+  const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);sun.addColorStop(0,`rgba(${L.sun},${L.sunA})`);sun.addColorStop(1,`rgba(${L.sun},0)`);ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
   ctx.globalCompositeOperation='source-over';
-  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,`rgba(${L.vig},0)`);vg0.addColorStop(1,`rgba(${L.vig},.22)`);ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
+  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,`rgba(${L.vig},0)`);vg0.addColorStop(1,`rgba(${L.vig},${L.flat?.14:.22})`);ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
   // dusk, so the journey can glow
   let dusk=0;for(const d of DEST)dusk=Math.max(dusk,starAlpha(d.id)*onScreen(d.id));
-  if(dusk>0){ctx.fillStyle=`rgba(18,28,58,${.16*dusk})`;ctx.fillRect(0,0,W,H);
+  if(dusk>0&&!LOOK.flat){ctx.fillStyle=`rgba(18,28,58,${.16*dusk})`;ctx.fillRect(0,0,W,H);
     const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(10,16,40,0)');vg.addColorStop(1,`rgba(10,16,40,${.4*dusk})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   // journeys, wild things and place markers; labels are placed so they never collide with each other or the page's own controls
   stopHits=[];hits=[];wildHits=[];placed=[];reserveUI();
@@ -491,8 +495,8 @@ async function load(){
   const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);
   // opening move: a little further out, then glide in
   const w=worldView();Object.assign(V,{x:w.x-20,y:w.y,k:w.k*.62});clampView();flyTo(w,{ms:reduce?1:2200});
-  img('data/looks/vivid/world-ocean.jpg',i=>IMG.ocean=i);
-  img('data/looks/vivid/world-land-1k.jpg',i=>{IMG.land1=i;img('data/looks/vivid/world-land-3k.jpg',j=>IMG.land3=j)});
+  if(!LOOK.flat)img(`data/looks/${LOOK.dir}/world-ocean.jpg`,i=>IMG.ocean=i);
+  img(`data/looks/${LOOK.dir}/world-land-1k.jpg`,i=>{IMG.land1=i;img(`data/looks/${LOOK.dir}/world-land-3k.jpg`,j=>IMG.land3=j)});
   fetch('data/relief.json').then(r=>r.json()).then(j=>{RELIEF=j;statKey='';wake()});
   fetch('data/land-50.json').then(r=>r.json()).then(b=>{land.b=decode(b);landB=toPath(land.b);statKey='';wake()});
   fetch('data/land-detail.json').then(r=>r.json()).then(d=>{for(const id in d){land.detail[id]=decode(d[id]);detailPath[id]=toPath(land.detail[id])}statKey='';wake()});
