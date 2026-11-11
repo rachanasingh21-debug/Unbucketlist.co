@@ -27,11 +27,17 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   `public/data/relief.json`). Rebuild just that look with `python3 tools/build_relief.py vivid`.
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
   Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
-  Zooming into a place: clouds, then its terrain, then the route as a constellation of stars. A card offers "Unbucket this for me" / "Explore".
-- `public/wildlife.js`: 3-5 real wildlife spots per destination, drawn as flags on the map (tap for the story) and listed on destination pages.
+  Flow (rebuilt after a phone walkthrough): hero with a dark scrim -> tap a place -> fly in -> arrival title -> journey draws -> slim place bar
+  (opens into a sheet). One pop-up design (`#mapPop`) pinned to its map spot: stops (with Prev/Next to walk the journey) and wild things.
+  Breadcrumb "World > Place" exits. + / - zoom towards the place. Never name a state class `sheet` on the map: `.sheet` is the destination page.
+- Brand vocabulary (use everywhere): BUCKET LIST = saved places ("My bucket list", "+ My bucket list"), UNBUCKET = book / go
+  ("Unbucket this for me"), and the four things a place gives you: GO (stops), TASTE (food), EXPLORE (wild things), TAKE AWAY (keepsakes, feelings).
+  `public/bucket.js` holds TASTE and TAKE AWAY per place (tied to stop names) and time zones. No "wishlist", "save", "itinerary", hearts.
+- Header pill opens the place finder (`#finder`); the bucket icon opens "My bucket list" in the same panel.
+- `public/wildlife.js`: 3-5 real wildlife spots per destination (EXPLORE): dots that bloom into badges as you zoom in; tap for the story.
 - `public/offers.js`: 2-3 offerings per destination, shown on the destination page and in the booking form.
 - Destination pages are a full-screen overlay routed by hash (`#ladakh`).
-- Map layering (map.js render): relief layers, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
+- Map layering (map.js render): relief layers with a soft land shadow, a small plane flying between places, birds, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
   warm light / haze / vignette, tilt-shift blur at top and bottom when zoomed into a place. Lakes are soft-edged, not outlined.
 - Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in
   index.html when shipping big changes (old copies were cached for an hour before this rule).

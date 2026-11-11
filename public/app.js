@@ -1,7 +1,8 @@
-/* Unbucketlist — data. Add real photos/videos by filling `image` / `video` (URL or /media/file). */
+/* Unbucketlist: data and pages. The brand's words: your BUCKET LIST (places you've saved), UNBUCKET (go and do it),
+   and what every place gives you: GO, TASTE, EXPLORE, TAKE AWAY. Add real photos/videos by filling `image` / `video` (URL or /media/file). */
 const CATS = [
   {id:'all',icon:'✦',name:'All'},{id:'beach',icon:'🏝',name:'Beaches'},{id:'mountain',icon:'🏔',name:'Mountains'},
-  {id:'culture',icon:'⛩',name:'Culture'},{id:'wild',icon:'🦁',name:'Wildlife'},{id:'food',icon:'🍜',name:'Food'},{id:'adventure',icon:'🪂',name:'Adventure'}];
+  {id:'culture',icon:'⛩',name:'Culture'},{id:'wild',icon:'🦁',name:'Wild things'},{id:'food',icon:'🍜',name:'Tastes'},{id:'adventure',icon:'🪂',name:'Adventure'}];
 
 const TRIPS = [
  {id:'bali',cat:['beach','culture'],name:'Bali',place:'Indonesia',tag:'Slow & sacred',days:7,price:1450,sky:['#ffb36b','#ff6f61','#5b2a6e'],land:['#2c5d4a','#1d3f33','#0f2a22'],image:'',video:'',
@@ -68,6 +69,9 @@ const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelect
 const money=n=>'$'+n.toLocaleString();
 const wish=new Set(JSON.parse((()=>{try{return localStorage.getItem('ubl-wish')||'[]'}catch(e){return'[]'}})()));
 const saveWish=()=>{try{localStorage.setItem('ubl-wish',JSON.stringify([...wish]))}catch(e){}$('#wishCount').textContent=wish.size};
+function toggleBucket(id){const t=TRIPS.find(x=>x.id===id),on=!wish.has(id);on?wish.add(id):wish.delete(id);saveWish();renderCards();
+  toast(on?`${t.name} is on your bucket list`:`${t.name} is off your bucket list`);if(window.mapRefresh)mapRefresh();return on}
+const bucketLabel=id=>wish.has(id)?'✓ On my bucket list':'+ My bucket list';
 const toast=m=>{let t=$('.toast')||document.body.appendChild(Object.assign(document.createElement('div'),{className:'toast'}));t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200)};
 
 /* Ambient life for the illustrated scenes: drifting clouds + gliding birds (skipped when real media is set) */
@@ -125,13 +129,13 @@ function renderChips(){
 function renderCards(){
   const list=TRIPS.filter(t=>cat==='all'||t.cat.includes(cat));
   $('#cards').innerHTML=list.map((t,i)=>`<article class="card" data-id="${t.id}" style="animation-delay:${i*70}ms">
-   <div class="art">${scape(t)}<span class="tag">${t.tag}</span><button class="heart ${wish.has(t.id)?'on':''}" data-h="${t.id}" aria-label="Save">${wish.has(t.id)?'♥':'♡'}</button></div>
-   <h3>${t.name}, ${t.place}</h3><p>${t.days} days · best in ${MON[t.m]}</p><p class="price"><b>${money(t.price)}</b> per person</p></article>`).join('');
+   <div class="art">${scape(t)}<span class="tag">${t.tag}</span><button class="heart ${wish.has(t.id)?'on':''}" type="button" data-h="${t.id}" aria-pressed="${wish.has(t.id)}" aria-label="${wish.has(t.id)?'On my bucket list':'Add to my bucket list'}">${wish.has(t.id)?'✓':'+'}</button></div>
+   <h3>${t.name}, ${t.place}</h3><p>${t.days} days · best in ${MON[t.m]}</p><p class="price">Unbucket it from <b>${money(t.price)}</b></p></article>`).join('');
 }
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderChips();renderCards()});
 $('#cards').addEventListener('click',e=>{
   const h=e.target.closest('[data-h]');
-  if(h){e.stopPropagation();const id=h.dataset.h;wish.has(id)?wish.delete(id):(wish.add(id),toast('Saved to your wishlist ♥'));saveWish();renderCards();return}
+  if(h){e.stopPropagation();toggleBucket(h.dataset.h);return}
   const c=e.target.closest('.card');if(c)openTrip(c.dataset.id);
 });
 
@@ -139,14 +143,14 @@ $('#cards').addEventListener('click',e=>{
 $('#reels').innerHTML=TRIPS.map((t,i)=>{const n=TRIPS[(i+1)%TRIPS.length];return `<section class="reel" data-i="${i}">
  <div class="reel-bg">${scape(t)}</div>
  <div class="reel-copy"><div class="reel-meta"><span>${String(i+1).padStart(2,'0')} / ${String(TRIPS.length).padStart(2,'0')}</span><span>${MONTH_FULL[t.m]}</span><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)}</span></div>
-  <h3>${t.name}</h3><p>${t.hook}</p><button class="btn" data-open="${t.id}">See the itinerary</button><button class="btn ghost" data-h2="${t.id}">♡ Save</button></div>
+  <h3>${t.name}</h3><p>${t.hook}</p><button class="btn" type="button" data-open="${t.id}">See the full story</button><button class="btn ghost" type="button" data-h2="${t.id}">${bucketLabel(t.id)}</button></div>
  <div class="reel-next">The story of ${t.name}<b>↓</b></div></section>
  <section class="reel tale" data-i="${i}">${storyBanner(t)}<div class="reel-next">Next · ${n.name}<b>↓</b></div></section>`}).join('');
 document.body.insertAdjacentHTML('beforeend',`<nav class="dots" id="dots">${TRIPS.map((t,i)=>`<button data-d="${i}" aria-label="${t.name}"></button>`).join('')}</nav>`);
 const reels=$('#reels');
 $('#reels').addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o)openTrip(o.dataset.open);
-  const h=e.target.closest('[data-h2]');if(h){const id=h.dataset.h2;wish.has(id)?(wish.delete(id),h.textContent='♡ Save'):(wish.add(id),h.textContent='♥ Saved',toast('Saved to your wishlist ♥'));saveWish();renderCards()}
+  const h=e.target.closest('[data-h2]');if(h){toggleBucket(h.dataset.h2);h.textContent=bucketLabel(h.dataset.h2)}
 });
 $('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)$(`.reel[data-i="${b.dataset.d}"]`).scrollIntoView({behavior:'smooth'})});
 const io=new IntersectionObserver(es=>es.forEach(en=>{
@@ -161,9 +165,9 @@ new IntersectionObserver(([e])=>$('#dots').classList.toggle('show',e.isIntersect
 const CH=[
  ['Chapter one','It starts with a list.',TRIPS[2]],
  ['Chapter two','Forty places. Zero plans. A note on your phone you never open.',TRIPS[3]],
- ['Chapter three','So we zoom out — and pick one. Just one feeling at a time.',TRIPS[0]],
- ['Chapter four','Photos. Video. A day-by-day plan. Everything you need to say yes.',TRIPS[5]],
- ['Chapter five','And suddenly, the bucket list has a first line crossed off.',TRIPS[4]]];
+ ['Chapter three','So we zoom out, and pick one. Just one place at a time.',TRIPS[0]],
+ ['Chapter four','Where to go. What to taste. What to bring home. Everything you need to say yes.',TRIPS[5]],
+ ['Chapter five','And suddenly your bucket list is one line shorter. That’s unbucketing.',TRIPS[4]]];
 $('#storySteps').innerHTML=CH.map((_,i)=>`<div data-s="${i}"></div>`).join('');
 let cur=-1;const sb=$('#storyBg'),st=$('#storyText');
 function chapter(i){if(i===cur)return;cur=i;const [k,txt,t]=CH[i];st.classList.add('swap');
@@ -175,6 +179,7 @@ chapter(0);
 /* ---------- the map hero lives in map.js ---------- */
 const nav=$('#nav'),mapHero=$('#top');
 addEventListener('scroll',()=>nav.classList.toggle('solid',mapHero.getBoundingClientRect().bottom<innerHeight*.5),{passive:true});
+$('#heroCount').textContent=TRIPS.length;
 $('#seeAll').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'smooth'}));
 
 /* ---------- DESTINATION PAGE (full screen, own link: #ladakh) ---------- */
@@ -196,7 +201,7 @@ function renderDest(t){
   sheet.innerHTML=`<button class="close" data-close aria-label="Back to the map">← Map</button>
    <header class="d-hero">${scape(t)}
     <div class="d-hero-copy"><p class="eyebrow">Best in ${MONTH_FULL[t.m]} · ${t.place} · ${fmtCoord(t)}</p><h2>${t.name}</h2><p class="d-hook">${t.hook}</p>
-     <div class="d-chips"><span>${t.days} days</span><span>from ${money(t.price)} / person</span><span>${offers.length} way${offers.length>1?'s':''} to go</span></div>
+     <div class="d-chips"><span>${t.days} days</span><span>from ${money(t.price)} / person</span><span>${offers.length} way${offers.length>1?'s':''} to unbucket it</span></div>
      <button class="btn" type="button" data-go-book>Unbucket this for me</button></div>
     <span class="d-scroll" aria-hidden="true">↓</span></header>
    <section class="offers"><p class="eyebrow">Ways to unbucket ${t.name}</p><div class="offer-list">${offers.map((o,i)=>`
@@ -205,14 +210,14 @@ function renderDest(t){
       <button class="btn" type="button" data-pick="${i}">Choose this</button></div></article>`).join('')}</div>
 </section>
    ${route?routeCard(t,route):''}
-   ${((window.WILDLIFE||{})[t.id]||[]).length?`<section class="wild"><p class="eyebrow">Wild things to spot</p><div class="wild-list">${window.WILDLIFE[t.id].map(w=>`<article class="wild-card"><div class="e" aria-hidden="true">${w[0]}</div><h4>${esc(w[1])}</h4><p class="w">${esc(w[4])} · best ${esc(w[6])}</p><p>${esc(w[5])}</p></article>`).join('')}</div></section>`:''}
+   ${fourSections(t)}
    <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
    <section class="tale in-drawer">${storyBanner(t)}</section>
-   <div class="d-body"><div><h3>${t.tag}</h3><p class="lede">${t.story}</p>
+   <div class="d-body"><div><p class="eyebrow day-eye">Day by day</p><h3>${t.tag}</h3><p class="lede">${t.story}</p>
     <div class="tl">${t.plan.map((d,i)=>`<div class="day"><small>Day ${i+1}</small><h4>${d[0]}</h4><p>${d[1]}</p></div>`).join('')}</div></div>
     <form class="book" id="bookForm" novalidate>
      <div class="p" id="bkPrice">${money(offers[0].price)} <span>/ person</span></div>
-     <label for="bkOffer">Trip</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select>
+     <label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select>
      <label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select>
      <label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select>
      <label for="bkName">Your name</label><input id="bkName" autocomplete="name" required>
@@ -220,7 +225,7 @@ function renderDest(t){
      <div class="total"><span>Estimated total</span><b id="bkTotal">${money(offers[0].price*2)}</b></div>
      <p class="err" id="bkErr" hidden></p>
      <button class="btn" type="submit">Unbucket this for me</button>
-     <button class="btn ghost2" type="button" data-save="${t.id}">${wish.has(t.id)?'♥ Saved':'♡ Save for later'}</button>
+     <button class="btn ghost2" type="button" data-save="${t.id}">${bucketLabel(t.id)}</button>
      <p class="fine">Preview: requests are not collected yet, so nothing is sent.</p>
     </form></div>
    <nav class="d-next"><button type="button" data-close>← Back to the map</button><button type="button" data-goto="${next.id}">Next: ${next.name} →</button></nav>
@@ -235,9 +240,19 @@ function renderDest(t){
     const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
     if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
     const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=+$('#bkPax',f).value,of=cur();
-    f.innerHTML=`<div class="p">Almost there, ${esc(name.split(' ')[0])}</div><p class="ok">${esc(of.name)} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(of.price*pax)}</p>
+    f.innerHTML=`<div class="p">Almost unbucketed, ${esc(name.split(' ')[0])}</div><p class="ok">${esc(of.name)} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(of.price*pax)}</p>
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
   });
+}
+/* TASTE, EXPLORE, TAKE AWAY: what this place gives you besides the route */
+function fourSections(t){
+  const B=(window.BUCKET||{})[t.id]||{},wild=(window.WILDLIFE||{})[t.id]||[];
+  const card=(e,name,where,line)=>`<article class="four-card">${e?`<div class="e" aria-hidden="true">${e}</div>`:''}<h4>${esc(name)}</h4><p class="w">${esc(where)}</p><p>${esc(line)}</p></article>`;
+  const group=(key,title,cards)=>cards.length?`<div class="four-g"><p class="eyebrow">${key}</p><h3>${title}</h3><div class="four-list">${cards.join('')}</div></div>`:'';
+  const html=group('Taste',`What to eat in ${esc(t.name)}`,(B.taste||[]).map(x=>card('',x[0],x[1],x[2])))
+    +group('Explore','Wild things to spot',wild.map(w=>card(w[0],w[1],`${w[4]} · best ${w[6]}`,w[5])))
+    +group('Take away','What you bring home',(B.take||[]).map(x=>card('',x[0],x[1],x[2])));
+  return html?`<section class="four">${html}</section>`:'';
 }
 /* Route card: the journey as a small schematic (A → B → C ...) with day labels, a legend and the stop list */
 function routeCard(t,r){
@@ -260,7 +275,7 @@ function routeCard(t,r){
   const list=r.stops.map((s,i)=>`<li><i style="background:${KC[s[5]||'stop']}"></i><span><b>${esc(s[0])}</b>, ${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</span></li>`).join('')
     +(r.loop?`<li><i style="background:${KC.depart}"></i><span><b>${esc(r.stops[0][0])}</b>, back to the start and fly out</span></li>`:'');
   return `<section class="routecard" aria-label="The ${esc(t.name)} route">
-   <p class="eyebrow">The route</p><h3>${r.stops.map(s=>esc(s[0])).join(' → ')}${r.loop?' → '+esc(r.stops[0][0]):''}</h3>
+   <p class="eyebrow">Go</p><h3>${r.stops.map(s=>esc(s[0])).join(' → ')}${r.loop?' → '+esc(r.stops[0][0]):''}</h3>
    <div class="rc-box"><svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Map of the route">
      <line x1="${VW/2}" y1="16" x2="${VW/2}" y2="${VH-16}" class="rc-grid"/><line x1="16" y1="${VH/2}" x2="${VW-16}" y2="${VH/2}" class="rc-grid"/>
      <path d="${d}" class="rc-path"/>${labels}</svg>
@@ -292,14 +307,33 @@ drawer.addEventListener('click',e=>{
   if(e.target.closest('[data-go-book]'))return goBook();
   const p=e.target.closest('[data-pick]');if(p){const sel=$('#bkOffer',sheet);if(sel){sel.value=p.dataset.pick;sel.dispatchEvent(new Event('input',{bubbles:true}))}return goBook()}
   const g=e.target.closest('[data-goto]');if(g){renderDest(TRIPS.find(x=>x.id===g.dataset.goto));history.replaceState({dest:g.dataset.goto},'','#'+g.dataset.goto);return}
-  const s=e.target.closest('[data-save]');if(s){const id=s.dataset.save;wish.has(id)?(wish.delete(id),s.textContent='♡ Save for later'):(wish.add(id),s.textContent='♥ Saved');saveWish();renderCards()}
+  const s=e.target.closest('[data-save]');if(s){toggleBucket(s.dataset.save);s.textContent=bucketLabel(s.dataset.save)}
 });
 addEventListener('keydown',e=>e.key==='Escape'&&closeTrip());
 
 /* ---------- misc ---------- */
-$('#pillBtn').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'smooth'}));
-$('#wishBtn').addEventListener('click',()=>{const n=[...wish].map(id=>TRIPS.find(t=>t.id===id).name);toast(n.length?'Wishlist: '+n.join(', '):'Nothing saved yet — tap a ♡')});
-$('#notify').addEventListener('submit',e=>{e.preventDefault();toast('Thanks! We’ll be in touch ✈');e.target.reset()});
+/* ---------- place finder: "What's on your bucket list?" and "My bucket list" ---------- */
+const finder=$('#finder'),finderInput=$('#finderInput'),finderList=$('#finderList');let finderMine=false;
+function renderFinder(){
+  const q=finderInput.value.trim().toLowerCase();
+  let list=TRIPS.filter(t=>!q||[t.name,t.place,t.tag,MONTH_FULL[t.m],...t.cat,...((window.ROUTES||{})[t.id]?.stops||[]).map(s=>s[0])].join(' ').toLowerCase().includes(q));
+  if(finderMine&&!q)list=list.filter(t=>wish.has(t.id));
+  finderList.innerHTML=list.length?list.map(t=>`<li><button type="button" data-fly="${t.id}">${t.photos[0]?`<img src="${t.photos[0]}" alt="" loading="lazy">`:'<i></i>'}
+    <span><b>${t.name}</b><small>${t.place} · best in ${MONTH_FULL[t.m]} · ${t.days} days</small></span>${wish.has(t.id)?'<em>On your list</em>':''}</button></li>`).join('')
+   :`<li class="none">${finderMine&&!q?'Your bucket list is empty. Tap + on any place to drop it in.':'We’re not unbucketing that one yet. Try another place, month or mood.'}</li>`;
+}
+function openFinder(mine){finderMine=mine;finderInput.value='';$('label',finder).textContent=mine?'My bucket list':'Where do you wanna go?';renderFinder();finder.hidden=false;if(!mine)finderInput.focus({preventScroll:true})}
+function closeFinder(){finder.hidden=true}
+$('#pillBtn').addEventListener('click',()=>finder.hidden||finderMine?openFinder(false):closeFinder());
+$('#wishBtn').addEventListener('click',()=>finder.hidden||!finderMine?openFinder(true):closeFinder());
+finderInput.addEventListener('input',renderFinder);
+finder.addEventListener('click',e=>{
+  if(e.target===finder)return closeFinder();
+  const b=e.target.closest('[data-fly]');if(!b)return;closeFinder();closeTrip();
+  scrollTo({top:0,behavior:'smooth'});if(window.mapFlyTo)setTimeout(()=>mapFlyTo(b.dataset.fly),scrollY>40?450:0);else openTrip(b.dataset.fly);
+});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeFinder()});
+$('#notify').addEventListener('submit',e=>{e.preventDefault();toast('Thanks! We’ll help you unbucket one ✈');e.target.reset()});
 $('#yr').textContent=new Date().getFullYear();
 renderChips();renderCards();saveWish();
 routeFromHash();
