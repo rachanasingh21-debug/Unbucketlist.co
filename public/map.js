@@ -88,7 +88,7 @@ const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 /* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
    satellite: natural, muted land on one flat, calm ocean colour (the client's reference: a "satellite map, flat ocean" poster).
    vivid:     jade, saffron and ultramarine with a depth-shaded sea. To switch back: LOOK=LOOKS.vivid and restore data/looks/vivid from git. */
-const LOOKS={relief:{dir:'relief',flat:false,sun:'255,246,226',sunA:.22,vig:'20,70,72',sea:['#bde8d6','#a2d1c4'],shade:'16,66,64',shadeK:1.5,shadeLen:1.6,shimmer:.12,
+const LOOKS={relief:{dir:'relief',flat:false,calm:true,sun:'255,248,232',sunA:.1,vig:'30,80,78',vigA:.07,sea:['#c4eedb','#a6d5c9'],shade:'14,70,66',shadeK:1.7,shadeLen:1.7,shimmer:.07,
                coast:'rgba(236,255,247,.5)',label:'rgba(58,108,110,.72)',land:'rgba(78,62,40,.5)'},
              satellite:{dir:'satellite',flat:true,sun:'255,236,205',sunA:.3,vig:'4,12,26',sea:['#1c3a54','#1c3a54'],shade:'0,6,18',shimmer:.1},
              vivid:{dir:'vivid',flat:false,sun:'255,214,140',sunA:.55,vig:'10,30,90',sea:['#36dcd6','#0f78c4'],shade:'6,28,80',shimmer:.22}};
@@ -144,7 +144,7 @@ function drawStatic(){
   omask.width=W;omask.height=H;mctx.setTransform(V.k,0,0,V.k,W/2-V.x*V.k,H/2-V.y*V.k);mctx.fillStyle='#000';mctx.fill(clipPath);
   // depth of field: when you are inside a place, the top and bottom of the view soften like a tilt-shift photo
   let near=0;for(const d of DEST)near=Math.max(near,ramp(V.k/fitK(d.id),.45,.8)*onScreen(d.id));
-  dofOn=near>.05&&!ptrs.size&&!anim&&!reduce;
+  dofOn=!LOOK.calm&&near>.05&&!ptrs.size&&!anim&&!reduce;
   if(dofOn){dof.width=W*DPR;dof.height=H*DPR;dctx.setTransform(1,0,0,1,0,0);dctx.filter=`blur(${(W<760?2.2:3)*DPR}px)`;dctx.drawImage(stat,0,0);dctx.filter='none';
     dctx.globalCompositeOperation='destination-in';const gm=dctx.createLinearGradient(0,0,0,H*DPR);
     gm.addColorStop(0,`rgba(0,0,0,${near})`);gm.addColorStop(.26,'rgba(0,0,0,0)');gm.addColorStop(.74,'rgba(0,0,0,0)');gm.addColorStop(1,`rgba(0,0,0,${near})`);
@@ -186,10 +186,10 @@ function render(){
   ctx.globalCompositeOperation='soft-light';
   const sun=ctx.createRadialGradient(W*.12,-H*.15,0,W*.12,-H*.15,Math.max(W,H)*1.1);sun.addColorStop(0,`rgba(${L.sun},${L.sunA})`);sun.addColorStop(1,`rgba(${L.sun},0)`);ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
   ctx.globalCompositeOperation='source-over';
-  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,`rgba(${L.vig},0)`);vg0.addColorStop(1,`rgba(${L.vig},${L.flat?.14:.22})`);ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
+  const vg0=ctx.createRadialGradient(W/2,H*.55,Math.min(W,H)*.45,W/2,H*.55,Math.max(W,H)*.85);vg0.addColorStop(0,`rgba(${L.vig},0)`);vg0.addColorStop(1,`rgba(${L.vig},${L.vigA??(L.flat?.14:.22)})`);ctx.fillStyle=vg0;ctx.fillRect(0,0,W,H);
   // dusk, so the journey can glow
   let dusk=0;for(const d of DEST)dusk=Math.max(dusk,starAlpha(d.id)*onScreen(d.id));
-  if(dusk>0&&!LOOK.flat){ctx.fillStyle=`rgba(18,28,58,${.16*dusk})`;ctx.fillRect(0,0,W,H);
+  if(dusk>0&&!LOOK.flat&&!LOOK.calm){ctx.fillStyle=`rgba(18,28,58,${.16*dusk})`;ctx.fillRect(0,0,W,H);
     const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(10,16,40,0)');vg.addColorStop(1,`rgba(10,16,40,${.4*dusk})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   // journeys, wild things and place markers; labels are placed so they never collide with each other or the page's own controls
   stopHits=[];hits=[];wildHits=[];placed=[];reserveUI();

@@ -25,6 +25,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   height tints, latitude-aware snowline, NW sun). Current look: **relief**, matched to the client's reference (Kuzeyoku "Relief Style World
   Map (Flat Ocean)" wall maps): seafoam sea with soft sea-floor relief, olive/sage lowlands, sand deserts, tan uplands, taupe plateaus, white ice,
   crisp low-sun hillshade, land casting a teal shadow onto the sea, atlas lettering (continents in spaced caps, seas in italics).
+  World layer is built from z5 terrain at 4096 px and saved at 3072 (crisper). `LOOK.calm` turns off the dusk tint and tilt-shift blur and
+  keeps the vignette light: the client wants the colours clean, like the printed reference. Prices are INR (`money()` in app.js).
   Earlier looks (vivid, satellite) are in git history; `LOOKS.satellite` / `LOOKS.vivid` stay defined in map.js. Only `public/data/looks/relief/`
   ships. Rebuild with `python3 tools/build_relief.py relief` (needs tools/mapdata.json next to it).
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.

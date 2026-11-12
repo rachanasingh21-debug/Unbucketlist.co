@@ -84,8 +84,8 @@ LOOKS = {
  # relief: the client's reference (Kuzeyoku relief wall maps): seafoam sea with visible sea-floor relief, olive/sage lowlands,
  # sand deserts, tan uplands, taupe plateaus, white ice; crisp, strong hillshade with warm light and brown-olive shade
  'relief': dict(mode='relief', dry='#e2c597', mid='#a9b07f', wet='#7d9a64', boreal='#8a9470', dune='#ead0a2', rock='#c59c6c', high='#9e8571',
-                peak='#cdc4b9', snow='#ffffff', warm='#fff2d6', cool='#3a3426', sea=['#cdf0de', '#bde8d6', '#aedccd', '#a2d1c4', '#97c6bb'],
-                sat=1.06, lift=0, tint=.35, sea_relief=.32, exag_world=16, exag_crop=1.6),
+                peak='#cdc4b9', snow='#ffffff', warm='#fff2d6', cool='#3a3426', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
+                sat=1.08, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.5, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)]),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -145,7 +145,8 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
         c = mix(c, hexrgb(PAL['rock']), sstep(900, 2800, elev) * .6)
         c = mix(c, hexrgb(PAL['high']), sstep(3600, 5200, elev) * .6)
     snowline = 6100 - np.maximum(0, np.abs(lat) - 33) * 140   # ~6,000 m in the Himalaya, lower towards the poles
-    c = mix(c, hexrgb(PAL['snow']), sstep(snowline - 250, snowline + 450, elev) * .95)
+    SNOW = sstep(snowline - 250, snowline + 450, elev)
+    c = mix(c, hexrgb(PAL['snow']), SNOW * .95)
     # soft sunlight from the north-west
     lat_r = np.radians(lat)
     dlon = (lon[0, 1] - lon[0, 0]) if W > 1 else 1; dlat = (lat[0, 0] - lat[1, 0]) if H > 1 else 1
@@ -165,8 +166,9 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     r = max(3, int(min(H, W) / 160))
     blur = smooth(elev.astype(np.float32), r)
     lr = elev - blur; sc = np.percentile(np.abs(lr[land]), 92) + 1 if land.any() else 1
-    k = k + .32 * np.tanh(lr / sc)
+    k = k + PAL.get('local', .32) * np.tanh(lr / sc)
     kk = np.clip(k, -1, 1)
+    if PAL.get('mode') == 'relief': kk = kk * (1 - .6 * sstep(.5, 1, SNOW))   # ice sheets stay smooth and bright
     if PAL.get('mode') == 'relief':
         c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .38, 1.05), .3)[..., None])
     else:
@@ -188,16 +190,18 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
 def world():
     z = PAL.get('world_z', 4); n = 2 ** z
     m = mosaic(z, 0, n - 1, 0, n - 1)
-    for W in (1024, 3072):
+    for W, SAVE in PAL.get('world_sizes', [(1024, 1024), (3072, 3072)]):
         H = W // 2
         lon = np.linspace(-180 + 180 / W, 180 - 180 / W, W)[None, :].repeat(H, 0)
         lat = np.linspace(90 - 90 / H, -90 + 90 / H, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px, py)
         el[lat < -84] = 2500  # Antarctic plateau beyond the tiles
         rgb, land = colourise(el, lon, lat, exag=PAL.get('exag_world', 9))
-        Image.fromarray(rgb).save(OUT + f'world-land-{W // 1024}k.jpg', quality=80, optimize=True, progressive=True)
-        if W == 3072:
-            Image.fromarray(rgb).resize((2048, 1024), Image.LANCZOS).save(OUT + 'world-ocean.jpg', quality=80, optimize=True, progressive=True)
+        im = Image.fromarray(rgb)
+        if SAVE != W: im = im.resize((SAVE, SAVE // 2), Image.LANCZOS)
+        im.save(OUT + f'world-land-{SAVE // 1024}k.jpg', quality=82, optimize=True, progressive=True)
+        if SAVE == 3072:
+            im.resize((2048, 1024), Image.LANCZOS).save(OUT + 'world-ocean.jpg', quality=82, optimize=True, progressive=True)
         print('world', W, 'done')
 
 LOOK_PALETTE = {'ladakh': '#c7ad86', 'rajasthan': '#dcc28f', 'morocco': '#d6b98a', 'serengeti': '#c9c07f', 'iceland': '#a9ad8e',
