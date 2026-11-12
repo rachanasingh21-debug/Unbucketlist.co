@@ -29,6 +29,58 @@ def tile(z, x, y):
     a = np.asarray(Image.open(p).convert('RGB'), dtype=np.float32)
     return a[..., 0] * 256 + a[..., 1] + a[..., 2] / 256 - 32768
 
+BM_URL = 'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_NextGeneration/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg'
+def bm_tile(z, x, y):
+    # NASA Blue Marble (cloud-free): used only as a guide to where land is green, brown or red; restyled in grade()
+    p = f'{S}/bm/{z}/{x}/{y}.jpg'
+    if not os.path.exists(p):
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        for a in range(5):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(BM_URL.format(z=z, x=x, y=y), headers={'User-Agent': 'UnbucketlistMapBuilder/1.0'}), timeout=60) as r:
+                    open(p, 'wb').write(r.read()); break
+            except Exception:
+                time.sleep(2 * (a + 1))
+        else:
+            raise RuntimeError(f'bm tile {z}/{x}/{y} failed')
+    return np.asarray(Image.open(p).convert('RGB'), dtype=np.float32)
+
+def albedo(lon, lat, z):
+    z = int(min(8, z)); W_ = lon.shape[1]
+    x0, x1 = float(lon.min()), float(lon.max()); y0, y1 = float(lat.min()), float(lat.max())
+    tx0, ty1 = merc_px(np.array(x0), np.array(y0), z); tx1, ty0 = merc_px(np.array(x1), np.array(y1), z)
+    tx0, tx1, ty0, ty1 = int(tx0 // 256), min(2 ** z - 1, int(tx1 // 256)), max(0, int(ty0 // 256)), min(2 ** z - 1, int(ty1 // 256))
+    jobs = [(z, x, y) for y in range(ty0, ty1 + 1) for x in range(tx0, tx1 + 1)]
+    with ThreadPoolExecutor(8) as ex: tiles = list(ex.map(lambda j: bm_tile(*j), jobs))
+    w, h = tx1 - tx0 + 1, ty1 - ty0 + 1; m = np.zeros((h * 256, w * 256, 3), np.float32)
+    for i, t in enumerate(tiles): yy, xx = divmod(i, w); m[yy * 256:(yy + 1) * 256, xx * 256:(xx + 1) * 256] = t
+    px, py = merc_px(lon, lat, z)
+    return np.dstack([sample(m[..., c], px - tx0 * 256, py - ty0 * 256) for c in range(3)])
+
+def rgb2lab(c):
+    c = c / 255; c = np.where(c > .04045, ((c + .055) / 1.055) ** 2.4, c / 12.92)
+    M = np.array([[.4124, .3576, .1805], [.2126, .7152, .0722], [.0193, .1192, .9505]], np.float32)
+    xyz = (c @ M.T) / np.array([.9505, 1, 1.089], np.float32)
+    f = np.where(xyz > .008856, np.cbrt(xyz), 7.787 * xyz + 16 / 116)
+    return np.dstack([116 * f[..., 1] - 16, 500 * (f[..., 0] - f[..., 1]), 200 * (f[..., 1] - f[..., 2])])
+
+def lab2rgb(l):
+    fy = (l[..., 0] + 16) / 116; fx = fy + l[..., 1] / 500; fz = fy - l[..., 2] / 200
+    f = np.dstack([fx, fy, fz]); xyz = np.where(f > .2069, f ** 3, (f - 16 / 116) / 7.787) * np.array([.9505, 1, 1.089], np.float32)
+    Mi = np.array([[3.2406, -1.5372, -.4986], [-.9689, 1.8758, .0415], [.0557, -.2040, 1.0570]], np.float32)
+    c = xyz @ Mi.T; c = np.where(c > .0031308, 1.055 * np.clip(c, 0, None) ** (1 / 2.4) - .055, 12.92 * c)
+    return np.clip(c * 255, 0, 255)
+
+def grade(rgb):
+    # restyle real-world colour into the reference's tones: lifted, muted, greens pulled towards olive
+    L = rgb2lab(rgb); l, a, b = L[..., 0], L[..., 1], L[..., 2]
+    g = PAL['grade']; C = np.hypot(a, b); h = np.arctan2(b, a)
+    l2 = g['l0'] + g['l1'] * l
+    green = np.clip(np.cos(h - math.radians(135)), 0, 1) ** 2            # how 'green' a hue is
+    h2 = h - math.radians(g['olive']) * green                          # greens lean yellow-olive
+    C2 = C * g['c'] * (1 + g['cg'] * green)
+    return lab2rgb(np.dstack([l2, C2 * np.cos(h2), C2 * np.sin(h2)])), L
+
 def mosaic(z, x0, x1, y0, y1):
     jobs = [(z, x % (2 ** z), y) for y in range(y0, y1 + 1) for x in range(x0, x1 + 1)]
     with ThreadPoolExecutor(8) as ex: tiles = list(ex.map(lambda j: tile(*j), jobs))
@@ -86,7 +138,8 @@ LOOKS = {
  'relief': dict(mode='relief', dry='#e0c193', mid='#a3ab7c', wet='#6f8559', boreal='#5f6a52', dune='#e8cc9c', rock='#a3866a', high='#908b80',
                 peak='#bdb8b0', snow='#ffffff', warm='#fff4e0', cool='#2e2c24', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
                 sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.45, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
-                cast=.5, cast_sea=.32, ao=.38, sun_alt=24),
+                cast=.5, cast_sea=.32, ao=.38, sun_alt=24, bm_world_z=4,
+                grade=dict(w=.9, l0=47, l1=.5, c=1.0, cg=.35, olive=8)),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -124,7 +177,7 @@ def landmask(lon, lat):
         d.polygon([((px - x0) / (x1 - x0) * (W - 1), (py - y0) / (y1 - y0) * (H - 1)) for px, py in pts], fill=255)
     return np.asarray(im) > 127
 
-def colourise(elev, lon, lat, exag, palette=None, patches=()):
+def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
     H, W = elev.shape
     if PAL.get('mode') == 'relief':
         # Greenland (its west and east coasts, so Baffin Island, Quebec and Iceland stay out) and Antarctica
@@ -159,7 +212,16 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     if PAL.get('mode') == 'relief':  # olive-sage greens, darker in the boreal north and wet tropics
         c = mix(c, hexrgb(PAL['boreal']), (sstep(48, 60, al) * (1 - sstep(66, 72, al)) * .75 + sstep(.85, 1, G) * .5) * sstep(.4, .75, G) * (.55 + .45 * N))
     c = c * (0.94 + 0.12 * N)[..., None]            # gentle mottling across plains
-    if palette is not None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
+    LAKE = np.zeros(elev.shape, bool)
+    if alb is not None and PAL.get('grade'):
+        al_ = np.dstack([smooth(alb[..., i], max(1, W // 1400)) for i in range(3)])       # soften: colour only, no photo texture
+        gc, L0 = grade(al_)
+        known = (np.abs(lat) < 84.5)[..., None]
+        c = np.where(known, mix(c, gc, np.full(elev.shape, PAL['grade']['w'], np.float32)), c)
+        # water inside the land (Great Lakes, Baikal, Victoria...): take the sea's colour
+        LAKE = (L0[..., 2] < -6) & (L0[..., 0] < 45) & (elev > 0) & (np.abs(lat) < 84.5)
+        LAKE = smooth(LAKE.astype(np.float32), 1) > .5
+    if palette is not None and alb is None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
         pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
         c = mix(c, pc, np.full(elev.shape, PAL['tint'], np.float32))
     for kind, la, lo, r in patches:
@@ -169,9 +231,10 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     # height: green lowlands -> warm rock -> pale high rock -> snow above a latitude-aware snowline
     land = elev > 0
     if PAL.get('mode') == 'relief':
-        c = mix(c, hexrgb(PAL['rock']), sstep(500, 1800, elev) * .55)
-        c = mix(c, hexrgb(PAL['high']), sstep(2200, 4200, elev) * .75)
-        c = mix(c, hexrgb(PAL['peak']), sstep(4800, 6000, elev) * .6)
+        hw = .4 if alb is not None else 1                     # real colour already carries the browns of high ground
+        c = mix(c, hexrgb(PAL['rock']), sstep(500, 1800, elev) * .55 * hw)
+        c = mix(c, hexrgb(PAL['high']), sstep(2200, 4200, elev) * .75 * (.3 + .7 * hw))
+        c = mix(c, hexrgb(PAL['peak']), sstep(4800, 6000, elev) * .6 * (.3 + .7 * hw))
     else:
         c = mix(c, hexrgb(PAL['rock']), sstep(900, 2800, elev) * .6)
         c = mix(c, hexrgb(PAL['high']), sstep(3600, 5200, elev) * .6)
@@ -234,6 +297,8 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     seac = sea * (1 + kk[..., None] * PAL.get('sea_relief', .25))
     if PAL.get('flat_sea'): seac = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape)
     seac = seac * (1 - PAL.get('cast_sea', 0) * CAST)[..., None]   # the land throws its shadow onto the sea
+    lakec = np.broadcast_to(hexrgb(PAL['sea'][1]), c.shape) * (1 + kk[..., None] * .05)
+    c = np.where(LAKE[..., None], lakec, c)
     out = np.where(land[..., None], c, seac)
     out = out + (255 - out) * PAL['lift']  # pastel looks are lighter overall
     return np.clip(out, 0, 255).astype(np.uint8), land
@@ -247,7 +312,8 @@ def world():
         lat = np.linspace(90 - 90 / H, -90 + 90 / H, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px, py)
         el[lat < -84] = 2500  # Antarctic plateau beyond the tiles
-        rgb, land = colourise(el, lon, lat, exag=PAL.get('exag_world', 9))
+        alb = albedo(lon, lat, PAL.get('bm_world_z', 4)) if PAL.get('grade') else None
+        rgb, land = colourise(el, lon, lat, exag=PAL.get('exag_world', 9), alb=alb)
         im = Image.fromarray(rgb)
         if SAVE != W: im = im.resize((SAVE, SAVE // 2), Image.LANCZOS)
         im.save(OUT + f'world-land-{SAVE // 1024}k.jpg', quality=82, optimize=True, progressive=True)
@@ -282,7 +348,8 @@ def crops(only=None):
         lon = np.linspace(x0, x1, W)[None, :].repeat(H, 0); lat = np.linspace(y1, y0, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px - tx0 * 256, py - ty0 * 256)
         exag = (2.2 if span > 1 else 3.2) * PAL.get('exag_crop', 1)
-        rgb, land = colourise(el, lon, lat, exag=exag, palette=DEST_GREEN.get(rid), patches=r.get('patches', []))
+        alb = albedo(lon, lat, z) if PAL.get('grade') else None
+        rgb, land = colourise(el, lon, lat, exag=exag, palette=DEST_GREEN.get(rid), patches=r.get('patches', []), alb=alb)
         # feathered edges so the close-up melts into the world layer
         yy, xx = np.mgrid[0:H, 0:W]; e = np.minimum.reduce([xx, W - 1 - xx, yy, H - 1 - yy]).astype(np.float32)
         alpha = (np.clip(e / (min(W, H) * .12), 0, 1) ** 1.5 * 255).astype(np.uint8)

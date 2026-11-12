@@ -88,7 +88,7 @@ const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 /* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
    satellite: natural, muted land on one flat, calm ocean colour (the client's reference: a "satellite map, flat ocean" poster).
    vivid:     jade, saffron and ultramarine with a depth-shaded sea. To switch back: LOOK=LOOKS.vivid and restore data/looks/vivid from git. */
-const LOOKS={relief:{dir:'relief',flat:false,calm:true,sun:'255,248,232',sunA:.1,vig:'30,80,78',vigA:.07,sea:['#c4eedb','#a6d5c9'],shade:'14,70,66',shadeK:1.2,shadeLen:1.4,shimmer:.07,
+const LOOKS={relief:{dir:'relief',flat:false,calm:true,dataLakes:true,sun:'255,248,232',sunA:.1,vig:'30,80,78',vigA:.07,sea:['#c4eedb','#a6d5c9'],shade:'14,70,66',shadeK:1.2,shadeLen:1.4,shimmer:.07,
                coast:'rgba(236,255,247,.5)',label:'rgba(58,108,110,.72)',land:'rgba(78,62,40,.5)'},
              satellite:{dir:'satellite',flat:true,sun:'255,236,205',sunA:.3,vig:'4,12,26',sea:['#1c3a54','#1c3a54'],shade:'0,6,18',shimmer:.1},
              vivid:{dir:'vivid',flat:false,sun:'255,214,140',sunA:.55,vig:'10,30,90',sea:['#36dcd6','#0f78c4'],shade:'6,28,80',shimmer:.22}};
@@ -133,7 +133,7 @@ function drawStatic(){
   // lakes and rivers
   c.setTransform(...T);
   const lakes=[...LAKES.map(l=>l),...DEST.flatMap(d=>(R[d.id].lakes||[]).map(([la,lo,rx,ry,rot])=>[lo,la,rx,ry,rot||0,R[d.id].lakeColor]))];
-  for(const [lo,la,rx,ry,rot,lc] of lakes){if(lo+rx<vx0||lo-rx>vx1||-la+ry<vy0||-la-ry>vy1)continue;if(rx*V.k<1.5)continue;
+  for(const [lo,la,rx,ry,rot,lc] of lakes){if(LOOK.dataLakes&&!lc)continue; // real lakes come from the colour data; only signature lakes (Pangong, Tso Moriri) are drawnif(lo+rx<vx0||lo-rx>vx1||-la+ry<vy0||-la-ry>vy1)continue;if(rx*V.k<1.5)continue;
     c.save();c.translate(lo,-la);c.rotate((rot||0)*Math.PI/180);c.scale(rx,ry);
     const lg=c.createRadialGradient(0,0,0,0,0,1);const col=lc||'#4f98ad';lg.addColorStop(0,col);lg.addColorStop(.82,col);lg.addColorStop(1,'rgba(120,170,170,0)'); // soft natural shoreline
     c.globalAlpha=.88;c.fillStyle=lg;c.beginPath();c.arc(0,0,1,0,7);c.fill();c.globalAlpha=1;c.restore()}
