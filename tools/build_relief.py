@@ -219,7 +219,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
         known = (np.abs(lat) < 84.5)[..., None]
         c = np.where(known, mix(c, gc, np.full(elev.shape, PAL['grade']['w'], np.float32)), c)
         # water inside the land (Great Lakes, Baikal, Victoria...): take the sea's colour
-        LAKE = (L0[..., 2] < -6) & (L0[..., 0] < 45) & (elev > 0) & (np.abs(lat) < 84.5)
+        LAKE = (((L0[..., 2] < -6) & (L0[..., 0] < 45)) | (L0[..., 0] < 6)) & (elev > 0) & (np.abs(lat) < 84.5)  # bluish, or near-black (Victoria, Biwa)
         LAKE = smooth(LAKE.astype(np.float32), 1) > .5
     if palette is not None and alb is None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
         pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
