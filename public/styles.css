@@ -299,6 +299,8 @@ html,body{overflow-x:clip}
 .map-pop::after{content:"";position:absolute;left:var(--ax,50%);bottom:-8px;width:16px;height:16px;margin-left:-8px;background:#fffdf8;transform:rotate(45deg);border-radius:0 0 4px 0}
 .map-pop.in>*{animation:popIn .32s cubic-bezier(.2,.7,.2,1) both}
 @keyframes popIn{from{opacity:0;transform:translateY(6px)}}
+.map-pop.below::after{bottom:auto;top:-8px;border-radius:4px 0 0 0}
+.mp-rows{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .mp-x{position:absolute;z-index:2;top:6px;right:6px;width:34px;height:34px;border-radius:50%;color:var(--muted);font-size:.85rem;animation:none!important}
 .mp-x:hover{background:#f1e9dc;color:var(--ink)}
 .mp-k{display:flex;align-items:center;gap:7px;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:#8a5a3c;padding-right:30px}

@@ -26,7 +26,7 @@ window.WILDLIFE = {
   ['🦌','Blackbuck',26.15,73.08,'Bishnoi villages near Jodhpur','Antelope protected for centuries by the Bishnoi community.','Year-round'],
   ['🐅','Bengal tiger',26.02,76.5,'Ranthambore, a drive from Jaipur','Tigers prowl among the ruins of an old fort.','Oct–Jun']],
  santorini:[
-  ['🦅','Eleonora’s falcon',36.36,25.32,'The caldera cliffs','These falcons nest late, timing their chicks to the autumn bird migration.','Jun–Oct']],
+  ['🦅','Eleonora’s falcon',36.437,25.418,'The caldera cliffs','These falcons nest late, timing their chicks to the autumn bird migration.','Jun–Oct']],
  maldives:[
   ['🦈','Manta rays',5.17,73.15,'Hanifaru Bay, Baa Atoll','Hundreds of mantas can gather to feed in this tiny bay.','Jun–Nov'],
   ['🦈','Whale shark',3.48,72.83,'South Ari Atoll','One of the few places to meet whale sharks all year.','Year-round'],

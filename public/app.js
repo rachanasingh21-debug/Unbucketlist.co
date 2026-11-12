@@ -5,27 +5,27 @@ const CATS = [
   {id:'culture',icon:'⛩',name:'Culture'},{id:'wild',icon:'🦁',name:'Wild things'},{id:'food',icon:'🍜',name:'Tastes'},{id:'adventure',icon:'🪂',name:'Adventure'}];
 
 const TRIPS = [
- {id:'bali',cat:['beach','culture'],name:'Bali',place:'Indonesia',tag:'Slow & sacred',days:7,price:1450,sky:['#ffb36b','#ff6f61','#5b2a6e'],land:['#2c5d4a','#1d3f33','#0f2a22'],image:'',video:'',
+ {id:'bali',cat:['beach','culture'],name:'Bali',place:'Indonesia',tag:'Slow & sacred',days:7,price:123000,sky:['#ffb36b','#ff6f61','#5b2a6e'],land:['#2c5d4a','#1d3f33','#0f2a22'],image:'',video:'',
   hook:'Rice terraces at sunrise, temples at dusk, and a surf break in between.',
   story:'Wake in Ubud to roosters and mist. By noon you are paddling out at Canggu. By dusk, a Kecak fire dance.',
   plan:[['Arrive Ubud','Villa check-in, rice-terrace walk, warung dinner.'],['Sacred morning','Tirta Empul water temple, then a cooking class.'],['Waterfalls','Tegenungan & Tibumana with a local guide.'],['Coast','Transfer to Uluwatu, cliffside sunset temple.'],['Surf day','Lesson at Padang Padang, beach club evening.'],['Nusa Penida','Day trip to Kelingking Beach by boat.'],['Slow goodbye','Spa morning, market shopping, departure.']]},
- {id:'lofoten',cat:['mountain','adventure'],name:'Lofoten',place:'Norway',tag:'Northern lights',days:6,price:2380,sky:['#0b1d3a','#26527a','#8fd0e0'],land:['#1b2b3a','#101c28','#070e16'],image:'',video:'',
+ {id:'lofoten',cat:['mountain','adventure'],name:'Lofoten',place:'Norway',tag:'Northern lights',days:6,price:202500,sky:['#0b1d3a','#26527a','#8fd0e0'],land:['#1b2b3a','#101c28','#070e16'],image:'',video:'',
   hook:'Jagged peaks rising straight out of a silver sea, under a green sky.',
   story:'Rorbu cabins, cod-drying racks, and a midnight sky that moves. Chase the aurora, then sleep until it rains.',
   plan:[['Fly to Leknes','Pick up car, check into a fisherman’s rorbu.'],['Reine & Hamnøy','Photo stops and a kayak at golden hour.'],['Ryten hike','Hike to Kvalvika viewpoint.'],['Sea eagle safari','RIB boat through the Trollfjord.'],['Aurora night','Guided northern-lights chase.'],['Depart','Fish soup, one more fjord, flight home.']]},
- {id:'kyoto',cat:['culture','food'],name:'Kyoto',place:'Japan',tag:'Quiet temples',days:8,price:2900,sky:['#fbd3e9','#f48fb1','#6a4c93'],land:['#5b3a29','#3a2418','#22140d'],image:'',video:'',
+ {id:'kyoto',cat:['culture','food'],name:'Kyoto',place:'Japan',tag:'Quiet temples',days:8,price:246500,sky:['#fbd3e9','#f48fb1','#6a4c93'],land:['#5b3a29','#3a2418','#22140d'],image:'',video:'',
   hook:'Torii gates, tea ceremonies and the best breakfast of your life.',
   story:'Start before the crowds at Fushimi Inari. End in a Gion alley where the lanterns are already lit.',
   plan:[['Land in Osaka','Train to Kyoto, ryokan check-in.'],['Fushimi Inari','Dawn hike through 10,000 gates.'],['Arashiyama','Bamboo grove, monkey park, river lunch.'],['Tea & zen','Private tea ceremony & Ryoan-ji.'],['Nara day','Deer park and Todai-ji.'],['Nishiki Market','Food walk with a local chef.'],['Philosopher’s Path','Slow walk, Ginkaku-ji.'],['Depart','Matcha for the road.']]},
- {id:'patagonia',cat:['mountain','adventure','wild'],name:'Patagonia',place:'Chile',tag:'Edge of the world',days:9,price:3350,sky:['#f9d29d','#d98e73','#3d3b6b'],land:['#4a4a52','#2d2d35','#18181e'],image:'',video:'',
+ {id:'patagonia',cat:['mountain','adventure','wild'],name:'Patagonia',place:'Chile',tag:'Edge of the world',days:9,price:285000,sky:['#f9d29d','#d98e73','#3d3b6b'],land:['#4a4a52','#2d2d35','#18181e'],image:'',video:'',
   hook:'Granite towers, turquoise lakes and wind that rearranges your thoughts.',
   story:'Torres del Paine at first light turns the peaks the colour of embers. You will not want to blink.',
   plan:[['Punta Arenas','Arrive, gear check.'],['Puerto Natales','Transfer, welcome asado.'],['Base Torres','Full-day hike to the towers.'],['Grey Glacier','Boat to the glacier face.'],['Guanaco trail','Wildlife drive, condors overhead.'],['Lago Pehoé','Lake kayak & hot tub.'],['Milodon cave','Easy morning, free afternoon.'],['Fjord day','Cruise the Last Hope Sound.'],['Depart','Fly home.']]},
- {id:'santorini',cat:['beach','food'],name:'Santorini',place:'Greece',tag:'Golden hour',days:5,price:1980,sky:['#ffe29f','#ffa99f','#5aa9e6'],land:['#f4f1ea','#d8d2c4','#a8a08c'],image:'',video:'',
+ {id:'santorini',cat:['beach','food'],name:'Santorini',place:'Greece',tag:'Golden hour',days:5,price:168500,sky:['#ffe29f','#ffa99f','#5aa9e6'],land:['#f4f1ea','#d8d2c4','#a8a08c'],image:'',video:'',
   hook:'White domes, blue water, and sunsets that earn their applause.',
   story:'Cave hotels, volcanic wine, and a catamaran at golden hour. Oia is a given; the quiet side is the secret.',
   plan:[['Arrive Fira','Cliffside walk and dinner.'],['Oia','Sunrise photos, sunset dinner.'],['Wine trail','Three volcanic vineyards.'],['Catamaran','Caldera sail, hot springs swim.'],['Depart','Slow breakfast, ferry or flight.']]},
- {id:'serengeti',cat:['wild','adventure'],name:'Serengeti',place:'Tanzania',tag:'The great migration',days:7,price:4200,sky:['#ffcf70','#f2884b','#7a2e1d'],land:['#6b4a1f','#3f2b12','#241806'],image:'',video:'',
+ {id:'serengeti',cat:['wild','adventure'],name:'Serengeti',place:'Tanzania',tag:'The great migration',days:7,price:357000,sky:['#ffcf70','#f2884b','#7a2e1d'],land:['#6b4a1f','#3f2b12','#241806'],image:'',video:'',
   hook:'Two million wildebeest. One golden horizon. Zero screens.',
   story:'Dawn game drives, a balloon over the plains, and a sundowner while lions stretch in the long grass.',
   plan:[['Arusha','Briefing and bush-plane transfer.'],['Central Serengeti','First game drive, camp dinner.'],['Migration route','Full day following the herds.'],['Balloon sunrise','Champagne breakfast on the plains.'],['Ngorongoro','Crater floor safari.'],['Maasai village','Cultural visit.'],['Depart','Fly home.']]}
@@ -33,25 +33,25 @@ const TRIPS = [
 
 
 TRIPS.push(
- {id:'rajasthan',cat:['culture','food'],name:'Rajasthan',place:'India',tag:'Palaces & spice',days:7,price:1650,sky:['#ffd6a5','#ff9a76','#7b2d5e'],land:['#8a4b2a','#5a2f1a','#33190d'],image:'',video:'',
+ {id:'rajasthan',cat:['culture','food'],name:'Rajasthan',place:'India',tag:'Palaces & spice',days:7,price:140000,sky:['#ffd6a5','#ff9a76','#7b2d5e'],land:['#8a4b2a','#5a2f1a','#33190d'],image:'',video:'',
   hook:'Hill forts, havelis and a thali you will talk about for years.',story:'Sleep in a palace in Udaipur, haggle in Jaipur, and watch the Thar desert turn to rose at dusk.',
   plan:[['Jaipur','Amber Fort and old-city bazaars.'],['Cooking class','Learn the thali from a local family.'],['Jodhpur','The blue city and Mehrangarh at sunset.'],['Desert camp','Camel ride and a night under stars.'],['Udaipur','Lake palace boat ride.'],['Free day','Markets, tailors, chai.'],['Depart','Fly home from Udaipur.']]},
- {id:'maldives',cat:['beach'],name:'Maldives',place:'Indian Ocean',tag:'Overwater calm',days:5,price:2750,sky:['#c9f2ff','#6ed0e8','#0e5f8a'],land:['#f4e7c5','#c9b98a','#8f8260'],image:'',video:'',
+ {id:'maldives',cat:['beach'],name:'Maldives',place:'Indian Ocean',tag:'Overwater calm',days:5,price:234000,sky:['#c9f2ff','#6ed0e8','#0e5f8a'],land:['#f4e7c5','#c9b98a','#8f8260'],image:'',video:'',
   hook:'Water in colours you did not know water could be.',story:'Seaplane in, phone off. Snorkel with turtles before breakfast and watch the lagoon glow at night.',
   plan:[['Seaplane','Arrive at your atoll villa.'],['House reef','Guided snorkel with turtles and rays.'],['Sandbank picnic','Private sandbank lunch.'],['Dolphin cruise','Sunset boat and bioluminescence.'],['Depart','Slow morning, seaplane out.']]},
- {id:'iceland',cat:['adventure','mountain'],name:'Iceland',place:'Iceland',tag:'Fire & ice',days:6,price:2600,sky:['#cfe8ff','#8fb8e8','#2a3f6b'],land:['#2f3b3a','#1c2625','#0e1514'],image:'',video:'',
+ {id:'iceland',cat:['adventure','mountain'],name:'Iceland',place:'Iceland',tag:'Fire & ice',days:6,price:221000,sky:['#cfe8ff','#8fb8e8','#2a3f6b'],land:['#2f3b3a','#1c2625','#0e1514'],image:'',video:'',
   hook:'Midnight sun, black beaches and waterfalls on every corner.',story:'Drive the Ring Road with the sun that never quite sets. Soak in a geothermal lagoon when your legs give up.',
   plan:[['Reykjavik','Golden Circle: Gullfoss and Geysir.'],['South coast','Skógafoss and Reynisfjara black sand.'],['Glacier day','Hike on Sólheimajökull.'],['Jökulsárlón','Ice lagoon and diamond beach.'],['Blue Lagoon','Soak before your flight.'],['Depart','Fly home.']]},
- {id:'peru',cat:['culture','adventure','mountain'],name:'Peru',place:'Peru',tag:'Machu Picchu & beyond',days:8,price:2450,sky:['#ffe8c2','#9fd3b4','#2f6b5a'],land:['#2d5a3d','#1d3d29','#0e2418'],image:'',video:'',
+ {id:'peru',cat:['culture','adventure','mountain'],name:'Peru',place:'Peru',tag:'Machu Picchu & beyond',days:8,price:208000,sky:['#ffe8c2','#9fd3b4','#2f6b5a'],land:['#2d5a3d','#1d3d29','#0e2418'],image:'',video:'',
   hook:'Lost cities in the clouds, and the best ceviche on Earth.',story:'Walk in at sunrise when the mist lifts off the stones. Then eat your way back to Cusco.',
   plan:[['Cusco','Acclimatise and wander San Blas.'],['Sacred Valley','Pisac market and Ollantaytambo.'],['Train to Aguas Calientes','Evening in the cloud forest.'],['Machu Picchu','Sunrise entry with a guide.'],['Rainbow Mountain','Optional high-altitude hike.'],['Lima','Ceviche masterclass.'],['Depart','Fly home.'],['Spare day','Slack for weather.']]},
- {id:'morocco',cat:['culture','food'],name:'Morocco',place:'Morocco',tag:'Souks & Sahara',days:7,price:1750,sky:['#ffcf9e','#e8825a','#5e2b3a'],land:['#b5703a','#7d4a22','#4a2a12'],image:'',video:'',
+ {id:'morocco',cat:['culture','food'],name:'Morocco',place:'Morocco',tag:'Souks & Sahara',days:7,price:149000,sky:['#ffcf9e','#e8825a','#5e2b3a'],land:['#b5703a','#7d4a22','#4a2a12'],image:'',video:'',
   hook:'Blue alleys, spice-piled souks and a night in the dunes.',story:'Get lost in the Marrakech medina on purpose, then cross the Atlas to a camp in the Sahara.',
   plan:[['Marrakech','Medina and Jemaa el-Fnaa at dusk.'],['Atlas Mountains','Berber village lunch.'],['Aït Benhaddou','Kasbah and film-set walk.'],['Merzouga','Camel trek to desert camp.'],['Fes','Tanneries and the old medina.'],['Chefchaouen','The blue city.'],['Depart','Fly home from Tangier.']]},
- {id:'newzealand',cat:['adventure','mountain'],name:'New Zealand',place:'New Zealand',tag:'Middle-earth, for real',days:9,price:3600,sky:['#bfe3f5','#7fb7d9','#2c5d8a'],land:['#3d6b4a','#27472f','#142a1a'],image:'',video:'',
+ {id:'newzealand',cat:['adventure','mountain'],name:'New Zealand',place:'New Zealand',tag:'Middle-earth, for real',days:9,price:306000,sky:['#bfe3f5','#7fb7d9','#2c5d8a'],land:['#3d6b4a','#27472f','#142a1a'],image:'',video:'',
   hook:'Fjords, glaciers and long summer evenings.',story:'Summer down south: kayak Milford Sound, jump off something in Queenstown, sleep under the Milky Way.',
   plan:[['Queenstown','Lake walk and fergburger.'],['Milford Sound','Cruise the fjord.'],['Glenorchy','Scenic drive and hike.'],['Wanaka','Roy’s Peak sunrise.'],['Mt Cook','Hooker Valley walk.'],['Tekapo','Stargazing reserve.'],['Christchurch','Gardens and markets.'],['Free day','Your pick.'],['Depart','Fly home.']]},
- {id:'ladakh',cat:['mountain','adventure','culture'],name:'Ladakh',place:'India',tag:'The land of high passes',days:9,price:1450,sky:['#cfe4f7','#8fb6dc','#3b4f7a'],land:['#9b8164','#6f5a45','#3e3127'],image:'',video:'',
+ {id:'ladakh',cat:['mountain','adventure','culture'],name:'Ladakh',place:'India',tag:'The land of high passes',days:9,price:123000,sky:['#cfe4f7','#8fb6dc','#3b4f7a'],land:['#9b8164','#6f5a45','#3e3127'],image:'',video:'',
   hook:'Moonscape valleys, turquoise lakes at 4,000 m and skies full of stars.',story:'Start slow in Leh, cross Khardung La into the dunes of Nubra, follow the Shyok to Pangong Tso, then sleep under the clearest skies in India at Hanle.',
   plan:[['Leh','Arrive and acclimatise. Shanti Stupa at sunset.'],['Leh','Monasteries of Thiksey and Hemis.'],['Khardung La to Nubra','Over the pass to Diskit and the Hunder dunes.'],['Nubra Valley','Camel trails, Diskit monastery.'],['Turtuk','Apricot orchards in the last village before the border.'],['Shyok to Pangong','Along the river to the lake.'],['Pangong Tso','Sunrise on the water that changes colour.'],['Hanle','Stargazing near the observatory.'],['Tso Moriri','The quiet lake, then back to Leh.']]}
 );
@@ -66,7 +66,7 @@ const CREDITS=window.CREDITS||{};
 TRIPS.forEach(t=>{t.credits=CREDITS[t.id]||[];t.photos=t.credits.map(c=>'media/'+c.file);if(!t.image&&t.photos.length){t.image=t.photos[0];t.pos=t.credits[0].pos||''}});
 
 const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelectorAll(s)];
-const money=n=>'$'+n.toLocaleString();
+const money=n=>'₹'+n.toLocaleString('en-IN');   // prices are in Indian rupees, with Indian digit grouping (₹1,23,500)
 const wish=new Set(JSON.parse((()=>{try{return localStorage.getItem('ubl-wish')||'[]'}catch(e){return'[]'}})()));
 const saveWish=()=>{try{localStorage.setItem('ubl-wish',JSON.stringify([...wish]))}catch(e){}$('#wishCount').textContent=wish.size};
 function toggleBucket(id){const t=TRIPS.find(x=>x.id===id),on=!wish.has(id);on?wish.add(id):wish.delete(id);saveWish();renderCards();

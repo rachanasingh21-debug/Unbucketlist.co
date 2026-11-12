@@ -257,10 +257,10 @@ const prog={},holdUntil={};let hits=[],stopHits=[],wildHits=[];
 function starAlpha(id){return ramp(V.k/fitK(id),.32,.62)}
 function onScreen(id){const b=routeBox(R[id]);return (sx(b.cx)>-W*.2&&sx(b.cx)<W*1.2&&sy(b.cy)>-H*.2&&sy(b.cy)<H*1.2)?1:0}
 function drawJourney(d){
-  const r=R[d.id],a=starAlpha(d.id);if(a<=0||!onScreen(d.id)){prog[d.id]=0;return}
+  const r=R[d.id],a=starAlpha(d.id);if(a<=0||!onScreen(d.id)||(focus&&focus!==d.id)){prog[d.id]=0;return}
   const pts=r.stops.map(s=>[sx(s[2]),sy(-s[1])]);if(r.loop)pts.push(pts[0]);
   const n=pts.length-1,held=tNow<(holdUntil[d.id]||0);if(held){prog[d.id]=0;return}
-  prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5&&!held?.045:0));const P=prog[d.id];
+  prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5&&!held?.07:0));const P=prog[d.id];
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
   for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
@@ -284,7 +284,7 @@ function drawJourney(d){
 /* ---------- wild things: small dots that bloom into badges as you zoom in ---------- */
 const WILD=window.WILDLIFE||{};
 function layoutWild(){const out=[];
-  for(const d of DEST){const list=WILD[d.id];if(!list)continue;const q=V.k/fitK(d.id),a=ramp(q,.55,.8)*onScreen(d.id);if(a<=.02)continue;
+  for(const d of DEST){const list=WILD[d.id];if(!list||(focus&&focus!==d.id))continue;const q=V.k/fitK(d.id),a=ramp(q,.55,.8)*onScreen(d.id);if(a<=.02)continue;
     if(tNow<(holdUntil[d.id]||0)+700)continue;
     const big=ramp(q,1.2,1.6),r=5+9*big,obst=R[d.id].stops.map(s=>[sx(s[2]),sy(-s[1]),11]);
     list.forEach((w,i)=>{const x0=sx(w[3]),y0=sy(-w[2]);if(x0<-40||x0>W+40||y0<40||y0>H+40)return;
@@ -306,7 +306,7 @@ function drawWild(list){
 
 /* ---------- place markers (world view) ---------- */
 function drawMarker(d){
-  const a=1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(-d.lat);if(x<-60||x>W+60||y<-30||y>H+30)return;
+  const a=focus&&focus!==d.id?1:1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(-d.lat);if(x<-60||x>W+60||y<-30||y>H+30)return;
   const mine=typeof wish!=='undefined'&&wish.has(d.id),ph=reduce?0:(tNow*.0012+d.m*.37)%1;
   ctx.globalAlpha=a;ctx.strokeStyle=`rgba(255,255,255,${.75*(1-ph)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,7+ph*14,0,7);ctx.stroke();
   ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'#ff5a3c';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
@@ -337,35 +337,60 @@ function popHTML(p){
    <dl class="mp-rows"><div><dt>Where</dt><dd>${esc2(w[4])}</dd></div><div><dt>Why</dt><dd>${esc2(w[5])}</dd></div></dl>`;
 }
 function popAnchor(p){if(p.kind==='stop'){const s=R[p.id].stops[p.i];return [s[2],s[1]]}const w=WILD[p.id][p.i];return [w[3],w[2]]}
-function openPop(p,{zoom=false}={}){
-  pop=p;[pop.lng,pop.lat]=popAnchor(p);setSheet(false);hideArrive(true);
-  popEl.innerHTML=popHTML(p);popEl.hidden=false;popEl.classList.remove('in');void popEl.offsetWidth;popEl.classList.add('in');
-  // make room: slide the map so the spot sits where its pop-up fits above it, clear of the header and the place bar
-  const h=popEl.offsetHeight,w=popEl.offsetWidth,k=zoom?Math.max(V.k,fitK(p.id)*1.7):V.k;
-  const ax=sx(pop.lng),ay=sy(-pop.lat);
-  const tx=zoom?W/2:cl(ax,w/2+12,W-w/2-(phone()?12:70)),ty=zoom?Math.max(84+h+26,H*.62):cl(ay,84+h+26,H-(phone()?96:60));
-  if(zoom||Math.hypot(tx-ax,ty-ay)>3)flyTo({x:pop.lng-(tx-W/2)/k,y:-pop.lat-(ty-H/2)/k,k},{ms:zoom?700:420,keep:true});
+const popLimits=()=>({top:80,bottom:H-(phone()?92:84)});      // the band a pop-up may use: below the header, above the place bar
+function openPop(p,{walk=false}={}){
+  const home=pop?pop.home:{x:V.x,y:V.y,k:V.k};                 // where the map was before pop-ups started moving it
+  pop=p;pop.home=home;[pop.lng,pop.lat]=popAnchor(p);setSheet(false);hideArrive(true);
+  popEl.innerHTML=popHTML(p);popEl.hidden=false;popEl.style.visibility='';
+  const L=popLimits(),cap=L.bottom-L.top-24,rows=popEl.querySelector('.mp-rows');let h=popEl.offsetHeight;
+  if(h>cap){rows.style.maxHeight=Math.max(64,rows.offsetHeight-(h-cap))+'px';h=popEl.offsetHeight}   // a long one scrolls inside itself
+  popEl.classList.remove('in');void popEl.offsetWidth;popEl.classList.add('in');
+  // walking the journey: zoom just enough to tell this stop from its neighbours, otherwise keep the whole journey in view
+  let k=V.k;
+  if(walk&&p.kind==='stop'){const st=R[p.id].stops,me=st[p.i];let dmin=1e9;st.forEach((o,j)=>{if(j!==p.i)dmin=Math.min(dmin,Math.hypot(o[2]-me[2],o[1]-me[1]))});
+    const f=fitK(p.id);k=Math.max(f,Math.min(64/Math.max(dmin,1e-6),f*6))}
+  const same=Math.abs(k/V.k-1)<.08;if(same)k=V.k;
+  const ax=sx(pop.lng),ay=sy(-pop.lat),on=ax>20&&ax<W-20&&ay>L.top&&ay<L.bottom;
+  let tx=ax,ty=ay,side;
+  if(same&&on){                                               // usually the map does not need to move at all
+    const above=ay-20-h>=L.top,below=ay+20+h<=L.bottom;
+    if(above)side='above';else if(below)side='below';
+    else{const dA=L.top-(ay-20-h),dB=(ay+20+h)-L.bottom;if(dA<=dB){side='above';ty=ay+dA}else{side='below';ty=ay-dB}}
+    tx=cl(ax,28,W-28);
+  }else{side='above';const g=stage();tx=(g.x0+g.x1)/2;ty=Math.min(L.bottom-8,Math.max(L.top+h+20,H*.6))}
+  pop.side=side;
+  if(k!==V.k||Math.hypot(tx-ax,ty-ay)>2)flyTo({x:pop.lng-(tx-W/2)/k,y:-pop.lat-(ty-H/2)/k,k},{ms:same?380:750,keep:true});
   wake();
 }
-function closePop(){if(!pop)return;pop=null;popEl.hidden=true;wake()}
+// restore: put the map back where it was before the pop-up moved it (when you close it yourself)
+function closePop(restore){if(!pop)return;const home=pop.home;pop=null;popEl.hidden=true;
+  if(restore&&home&&(Math.abs(home.k/V.k-1)>.02||Math.hypot((home.x-V.x)*V.k,(home.y-V.y)*V.k)>3))flyTo(home,{ms:450,keep:true});
+  wake()}
 function positionPop(){
   if(!pop)return;const ax=sx(pop.lng),ay=sy(-pop.lat);
-  if(ax<-30||ax>W+30||ay<30||ay>H+30)return closePop();          // you moved away from it
-  const w=popEl.offsetWidth,h=popEl.offsetHeight,left=cl(ax-w/2,8,W-w-8);
-  popEl.style.transform=`translate(${left.toFixed(1)}px,${(ay-h-20).toFixed(1)}px)`;popEl.style.setProperty('--ax',cl(ax-left,18,w-18).toFixed(1)+'px');
+  if(ax<-30||ax>W+30||ay<30||ay>H+30){if(anim){popEl.style.visibility='hidden';return}return closePop()}   // flying to it: wait; you dragged it away: close
+  popEl.style.visibility='';
+  const w=popEl.offsetWidth,h=popEl.offsetHeight,L=popLimits();
+  if(!anim){const above=ay-20-h>=L.top,below=ay+20+h<=L.bottom;if(pop.side==='above'&&!above&&below)pop.side='below';else if(pop.side==='below'&&!below&&above)pop.side='above'}
+  const left=cl(ax-w/2,8,W-w-8),top=pop.side==='below'?ay+20:ay-h-20;
+  popEl.classList.toggle('below',pop.side==='below');
+  popEl.style.transform=`translate(${left.toFixed(1)}px,${top.toFixed(1)}px)`;popEl.style.setProperty('--ax',cl(ax-left,18,w-18).toFixed(1)+'px');
 }
 popEl.addEventListener('click',e=>{
-  if(e.target.closest('[data-pop-close]'))return closePop();
-  const st=e.target.closest('[data-pop-step]');if(st&&pop){const n=R[pop.id].stops.length;return openPop({kind:'stop',id:pop.id,i:(pop.i+ +st.dataset.popStep+n)%n},{zoom:true})}
+  if(e.target.closest('[data-pop-close]'))return closePop(true);
+  const st=e.target.closest('[data-pop-step]');if(st&&pop){const n=R[pop.id].stops.length;return openPop({kind:'stop',id:pop.id,i:(pop.i+ +st.dataset.popStep+n)%n},{walk:true})}
   const u=e.target.closest('[data-pop-unbucket]');if(u){const id=u.dataset.popUnbucket;closePop();openTrip(id,{book:true})}
 });
 
 /* ---------- focus: get into one place, and out again ---------- */
 let focus=null;
 function updateFocus(){
+  // the place you are in: zoomed in enough, and looking at its journey (its centre is near, or the view centre is inside its area)
   let best=null,bd=1e9;
-  for(const d of DEST){const q=V.k/fitK(d.id);if(q<.3)continue;const b=routeBox(R[d.id]);const dx=(V.x-b.cx)*V.k,dy=(V.y-b.cy)*V.k,dist=Math.hypot(dx,dy);
-    if(dist<Math.max(W,H)*.6&&dist<bd){bd=dist;best=d.id}}
+  for(const d of DEST){const q=V.k/fitK(d.id);if(q<.3)continue;const b=routeBox(R[d.id]),m=b.span*.7;
+    const dist=Math.hypot((V.x-b.cx)*V.k,(V.y-b.cy)*V.k),inside=V.x>b.x0-m&&V.x<b.x1+m&&V.y>b.y0-m&&V.y<b.y1+m;
+    if((inside||dist<Math.max(W,H)*.6)&&dist<bd){bd=dist;best=d.id}}
+  if(pop&&focus===pop.id&&V.k/fitK(pop.id)>=.3)best=pop.id;      // an open pop-up keeps you in its place
   if(best!==focus){focus=best;if(pop&&pop.id!==best)closePop();if(!best)hideArrive(true);showCard(best)}
   heroCopy.classList.toggle('away',!!focus||interacted&&V.k>kStart*1.5);
 }
@@ -432,7 +457,7 @@ function flyToPlace(id){if(!R[id])return;setSheet(false);hideArrive(true);flyTo(
 window.mapFlyTo=flyToPlace;
 window.mapProject=(lng,lat)=>({x:sx(lng),y:sy(-lat)});          // screen position of any lng/lat
 window.mapScreenPos=id=>{const d=TRIPS.find(t=>t.id===id);return d?{x:sx(d.lng),y:sy(-d.lat)}:null};
-window.mapState=()=>({focus,pop:pop&&{kind:pop.kind,i:pop.i},k:V.k,q:focus?V.k/fitK(focus):0,sheet:card.classList.contains('open'),wild:wildHits.map(h=>({x:h.x,y:h.y,i:h.i})),stops:stopHits.map(h=>({x:h.x,y:h.y,i:h.i}))});
+window.mapState=()=>({moving:!!anim,drawn:focus?prog[focus]||0:0,focus,pop:pop&&{kind:pop.kind,i:pop.i},k:V.k,q:focus?V.k/fitK(focus):0,sheet:card.classList.contains('open'),wild:wildHits.map(h=>({x:h.x,y:h.y,i:h.i})),stops:stopHits.map(h=>({x:h.x,y:h.y,i:h.i}))});
 window.mapRefresh=()=>wake();
 
 /* ---------- gestures: drag to move, pinch / buttons / double-tap / ctrl+scroll to zoom ---------- */
@@ -441,7 +466,7 @@ function zoomAt(f,px,py){const x=wx(px),y=wy(py);V.k=cl(V.k*f,kMin,kMax);V.x=x-(
 cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});anim=null;interacted=true;
   if(ptrs.size===1){drag={moved:false};vel={x:0,y:0};tapStart={x:e.clientX,y:e.clientY,t:performance.now()}}else tapStart=null;wake()});
 cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;const prev=ptrs.get(e.pointerId);const cur={x:e.clientX,y:e.clientY};
-  if(ptrs.size===2||(tapStart&&Math.hypot(cur.x-tapStart.x,cur.y-tapStart.y)>8)){if(drag)drag.moved=true;setSheet(false);hideArrive(true)} // you're exploring: step out of the way
+  if(ptrs.size===2||(tapStart&&Math.hypot(cur.x-tapStart.x,cur.y-tapStart.y)>8)){if(drag)drag.moved=true;if(pop)pop.home=null;setSheet(false);hideArrive(true)} // you're exploring: step out of the way
   if(ptrs.size===1&&drag){const dx=cur.x-prev.x,dy=cur.y-prev.y;V.x-=dx/V.k;V.y-=dy/V.k;clampView();const now=performance.now(),dt=Math.max(8,now-lastMove);vel={x:dx/dt,y:dy/dt};lastMove=now}
   else if(ptrs.size===2){const [a,b]=[...ptrs.values()];const other=a===prev?b:a;const d0=Math.hypot(prev.x-other.x,prev.y-other.y),d1=Math.hypot(cur.x-other.x,cur.y-other.y);
     const r=cv.getBoundingClientRect(),mx=(cur.x+other.x)/2-r.left,my=(cur.y+other.y)/2-r.top;if(d0>0)zoomAt(d1/d0,mx,my);V.x-=(cur.x-prev.x)/2/V.k;V.y-=(cur.y-prev.y)/2/V.k;clampView()}
@@ -458,23 +483,26 @@ function nearest(list,x,y,rad){let best=null,bd=1e9;for(const h of list){const d
 function handleTap(x,y){
   const now=performance.now();
   // what did you tap? a stop on the journey first, then a wild thing, then a place
-  const s=nearest(stopHits,x,y,20);if(s&&starAlpha(s.id)>.5){lastTap=0;return openPop({kind:'stop',id:s.id,i:s.i})}
-  const w=nearest(wildHits,x,y,18);if(w){lastTap=0;return openPop({kind:'wild',id:w.id,i:w.i})}
+  const cand=[];
+  for(const h of stopHits)if(starAlpha(h.id)>.5)cand.push({d:Math.hypot(h.x-x,h.y-y),r:20,kind:'stop',h});
+  for(const h of wildHits)cand.push({d:Math.hypot(h.x-x,h.y-y),r:h.r,kind:'wild',h});
+  const hit=cand.filter(c=>c.d<c.r).sort((p,q)=>p.d-q.d)[0];
+  if(hit){lastTap=0;return openPop({kind:hit.kind,id:hit.h.id,i:hit.h.i})}
   const h=nearest(hits,x,y,26);if(h){lastTap=0;return flyToPlace(h.id)}
-  if(pop){lastTap=0;return closePop()}
+  if(pop){lastTap=0;return closePop(true)}
   if(card.classList.contains('open')){lastTap=0;return setSheet(false)}
   if(now-lastTap<320){lastTap=0;zoomSmooth(2.2,x,y)}else lastTap=now;
 }
 function zoomSmooth(f,px=W/2,py=H/2){const x=wx(px),y=wy(py),k=cl(V.k*f,kMin,kMax);flyTo({x:x-(px-W/2)/k,y:y-(py-H/2)/k,k},{ms:600,keep:true})}
 // + and − zoom towards what you're looking at: the open pop-up, else the place you're in, else the middle of the map
-function zoomBtn(f){interacted=true;setSheet(false);hideArrive(true);
+function zoomBtn(f){interacted=true;setSheet(false);hideArrive(true);if(pop)pop.home=null;
   if(f<1&&focus&&V.k*f/fitK(focus)<.5)return flyTo(worldView());        // zooming out of a place takes you back to the world
   let px=W/2,py=H/2;
   if(pop){px=sx(pop.lng);py=sy(-pop.lat)}
   else if(focus){const b=routeBox(R[focus]),x=sx(b.cx),y=sy(b.cy);if(x>0&&x<W&&y>0&&y<H){px=x;py=y}}
   zoomSmooth(f,px,py)}
 cv.addEventListener('wheel',e=>{
-  if(e.ctrlKey||e.metaKey){e.preventDefault();interacted=true;anim=null;setSheet(false);const r=cv.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*(e.deltaMode?0.05:0.0025)),e.clientX-r.left,e.clientY-r.top);wake()}
+  if(e.ctrlKey||e.metaKey){e.preventDefault();interacted=true;anim=null;setSheet(false);if(pop)pop.home=null;const r=cv.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*(e.deltaMode?0.05:0.0025)),e.clientX-r.left,e.clientY-r.top);wake()}
   else showHint();
 },{passive:false});
 ['gesturestart','gesturechange'].forEach(ev=>wrap.addEventListener(ev,e=>e.preventDefault()));
@@ -482,7 +510,7 @@ let hintT;function showHint(){const h=document.getElementById('zoomHint');if(!h)
 document.getElementById('mzIn').onclick=()=>zoomBtn(1.9);
 document.getElementById('mzOut').onclick=()=>zoomBtn(1/1.9);
 cv.addEventListener('keydown',e=>{const m={ArrowLeft:[-60,0],ArrowRight:[60,0],ArrowUp:[0,-60],ArrowDown:[0,60]}[e.key];
-  if(m){e.preventDefault();V.x+=m[0]/V.k;V.y+=m[1]/V.k;clampView();wake()}else if(e.key==='+'||e.key==='=')zoomBtn(1.9);else if(e.key==='-')zoomBtn(1/1.9);else if(e.key==='Escape'){closePop();setSheet(false)}});
+  if(m){e.preventDefault();V.x+=m[0]/V.k;V.y+=m[1]/V.k;clampView();wake()}else if(e.key==='+'||e.key==='=')zoomBtn(1.9);else if(e.key==='-')zoomBtn(1/1.9);else if(e.key==='Escape'){closePop(true);setSheet(false)}});
 
 /* ---------- loop ---------- */
 let visible=true,raf=0;
