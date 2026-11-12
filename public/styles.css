@@ -252,14 +252,14 @@ footer small{color:var(--muted)}
 
 /* ===== THE MAP (landing) ===== */
 html,body{overflow-x:clip}
-.maphero{position:relative;background:#1c3a54}
+.maphero{position:relative;background:#a2d1c4}
 .map-wrap{position:relative;height:88vh;height:88svh;min-height:540px;overflow:hidden;isolation:isolate}
 #map{position:absolute;inset:0;display:block;touch-action:none;cursor:grab;outline:0}
 #map:active{cursor:grabbing}
 #map:focus-visible{box-shadow:inset 0 0 0 3px rgba(255,255,255,.8)}
 /* a soft shade behind the header and headline, so words are always readable on a colourful map */
 .map-wrap::before{content:"";position:absolute;z-index:1;inset:0 0 auto;height:min(58%,420px);pointer-events:none;
- background:linear-gradient(180deg,rgba(6,22,60,.78),rgba(6,22,60,.5) 45%,rgba(6,22,60,0));transition:opacity .6s}
+ background:linear-gradient(180deg,rgba(8,44,50,.8),rgba(8,44,50,.5) 45%,rgba(8,44,50,0));transition:opacity .6s}
 .map-wrap.carded::before{opacity:.45;height:150px}
 .hero-copy{position:absolute;z-index:2;left:max(16px,4vw);top:clamp(92px,14vh,150px);max-width:min(560px,calc(100% - 32px));pointer-events:none;color:#fff;transition:opacity .5s,transform .5s}
 .hero-copy .eyebrow{color:#ffd9a8;opacity:1;margin-bottom:.7rem}
@@ -292,7 +292,7 @@ html,body{overflow-x:clip}
 .see-all{position:absolute;z-index:3;left:50%;bottom:16px;transform:translateX(-50%);padding:11px 20px;border-radius:99px;background:rgba(255,255,255,.94);color:#123;font-weight:600;font-size:.9rem;box-shadow:0 6px 20px rgba(0,20,60,.3);white-space:nowrap;transition:opacity .3s}
 .see-all:hover{background:#fff}
 .map-wrap.carded .see-all{opacity:0;pointer-events:none}
-.map-credit{position:absolute;z-index:2;right:10px;bottom:3px;font-size:.55rem;color:rgba(255,255,255,.6);pointer-events:none}
+.map-credit{position:absolute;z-index:2;right:10px;bottom:3px;font-size:.55rem;color:rgba(20,60,62,.6);pointer-events:none}
 /* pop-ups: pinned to a spot on the map */
 .map-pop{position:absolute;z-index:5;left:0;top:0;width:min(310px,calc(100% - 16px));background:#fffdf8;color:var(--ink);border-radius:18px;padding:16px 16px 12px;box-shadow:0 18px 44px rgba(0,16,50,.38);will-change:transform}
 .map-pop[hidden]{display:none}

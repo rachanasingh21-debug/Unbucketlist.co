@@ -78,6 +78,14 @@ LOOKS = {
  # satellite: natural, muted land (forest, olive, tan, grey rock, white ice) on one flat, calm ocean colour
  'satellite': dict(dry='#cfbb93', mid='#8f9b63', wet='#3d6a3a', boreal='#34563b', dune='#dcc79c', rock='#8d7c68', high='#aba095', snow='#f5f7f7',
                    warm='#fff3dc', cool='#26364c', sea=['#1c3a54'] * 5, sat=1.02, lift=0, tint=.5, flat_sea=True),
+ # atlas: the client's reference (relief wall maps): pale seafoam ocean with soft sea-floor relief, natural green and sand land, white ice
+ 'atlas': dict(dry='#dcc7a0', mid='#b3b983', wet='#5e8a52', boreal='#4c7352', dune='#e6d2a8', rock='#a8926f', high='#c9bca8', snow='#ffffff',
+               warm='#fff6e0', cool='#2f4a52', sea=['#d7ebe3', '#c3e0db', '#a9d1d0', '#8fbfc4', '#7aafb8'], sat=1.08, lift=.02, tint=.5, sea_relief=.5),
+ # relief: the client's reference (Kuzeyoku relief wall maps): seafoam sea with visible sea-floor relief, olive/sage lowlands,
+ # sand deserts, tan uplands, taupe plateaus, white ice; crisp, strong hillshade with warm light and brown-olive shade
+ 'relief': dict(mode='relief', dry='#e2c597', mid='#a9b07f', wet='#7d9a64', boreal='#8a9470', dune='#ead0a2', rock='#c59c6c', high='#9e8571',
+                peak='#cdc4b9', snow='#ffffff', warm='#fff2d6', cool='#3a3426', sea=['#cdf0de', '#bde8d6', '#aedccd', '#a2d1c4', '#97c6bb'],
+                sat=1.06, lift=0, tint=.35, sea_relief=.32, exag_world=16, exag_crop=1.6),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -117,6 +125,8 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     c = mix(c, wet, sstep(.5, .95, G))
     c = mix(c, boreal, sstep(50, 60, al) * (1 - sstep(64, 70, al)) * sstep(.5, .8, G) * .7)
     for col, w in special: c = mix(c, hexrgb(col), w * .9)
+    if PAL.get('mode') == 'relief':  # olive-sage greens, darker in the boreal north and wet tropics
+        c = mix(c, hexrgb(PAL['boreal']), (sstep(50, 64, al) * (1 - sstep(64, 72, al)) * .5 + sstep(.85, 1, G) * .5) * sstep(.45, .8, G) * (.4 + .6 * N))
     c = c * (0.94 + 0.12 * N)[..., None]            # gentle mottling across plains
     if palette is not None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
         pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
@@ -127,8 +137,13 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
             c = mix(c, hexrgb(PAL['dune'] if kind == 'dune' else PAL['snow']), w)
     # height: green lowlands -> warm rock -> pale high rock -> snow above a latitude-aware snowline
     land = elev > 0
-    c = mix(c, hexrgb(PAL['rock']), sstep(900, 2800, elev) * .6)
-    c = mix(c, hexrgb(PAL['high']), sstep(3600, 5200, elev) * .6)
+    if PAL.get('mode') == 'relief':
+        c = mix(c, hexrgb(PAL['rock']), sstep(500, 1800, elev) * .55)
+        c = mix(c, hexrgb(PAL['high']), sstep(2200, 4200, elev) * .75)
+        c = mix(c, hexrgb(PAL['peak']), sstep(4800, 6000, elev) * .6)
+    else:
+        c = mix(c, hexrgb(PAL['rock']), sstep(900, 2800, elev) * .6)
+        c = mix(c, hexrgb(PAL['high']), sstep(3600, 5200, elev) * .6)
     snowline = 6100 - np.maximum(0, np.abs(lat) - 33) * 140   # ~6,000 m in the Himalaya, lower towards the poles
     c = mix(c, hexrgb(PAL['snow']), sstep(snowline - 250, snowline + 450, elev) * .95)
     # soft sunlight from the north-west
@@ -145,13 +160,17 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
         return np.clip((nx * lx_ + ny * ly_ + nz * lz_) / nl, 0, 1) - math.sin(alt)
     # key light from the north-west plus a softer fill from the west: sculpted, not flat
     k = .72 * light(315, 38) + .28 * light(255, 28)
+    if PAL.get('mode') == 'relief': k = .8 * light(315, 32) + .2 * light(270, 24)   # lower sun: longer, crisper shadows
     # local relief: ridges catch light, valleys sit in soft shadow (a cheap ambient occlusion)
     r = max(3, int(min(H, W) / 160))
     blur = smooth(elev.astype(np.float32), r)
     lr = elev - blur; sc = np.percentile(np.abs(lr[land]), 92) + 1 if land.any() else 1
     k = k + .32 * np.tanh(lr / sc)
     kk = np.clip(k, -1, 1)
-    c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
+    if PAL.get('mode') == 'relief':
+        c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .38, 1.05), .3)[..., None])
+    else:
+        c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
     c = mix(c, hexrgb(PAL['warm']), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
     c = mix(c, hexrgb(PAL['cool']), np.clip(-kk, 0, 1) * np.where(land, .3, .1))       # cool shade
     g = c.mean(axis=2, keepdims=True); c = g + (c - g) * PAL['sat']                          # a touch richer
@@ -160,14 +179,14 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     sea = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape).copy()
     for lim, col in zip((60, 300, 2000, 5000), PAL['sea'][1:]):
         sea = mix(sea, hexrgb(col), sstep(0, lim, d))
-    seac = sea * (1 + kk[..., None] * .25)
+    seac = sea * (1 + kk[..., None] * PAL.get('sea_relief', .25))
     if PAL.get('flat_sea'): seac = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape)
     out = np.where(land[..., None], c, seac)
     out = out + (255 - out) * PAL['lift']  # pastel looks are lighter overall
     return np.clip(out, 0, 255).astype(np.uint8), land
 
 def world():
-    z = 4; n = 2 ** z
+    z = PAL.get('world_z', 4); n = 2 ** z
     m = mosaic(z, 0, n - 1, 0, n - 1)
     for W in (1024, 3072):
         H = W // 2
@@ -175,7 +194,7 @@ def world():
         lat = np.linspace(90 - 90 / H, -90 + 90 / H, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px, py)
         el[lat < -84] = 2500  # Antarctic plateau beyond the tiles
-        rgb, land = colourise(el, lon, lat, exag=9)
+        rgb, land = colourise(el, lon, lat, exag=PAL.get('exag_world', 9))
         Image.fromarray(rgb).save(OUT + f'world-land-{W // 1024}k.jpg', quality=80, optimize=True, progressive=True)
         if W == 3072:
             Image.fromarray(rgb).resize((2048, 1024), Image.LANCZOS).save(OUT + 'world-ocean.jpg', quality=80, optimize=True, progressive=True)
@@ -207,7 +226,7 @@ def crops(only=None):
         m = mosaic(z, tx0, tx1, ty0, ty1)
         lon = np.linspace(x0, x1, W)[None, :].repeat(H, 0); lat = np.linspace(y1, y0, H)[:, None].repeat(W, 1)
         px, py = merc_px(lon, lat, z); el = sample(m, px - tx0 * 256, py - ty0 * 256)
-        exag = 2.2 if span > 1 else 3.2
+        exag = (2.2 if span > 1 else 3.2) * PAL.get('exag_crop', 1)
         rgb, land = colourise(el, lon, lat, exag=exag, palette=DEST_GREEN.get(rid), patches=r.get('patches', []))
         # feathered edges so the close-up melts into the world layer
         yy, xx = np.mgrid[0:H, 0:W]; e = np.minimum.reduce([xx, W - 1 - xx, yy, H - 1 - yy]).astype(np.float32)

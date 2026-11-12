@@ -34,6 +34,8 @@ const COASTAL=new Set(['maldives','santorini','lofoten','bali','newzealand','pat
 // big lakes the coastline data does not carry: [lng,lat,rx,ry,rot]
 const LAKES=[[33,-1,1.4,1.2,0],[29.5,-6,.3,3.2,-15],[34.6,-12,.3,2.6,0],[108,53,.4,3,30],[-87.5,47.6,2.5,.7,0],[-87,44,.6,2,0],[-82.3,44.8,1.2,1.2,0],[-81.2,42.2,1.8,.4,20],[-77.8,43.6,1.3,.4,0],
  [-69.4,-15.8,.55,.3,-30],[31.5,60.8,1,.7,0],[75,46.3,2.5,.3,10],[36.1,4.0,.15,1.0,0],[-123,62,2.5,1,0],[-112,62.5,2,1,0]];
+const CONTINENTS=[['NORTH AMERICA',-100,46],['SOUTH AMERICA',-60,-15],['EUROPE',18,52],['AFRICA',20,6],['ASIA',90,48],['AUSTRALIA',134,-25],['ANTARCTICA',30,-76]];
+const SEAS=[['Mediterranean Sea',18,35],['Arabian Sea',64,15],['Bay of Bengal',89,14],['Caribbean Sea',-75,15],['Gulf of Mexico',-90,25],['South China Sea',114,13],['Coral Sea',155,-18],['Tasman Sea',160,-38],['Norwegian Sea',2,68]];
 const OCEANS=[['Pacific Ocean',-150,8],['Pacific Ocean',165,22],['Atlantic Ocean',-38,28],['Atlantic Ocean',-18,-22],['Indian Ocean',78,-22],['Arctic Ocean',20,79],['Southern Ocean',40,-58]];
 function routeBox(r){const xs=r.stops.map(s=>s[2]),ys=r.stops.map(s=>-s[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
   const span=Math.max(x1-x0,y1-y0,.08);return {x0,x1,y0,y1,cx:(x0+x1)/2,cy:(y0+y1)/2,span}}
@@ -86,9 +88,11 @@ const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
 /* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
    satellite: natural, muted land on one flat, calm ocean colour (the client's reference: a "satellite map, flat ocean" poster).
    vivid:     jade, saffron and ultramarine with a depth-shaded sea. To switch back: LOOK=LOOKS.vivid and restore data/looks/vivid from git. */
-const LOOKS={satellite:{dir:'satellite',flat:true,sun:'255,236,205',sunA:.3,vig:'4,12,26',sea:['#1c3a54','#1c3a54'],shade:'0,6,18',shimmer:.1},
+const LOOKS={relief:{dir:'relief',flat:false,sun:'255,246,226',sunA:.22,vig:'20,70,72',sea:['#bde8d6','#a2d1c4'],shade:'16,66,64',shadeK:1.5,shadeLen:1.6,shimmer:.12,
+               coast:'rgba(236,255,247,.5)',label:'rgba(58,108,110,.72)',land:'rgba(78,62,40,.5)'},
+             satellite:{dir:'satellite',flat:true,sun:'255,236,205',sunA:.3,vig:'4,12,26',sea:['#1c3a54','#1c3a54'],shade:'0,6,18',shimmer:.1},
              vivid:{dir:'vivid',flat:false,sun:'255,214,140',sunA:.55,vig:'10,30,90',sea:['#36dcd6','#0f78c4'],shade:'6,28,80',shimmer:.22}};
-const LOOK=LOOKS.satellite;
+const LOOK=LOOKS.relief;
 function img(src,cb){const i=new Image();i.decoding='async';i.onload=()=>{cb(i);statKey='';wake()};i.src=src;return i}
 function loadCrop(id){IMG.crop[id]='loading';img(`data/looks/${LOOK.dir}/relief-${id}.webp`,i=>IMG.crop[id]=i)}
 const omask=document.createElement('canvas'),mctx=omask.getContext('2d');    // where the sea is (for the shimmer)
@@ -111,9 +115,10 @@ function drawStatic(){
   const did=activeDetail();
   const base=V.k<10||!landB?landA:landB;if(!base)return;const extra=did?detailPath[did]:null,coastal=extra&&COASTAL.has(did);
   const path=base;c.lineJoin='round';
-  for(const p of coastal?[path,extra]:[path]){c.strokeStyle=LOOK.flat?'rgba(150,196,214,.22)':'rgba(225,246,240,.35)';c.lineWidth=6/V.k;c.stroke(p)}
+  for(const p of coastal?[path,extra]:[path]){c.strokeStyle=LOOK.coast||(LOOK.flat?'rgba(150,196,214,.22)':'rgba(225,246,240,.35)');c.lineWidth=6/V.k;c.stroke(p)}
   // the land sits a little proud of the sea, like a relief model: a soft shadow falls to the south-east
-  for(const [ox,oy,al] of [[2,3,.16],[4,7,.12],[7,12,.07]]){c.setTransform(T[0],0,0,T[3],T[4]+ox*DPR,T[5]+oy*DPR);c.fillStyle=`rgba(${LOOK.shade},${al*(LOOK.flat?1.6:1)})`;c.fill(path);if(coastal)c.fill(extra)}
+  const sl=LOOK.shadeLen||1,sk=LOOK.shadeK||(LOOK.flat?1.6:1);
+  for(const [ox,oy,al] of [[2,3,.16],[4,7,.12],[7,12,.07],[11,18,.04]]){c.setTransform(T[0],0,0,T[3],T[4]+ox*sl*DPR,T[5]+oy*sl*DPR);c.fillStyle=`rgba(${LOOK.shade},${al*sk})`;c.fill(path);if(coastal)c.fill(extra)}
   c.setTransform(...T);
   // land: natural relief (real elevation, designed colours), kept to the coastline
   const clipPath=extra?(()=>{const p=new Path2D(path);p.addPath(extra);return p})():path;
@@ -146,8 +151,12 @@ function drawStatic(){
     dctx.fillStyle=gm;dctx.fillRect(0,0,W*DPR,H*DPR);dctx.globalCompositeOperation='source-over'}
   // ocean names
   c.setTransform(DPR,0,0,DPR,0,0);
-  if(V.k<16){c.font='italic 300 15px Fraunces, Georgia, serif';c.fillStyle='rgba(38,82,96,.5)';c.textAlign='center';
-    for(const [n,lo,la] of OCEANS){const x=sx(lo),y=sy(-la);if(x>-100&&x<W+100&&y>-20&&y<H+20)c.fillText(n.split('').join(' '),x,y)}}
+  const spaced=(t,g)=>t.split('').join(g);
+  const put=(list,a,font,col,gap)=>{if(a<=.02)return;c.globalAlpha=a;c.font=font;c.fillStyle=col;c.textAlign='center';c.textBaseline='middle';
+    for(const [n,lo,la] of list){const x=sx(lo),y=sy(-la);if(x>-160&&x<W+160&&y>-20&&y<H+20)c.fillText(spaced(n,gap),x,y)}c.globalAlpha=1};
+  put(OCEANS,1-ramp(V.k,12,20),'italic 300 15px Fraunces, Georgia, serif',LOOK.label||'rgba(38,82,96,.5)','\u2009');
+  put(CONTINENTS,1-ramp(V.k,9,15),`500 ${phone()?11:13}px Fraunces, Georgia, serif`,LOOK.land||'rgba(60,50,35,.45)','\u2002');
+  put(SEAS,ramp(V.k,7,10)*(1-ramp(V.k,26,40)),'italic 300 13px Fraunces, Georgia, serif',LOOK.label||'rgba(38,82,96,.5)','\u200a');
 }
 function drawAtolls(c){for(const [la,lo,rx,ry] of R.maldives.atolls){c.save();c.translate(lo,-la);c.strokeStyle='rgba(170,232,222,.9)';c.lineWidth=Math.max(rx,ry)*.22;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.stroke();
   c.fillStyle='rgba(176,226,222,.55)';c.fill();c.restore()}}

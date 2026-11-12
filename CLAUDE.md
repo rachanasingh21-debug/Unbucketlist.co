@@ -22,10 +22,11 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Front page hero is an illustrated, zoomable flat map (`public/map.js`, canvas). No globe, no satellite data, no month strip, no photo pins (the user rejected those).
   Coastlines: Natural Earth via world-atlas, pre-converted to `public/data/land-110.json`, `land-50.json`, `land-detail.json` (10m, clipped around each destination).
   Natural look: relief layers built from open elevation data (AWS Terrain Tiles) with designed colours (climate-style greenness, region tints,
-  height tints, latitude-aware snowline, NW sun). Current look: **satellite** (natural muted land on one flat navy ocean), built after the
-  client shared a "World Satellite Map, flat ocean" poster as the tone to aim for ("cooler on the eyes"). They had earlier picked "vivid"
-  (in git history; `LOOKS.vivid` is still defined in map.js). Only `public/data/looks/satellite/` ships (`world-land-1k/3k.jpg`,
-  `relief-<id>.webp`; boxes in `public/data/relief.json`). Rebuild with `python3 tools/build_relief.py satellite`.
+  height tints, latitude-aware snowline, NW sun). Current look: **relief**, matched to the client's reference (Kuzeyoku "Relief Style World
+  Map (Flat Ocean)" wall maps): seafoam sea with soft sea-floor relief, olive/sage lowlands, sand deserts, tan uplands, taupe plateaus, white ice,
+  crisp low-sun hillshade, land casting a teal shadow onto the sea, atlas lettering (continents in spaced caps, seas in italics).
+  Earlier looks (vivid, satellite) are in git history; `LOOKS.satellite` / `LOOKS.vivid` stay defined in map.js. Only `public/data/looks/relief/`
+  ships. Rebuild with `python3 tools/build_relief.py relief` (needs tools/mapdata.json next to it).
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
   Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
   Flow (rebuilt after a phone walkthrough): hero with a dark scrim -> tap a place -> fly in -> arrival title -> journey draws -> slim place bar
