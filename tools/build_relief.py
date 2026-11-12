@@ -83,9 +83,10 @@ LOOKS = {
                warm='#fff6e0', cool='#2f4a52', sea=['#d7ebe3', '#c3e0db', '#a9d1d0', '#8fbfc4', '#7aafb8'], sat=1.08, lift=.02, tint=.5, sea_relief=.5),
  # relief: the client's reference (Kuzeyoku relief wall maps): seafoam sea with visible sea-floor relief, olive/sage lowlands,
  # sand deserts, tan uplands, taupe plateaus, white ice; crisp, strong hillshade with warm light and brown-olive shade
- 'relief': dict(mode='relief', dry='#e2c597', mid='#a9b07f', wet='#7d9a64', boreal='#8a9470', dune='#ead0a2', rock='#c59c6c', high='#9e8571',
-                peak='#cdc4b9', snow='#ffffff', warm='#fff2d6', cool='#3a3426', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
-                sat=1.08, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.5, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)]),
+ 'relief': dict(mode='relief', dry='#e0c193', mid='#a3ab7c', wet='#6f8559', boreal='#5f6a52', dune='#e8cc9c', rock='#a3866a', high='#908b80',
+                peak='#bdb8b0', snow='#ffffff', warm='#fff4e0', cool='#2e2c24', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
+                sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.45, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
+                cast=.5, cast_sea=.32, ao=.38, sun_alt=24),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -100,8 +101,38 @@ PAL = LOOKS['natural']
 DEST_GREEN = {'ladakh': .08, 'rajasthan': .1, 'morocco': .15, 'santorini': .2, 'maldives': .3, 'iceland': .35, 'patagonia': .4,
               'serengeti': .45, 'lofoten': .5, 'peru': .55, 'newzealand': .7, 'kyoto': .85, 'bali': .95}
 
+_LANDMASK = None
+def landmask(lon, lat):
+    # Natural Earth coastlines rasterised onto this grid (union of rings)
+    global _LANDMASK
+    if _LANDMASK is None:
+        rs = json.load(open('/home/user/Unbucketlist.co/public/data/land-50.json')); _LANDMASK = []
+        for a in rs:
+            x = y = 0; pts = []; off = 0; px = None
+            for i in range(0, len(a), 2):                     # unwrap rings that cross the date line
+                x += a[i]; y += a[i + 1]; X = x / 100 + off
+                if px is not None and X - px > 180: off -= 360; X -= 360
+                elif px is not None and X - px < -180: off += 360; X += 360
+                px = X; pts.append((X, y / 100))
+            for sh in (0, -360, 360): _LANDMASK.append([(p_[0] + sh, p_[1]) for p_ in pts])
+    H, W = lon.shape; x0, x1, y0, y1 = lon[0, 0], lon[0, -1], lat[0, 0], lat[-1, 0]
+    from PIL import ImageDraw
+    im = Image.new('L', (W, H), 0); d = ImageDraw.Draw(im)
+    for pts in _LANDMASK:
+        xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+        if max(xs) < min(x0, x1) or min(xs) > max(x0, x1) or max(ys) < min(y0, y1) or min(ys) > max(y0, y1): continue
+        d.polygon([((px - x0) / (x1 - x0) * (W - 1), (py - y0) / (y1 - y0) * (H - 1)) for px, py in pts], fill=255)
+    return np.asarray(im) > 127
+
 def colourise(elev, lon, lat, exag, palette=None, patches=()):
     H, W = elev.shape
+    if PAL.get('mode') == 'relief':
+        # Greenland (its west and east coasts, so Baffin Island, Quebec and Iceland stay out) and Antarctica
+        west = np.where(lat < 74, -57, np.where(lat < 77, -68, -74)); east = np.where(lat < 68, -34, np.where(lat < 77, -17, -10))
+        ice = ((lat > 59.5) & (lon > west) & (lon < east)) | (lat < -60)
+        if ice.any():
+            mask = landmask(lon, lat) & ice
+            elev = np.where(mask, np.maximum(elev, 900 + 2200 * sstep(0, 1, smooth(mask.astype(np.float32), max(3, W // 200)))), elev)
     # region colours, painted the same way as the map's soft regions
     N = noise(lon, lat)
     # greenness from a simple climate model: wet tropics, dry subtropical belts, green temperate lands, tundra
@@ -126,7 +157,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     c = mix(c, boreal, sstep(50, 60, al) * (1 - sstep(64, 70, al)) * sstep(.5, .8, G) * .7)
     for col, w in special: c = mix(c, hexrgb(col), w * .9)
     if PAL.get('mode') == 'relief':  # olive-sage greens, darker in the boreal north and wet tropics
-        c = mix(c, hexrgb(PAL['boreal']), (sstep(50, 64, al) * (1 - sstep(64, 72, al)) * .5 + sstep(.85, 1, G) * .5) * sstep(.45, .8, G) * (.4 + .6 * N))
+        c = mix(c, hexrgb(PAL['boreal']), (sstep(48, 60, al) * (1 - sstep(66, 72, al)) * .75 + sstep(.85, 1, G) * .5) * sstep(.4, .75, G) * (.55 + .45 * N))
     c = c * (0.94 + 0.12 * N)[..., None]            # gentle mottling across plains
     if palette is not None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
         pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
@@ -168,6 +199,24 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
     lr = elev - blur; sc = np.percentile(np.abs(lr[land]), 92) + 1 if land.any() else 1
     k = k + PAL.get('local', .32) * np.tanh(lr / sc)
     kk = np.clip(k, -1, 1)
+    CAST = np.zeros_like(elev, dtype=np.float32); AO = np.zeros_like(CAST)
+    if PAL.get('cast'):
+        hp = np.maximum(elev, 0).astype(np.float32) * exag / max(dy if np.isscalar(dy) else float(np.mean(dy)), 1)   # height in pixel units
+        drop = math.sqrt(2) * math.tan(math.radians(PAL.get('sun_alt', 24)))
+        K = int(min(110, max(4, hp.max() / drop)))
+        pad = np.pad(hp, ((K, 0), (K, 0)), mode='edge'); best = np.full_like(hp, -1e9)
+        step = 1
+        k = 1
+        while k <= K:                                   # the sun is in the north-west: look up-left for anything taller
+            best = np.maximum(best, pad[K - k:K - k + H, K - k:K - k + W] - k * drop)
+            k += step; step = 1 if k < 24 else 2
+        CAST = smooth(sstep(0, 2.5, best - hp).astype(np.float32), 1)
+    if PAL.get('ao'):
+        e0 = np.maximum(elev, 0).astype(np.float32) * exag
+        for r_, w_ in ((2, .45), (6, .35), (16, .2)):
+            d_ = smooth(e0, max(1, int(r_ * W / 4096 * (4 if W < 2000 else 1)))) - e0
+            sc_ = np.percentile(np.abs(d_[land]), 90) + 1 if land.any() else 1
+            AO += w_ * np.clip(d_ / sc_, 0, 1)
     if PAL.get('mode') == 'relief': kk = kk * (1 - .6 * sstep(.5, 1, SNOW))   # ice sheets stay smooth and bright
     if PAL.get('mode') == 'relief':
         c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .38, 1.05), .3)[..., None])
@@ -175,6 +224,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
         c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
     c = mix(c, hexrgb(PAL['warm']), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
     c = mix(c, hexrgb(PAL['cool']), np.clip(-kk, 0, 1) * np.where(land, .3, .1))       # cool shade
+    c = c * (1 - PAL.get('cast', 0) * CAST)[..., None] * (1 - PAL.get('ao', 0) * AO * land)[..., None]
     g = c.mean(axis=2, keepdims=True); c = g + (c - g) * PAL['sat']                          # a touch richer
     # sea floor: turquoise shelves, deep blue ocean
     d = np.clip(-elev, 0, None)
@@ -183,6 +233,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=()):
         sea = mix(sea, hexrgb(col), sstep(0, lim, d))
     seac = sea * (1 + kk[..., None] * PAL.get('sea_relief', .25))
     if PAL.get('flat_sea'): seac = np.broadcast_to(hexrgb(PAL['sea'][0]), c.shape)
+    seac = seac * (1 - PAL.get('cast_sea', 0) * CAST)[..., None]   # the land throws its shadow onto the sea
     out = np.where(land[..., None], c, seac)
     out = out + (255 - out) * PAL['lift']  # pastel looks are lighter overall
     return np.clip(out, 0, 255).astype(np.uint8), land
