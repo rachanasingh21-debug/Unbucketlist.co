@@ -43,7 +43,15 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Header pill opens the place finder (`#finder`); the bucket icon opens "My bucket list" in the same panel.
 - `public/wildlife.js`: 3-5 real wildlife spots per destination (EXPLORE): dots that bloom into badges as you zoom in; tap for the story.
 - `public/offers.js`: 2-3 offerings per destination, shown on the destination page and in the booking form.
-- Destination pages are a full-screen overlay routed by hash (`#ladakh`).
+- Destination pages are a full-screen overlay routed by hash (`#ladakh`). They read in five numbered steps, most important first, with a sticky
+  numbered nav: 01 Go (route schematic + day by day; each day carries small TASTE/EXPLORE/TAKE AWAY chips, tap to read), 02 Ways & prices
+  (compact rows), 03 Taste · Explore · Take away (three small chip clusters), 04 The story (banner), 05 Unbucket it (form). The client asked for
+  small chips, not big cards: the itinerary is the most important thing on the page.
+- Home list (below the map): one place fills the screen at a time (stack of sticky full-screen panels, the next slides over the last, like
+  oneintheorangejacket.com). `pager` in app.js moves exactly one place per swipe / wheel step / arrow key inside the list; CSS scroll-snap was
+  unreliable across browsers. Category chips filter the stack.
+- Story banner: drifts by JS (`initTale`, ~40 px/s phone, 52 desktop), and the visitor can swipe/drag it, use ‹ ❚❚ ›; it waits 3 s after a touch.
+  No hover-pause (phones fake hover on tap and never end it).
 - Map layering (map.js render): relief layers with a soft land shadow, a small plane flying between places, birds, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
   warm light / haze / vignette, tilt-shift blur at top and bottom when zoomed into a place. Lakes are soft-edged, not outlined.
 - Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in

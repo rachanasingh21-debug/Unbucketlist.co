@@ -459,6 +459,7 @@ window.mapProject=(lng,lat)=>({x:sx(lng),y:sy(-lat)});          // screen positi
 window.mapScreenPos=id=>{const d=TRIPS.find(t=>t.id===id);return d?{x:sx(d.lng),y:sy(-d.lat)}:null};
 window.mapState=()=>({moving:!!anim,drawn:focus?prog[focus]||0:0,focus,pop:pop&&{kind:pop.kind,i:pop.i},k:V.k,q:focus?V.k/fitK(focus):0,sheet:card.classList.contains('open'),wild:wildHits.map(h=>({x:h.x,y:h.y,i:h.i})),stops:stopHits.map(h=>({x:h.x,y:h.y,i:h.i}))});
 window.mapRefresh=()=>wake();
+window.mapView=(lng,lat,k)=>flyTo({x:lng,y:-lat,k},{ms:0});   // jump the view (used by the look checks)
 
 /* ---------- gestures: drag to move, pinch / buttons / double-tap / ctrl+scroll to zoom ---------- */
 const ptrs=new Map();let drag=null,vel={x:0,y:0},lastMove=0,tapStart=null;

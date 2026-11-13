@@ -69,7 +69,7 @@ const $=(s,e=document)=>e.querySelector(s), $$=(s,e=document)=>[...e.querySelect
 const money=n=>'₹'+n.toLocaleString('en-IN');   // prices are in Indian rupees, with Indian digit grouping (₹1,23,500)
 const wish=new Set(JSON.parse((()=>{try{return localStorage.getItem('ubl-wish')||'[]'}catch(e){return'[]'}})()));
 const saveWish=()=>{try{localStorage.setItem('ubl-wish',JSON.stringify([...wish]))}catch(e){}$('#wishCount').textContent=wish.size};
-function toggleBucket(id){const t=TRIPS.find(x=>x.id===id),on=!wish.has(id);on?wish.add(id):wish.delete(id);saveWish();renderCards();
+function toggleBucket(id){const t=TRIPS.find(x=>x.id===id),on=!wish.has(id);on?wish.add(id):wish.delete(id);saveWish();document.querySelectorAll('[data-h2]').forEach(b=>b.textContent=bucketLabel(b.dataset.h2));
   toast(on?`${t.name} is on your bucket list`:`${t.name} is off your bucket list`);if(window.mapRefresh)mapRefresh();return on}
 const bucketLabel=id=>wish.has(id)?'✓ On my bucket list':'+ My bucket list';
 const toast=m=>{let t=$('.toast')||document.body.appendChild(Object.assign(document.createElement('div'),{className:'toast'}));t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2200)};
@@ -117,49 +117,101 @@ function storyBanner(t){
   const cred=t.credits.length?'Photos: '+t.credits.map(c=>`<a href="${c.source}" target="_blank" rel="noopener">${esc(c.author)}</a> (${esc(c.license)})`).join(', ')+', via Wikimedia Commons.':'';
   return `<div class="tale-in">
    <header class="tale-head"><p class="eyebrow">The story of</p><h3>${t.name}</h3><span>${fmtCoord(t)}</span></header>
-   <div class="tale-track-wrap"><div class="tale-track" style="--dur:${60+t.m*2}s">${tiles}${tiles.replace(/class="tile/g,'aria-hidden="true" class="tile')}</div></div>
+   <div class="tale-track-wrap" tabindex="0" aria-label="The story of ${esc(t.name)}: swipe or use the arrows"><div class="tale-track">${tiles}${tiles.replace(/class="tile/g,'aria-hidden="true" class="tile')}</div></div>
+   <div class="tale-ctl"><button type="button" data-tale="-1" aria-label="Back">‹</button><button type="button" data-tale="0" aria-label="Pause the story">❚❚</button><button type="button" data-tale="1" aria-label="Forward">›</button></div>
    <div class="tale-foot"><p class="tale-lead">${t.story}</p><p class="tale-credit">${cred}</p></div></div>`;
 }
 
-/* ---------- 2. PICK ---------- */
+/* ---------- 2. THE LIST: one place fills the screen at a time (a story you scroll through) ---------- */
 let cat='all';
 function renderChips(){
   $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${c.id===cat?'on':''}" data-c="${c.id}" role="tab"><span>${c.icon}</span>${c.name}</button>`).join('');
 }
+const stack=$('#reels');
 function renderCards(){
-  const list=TRIPS.filter(t=>cat==='all'||t.cat.includes(cat));
-  $('#cards').innerHTML=list.map((t,i)=>`<article class="card" data-id="${t.id}" style="animation-delay:${i*70}ms">
-   <div class="art">${scape(t)}<span class="tag">${t.tag}</span><button class="heart ${wish.has(t.id)?'on':''}" type="button" data-h="${t.id}" aria-pressed="${wish.has(t.id)}" aria-label="${wish.has(t.id)?'On my bucket list':'Add to my bucket list'}">${wish.has(t.id)?'✓':'+'}</button></div>
-   <h3>${t.name}, ${t.place}</h3><p>${t.days} days · best in ${MON[t.m]}</p><p class="price">Unbucket it from <b>${money(t.price)}</b></p></article>`).join('');
+  const list=TRIPS.filter(t=>cat==='all'||t.cat.includes(cat)),N=list.length;
+  stack.innerHTML=list.map((t,i)=>{const F=((window.FACTS||{})[t.id]||{f:[]}).f[0],n=list[i+1];
+   return `<i class="snap" style="top:calc(${i} * var(--vh))" aria-hidden="true"></i>
+   <section class="reel" data-i="${i}" data-id="${t.id}" aria-label="${esc(t.name)}">
+    <div class="reel-bg">${scape(t)}</div><div class="reel-shade" aria-hidden="true"></div>
+    <div class="reel-copy">
+     <p class="reel-meta"><span class="reel-no">${String(i+1).padStart(2,'0')}<small> / ${String(N).padStart(2,'0')}</small></span><span>${esc(t.place)}</span><span>Best in ${MONTH_FULL[t.m]}</span></p>
+     <h3>${esc(t.name)}</h3>
+     <p class="reel-hook">${esc(t.hook)}</p>
+     ${F?`<p class="reel-fact"><b>${F.k}</b>${F.t}</p>`:''}
+     <p class="reel-row"><span>${t.days} days</span><span>from <b>${money(t.price)}</b></span></p>
+     <div class="reel-btns"><button class="btn" type="button" data-open="${t.id}">Unbucket ${esc(t.name)}</button><button class="btn ghost" type="button" data-h2="${t.id}">${bucketLabel(t.id)}</button></div>
+    </div>
+    ${n?`<button class="reel-next" type="button" data-d="${i+1}">Next · ${esc(n.name)}<b>↓</b></button>`:''}
+   </section>`}).join('');
+  $('#dots').innerHTML=list.map((t,i)=>`<button data-d="${i}" aria-label="${esc(t.name)}"></button>`).join('');
+  stackCur=-1;onStack();
 }
-$('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderChips();renderCards()});
-$('#cards').addEventListener('click',e=>{
-  const h=e.target.closest('[data-h]');
-  if(h){e.stopPropagation();toggleBucket(h.dataset.h);return}
-  const c=e.target.closest('.card');if(c)openTrip(c.dataset.id);
+const toPanel=i=>pager.go(i);
+document.body.insertAdjacentHTML('beforeend','<nav class="dots" id="dots" aria-label="Places"></nav>');
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderChips();renderCards();toPanel(0)});
+stack.addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]');if(o)return openTrip(o.dataset.open);
+  const h=e.target.closest('[data-h2]');if(h)return toggleBucket(h.dataset.h2);
+  const d=e.target.closest('[data-d]');if(d)toPanel(+d.dataset.d);
 });
+$('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)toPanel(+b.dataset.d)});
+// as the next place slides up over this one, this one sinks back a little and darkens
+let stackCur=-1;
+function onStack(){
+  const r=stack.getBoundingClientRect(),H=innerHeight,ps=$$('.reel',stack);if(!ps.length)return;
+  const h=ps[0].offsetHeight||H;
+  ps.forEach((p,i)=>{const nextTop=r.top+(i+1)*h,c=Math.min(1,Math.max(0,1-nextTop/h));p.style.setProperty('--c',c.toFixed(3));
+    if(r.top+i*h<H*.45)p.classList.add('in')});
+  const i=Math.min(ps.length-1,Math.max(0,Math.round(-r.top/h)));
+  if(i!==stackCur){stackCur=i;$$('#dots button').forEach((d,k)=>d.classList.toggle('on',k===i))}
+  $('#dots').classList.toggle('show',r.top<H*.5&&r.bottom>H*.5);
+}
+addEventListener('scroll',onStack,{passive:true});addEventListener('resize',onStack);
 
-/* ---------- 3. REELS ---------- */
-$('#reels').innerHTML=TRIPS.map((t,i)=>{const n=TRIPS[(i+1)%TRIPS.length];return `<section class="reel" data-i="${i}">
- <div class="reel-bg">${scape(t)}</div>
- <div class="reel-copy"><div class="reel-meta"><span>${String(i+1).padStart(2,'0')} / ${String(TRIPS.length).padStart(2,'0')}</span><span>${MONTH_FULL[t.m]}</span><span>${t.place}</span><span>${t.days} days</span><span>from ${money(t.price)}</span></div>
-  <h3>${t.name}</h3><p>${t.hook}</p><button class="btn" type="button" data-open="${t.id}">See the full story</button><button class="btn ghost" type="button" data-h2="${t.id}">${bucketLabel(t.id)}</button></div>
- <div class="reel-next">The story of ${t.name}<b>↓</b></div></section>
- <section class="reel tale" data-i="${i}">${storyBanner(t)}<div class="reel-next">Next · ${n.name}<b>↓</b></div></section>`}).join('');
-document.body.insertAdjacentHTML('beforeend',`<nav class="dots" id="dots">${TRIPS.map((t,i)=>`<button data-d="${i}" aria-label="${t.name}"></button>`).join('')}</nav>`);
-const reels=$('#reels');
-$('#reels').addEventListener('click',e=>{
-  const o=e.target.closest('[data-open]');if(o)openTrip(o.dataset.open);
-  const h=e.target.closest('[data-h2]');if(h){toggleBucket(h.dataset.h2);h.textContent=bucketLabel(h.dataset.h2)}
-});
-$('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)$(`.reel[data-i="${b.dataset.d}"]`).scrollIntoView({behavior:'smooth'})});
-const io=new IntersectionObserver(es=>es.forEach(en=>{
-  if(en.isIntersecting){en.target.classList.add('in');$$('#dots button').forEach((d,i)=>d.classList.toggle('on',i==en.target.dataset.i))}
-}),{root:reels,threshold:.6});
-$$('.reel').forEach(r=>io.observe(r));
-// parallax inside the reels scroller
-reels.addEventListener('scroll',()=>{const h=reels.clientHeight;$$('.reel').forEach((r,i)=>{const bg=$('.reel-bg',r);if(!bg)return;const d=(reels.scrollTop-i*h)/h;bg.style.transform=`translateY(${d*-8}%) scale(${1+Math.abs(d)*.08})`})},{passive:true});
-new IntersectionObserver(([e])=>$('#dots').classList.toggle('show',e.isIntersecting),{threshold:.5}).observe(reels);
+/* One place per gesture. Inside the list (from its title to the story below) a swipe, a wheel step or an arrow key
+   moves exactly one place; the page never stops half way between two places. Outside it, scrolling is the browser's own. */
+const pager=(()=>{
+  const stops=()=>{const y=scrollY,a=[$('#pick').getBoundingClientRect().top+y];$$('.snap',stack).forEach(s=>a.push(s.getBoundingClientRect().top+y));a.push($('#story').getBoundingClientRect().top+y);return a.map(Math.round)};
+  const busyUI=()=>drawer.classList.contains('open')||!$('#finder').hidden;
+  let anim=null,lockUntil=0;
+  const nearest=(a,y)=>a.reduce((b,v,i)=>Math.abs(v-y)<Math.abs(a[b]-y)?i:b,0);
+  const inRegion=(a,y)=>y>a[0]-4&&y<a[a.length-1]+4;
+  function go(y,ms=650){cancelAnimationFrame(anim);const y0=scrollY,t0=performance.now(),d=y-y0;if(Math.abs(d)<1){scrollTo({top:y,behavior:'instant'});return}
+    lockUntil=t0+ms+380;
+    const step=t=>{const k=Math.min(1,(t-t0)/ms),e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;scrollTo({top:y0+d*e,behavior:'instant'});if(k<1)anim=requestAnimationFrame(step);else anim=null};
+    anim=requestAnimationFrame(step)}
+  function move(dir){const a=stops(),y=scrollY;let i=nearest(a,y);
+    if(dir>0&&a[i]<y-4)i--;if(dir<0&&a[i]>y+4)i++;           // between two stops: the nearer one in the gesture's direction
+    const j=i+dir;if(j<0||j>=a.length)return false;go(a[j]);return true}
+  // mouse wheel / trackpad
+  addEventListener('wheel',e=>{if(e.ctrlKey||busyUI()||e.target.closest('#mapWrap'))return;const a=stops(),y=scrollY;if(!inRegion(a,y))return;
+    const dir=Math.sign(e.deltaY);if(!dir)return;
+    if((dir<0&&y<=a[0]+4)||(dir>0&&y>=a[a.length-1]-4))return;  // leaving the list: normal scrolling
+    e.preventDefault();if(anim||performance.now()<lockUntil){lockUntil=Math.max(lockUntil,performance.now()+140);return}
+    move(dir)},{passive:false});
+  // touch: the page follows the finger, then settles on the next (or same) place
+  let t=null;
+  addEventListener('touchstart',e=>{if(busyUI()||e.touches.length!==1||e.target.closest('#mapWrap')){t=null;return}const a=stops();
+    t={y0:e.touches[0].clientY,x0:e.touches[0].clientX,s0:scrollY,t0:performance.now(),a,on:null,last:e.touches[0].clientY,lt:performance.now(),v:0};cancelAnimationFrame(anim);anim=null},{passive:true});
+  addEventListener('touchmove',e=>{if(!t)return;const y=e.touches[0].clientY,dy=y-t.y0,dx=e.touches[0].clientX-t.x0;
+    if(t.on===null){if(Math.abs(dy)<6&&Math.abs(dx)<6)return;const a=t.a,s=t.s0,dir=dy<0?1:-1;
+      t.on=Math.abs(dy)>Math.abs(dx)&&inRegion(a,s)&&!((dir<0&&s<=a[0]+4)||(dir>0&&s>=a[a.length-1]-4))}
+    if(!t.on)return;e.preventDefault();const now=performance.now();t.v=(y-t.last)/Math.max(1,now-t.lt);t.last=y;t.lt=now;
+    scrollTo({top:Math.max(t.a[0],Math.min(t.a[t.a.length-1],t.s0-dy)),behavior:'instant'})},{passive:false});
+  addEventListener('touchend',()=>{if(!t||!t.on){t=null;return}const dy=t.last-t.y0,a=t.a;let i=nearest(a,t.s0);
+    if(dy<-50||t.v<-.35)i=Math.min(a.length-1,i+1);else if(dy>50||t.v>.35)i=Math.max(0,i-1);
+    t=null;go(a[i],420)},{passive:true});
+  addEventListener('touchcancel',()=>{if(t&&t.on){const a=t.a;go(a[nearest(a,scrollY)],300)}t=null});
+  // keys
+  addEventListener('keydown',e=>{if(busyUI()||e.target.closest('input,select,textarea,[contenteditable]'))return;const a=stops();if(!inRegion(a,scrollY))return;
+    const dir={ArrowDown:1,PageDown:1,' ':e.shiftKey?-1:1,ArrowUp:-1,PageUp:-1}[e.key];if(!dir)return;if(move(dir))e.preventDefault()});
+  // a scroll that stopped half way (scrollbar drag, find-in-page, a link) settles on the nearest place
+  let idle;addEventListener('scroll',()=>{clearTimeout(idle);idle=setTimeout(()=>{if(anim||t||busyUI())return;const a=stops(),y=scrollY;
+    if(y>a[0]+4&&y<a[a.length-1]-4){const i=nearest(a,y);if(Math.abs(a[i]-y)>3)go(a[i],380)}},220)},{passive:true});
+  return {go:i=>{const a=stops();go(a[Math.max(0,Math.min(a.length-1,i+1))])}};
+})();
+
 
 /* ---------- 4. STORY ---------- */
 const CH=[
@@ -178,7 +230,9 @@ chapter(0);
 
 /* ---------- the map hero lives in map.js ---------- */
 const nav=$('#nav'),mapHero=$('#top');
-addEventListener('scroll',()=>nav.classList.toggle('solid',mapHero.getBoundingClientRect().bottom<innerHeight*.5),{passive:true});
+const onNav=()=>{const r=document.getElementById('reels').getBoundingClientRect(),overReel=r.top<=2&&r.bottom>=60;   // over a full-screen place the header goes see-through
+  nav.classList.toggle('solid',mapHero.getBoundingClientRect().bottom<innerHeight*.5&&!overReel);nav.classList.toggle('over-reel',overReel)};
+addEventListener('scroll',onNav,{passive:true});
 $('#heroCount').textContent=TRIPS.length;
 $('#seeAll').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'smooth'}));
 
@@ -191,12 +245,34 @@ function monthOptions(t){
     opts.push(`<option value="${d.getFullYear()}-${d.getMonth()+1}" ${sel?'selected':''}>${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}</option>`)}
   return opts.join('');
 }
+/* The page reads in five numbered steps, most important first:
+   01 Go (the journey, day by day, with what to taste / spot / take away at each stop)  02 Ways & prices
+   03 Taste · Explore · Take away (small chips, tap to read)  04 The story  05 Unbucket it (the request form) */
+const KIND_ICON={taste:'🍲',take:'🎁'};
+function placeThings(t,route){
+  const B=(window.BUCKET||{})[t.id]||{},wild=(window.WILDLIFE||{})[t.id]||[],stops=route?route.stops:[];
+  const dayOf=name=>{const s=stops.find(x=>x[0].toLowerCase()===String(name).toLowerCase());if(!s)return -1;const m=/\d+/.exec(s[3]||'');return m?Math.min(t.plan.length,+m[0])-1:-1};
+  const near=(la,lo)=>{let best=null,bd=1e9;for(const s of stops){const d=Math.hypot(s[1]-la,(s[2]-lo)*Math.cos(la*Math.PI/180));if(d<bd){bd=d;best=s}}return best};
+  const out=[];
+  (B.taste||[]).forEach(x=>out.push({kind:'taste',key:'Taste',icon:KIND_ICON.taste,name:x[0],where:x[1],line:x[2],day:dayOf(x[1])}));
+  wild.forEach(w=>{const s=near(w[2],w[3]);out.push({kind:'explore',key:'Explore',icon:w[0],name:w[1],where:`${w[4]} · best ${w[6]}`,line:w[5],day:s?dayOf(s[0]):-1})});
+  (B.take||[]).forEach(x=>out.push({kind:'take',key:'Take away',icon:KIND_ICON.take,name:x[0],where:x[1],line:x[2],day:dayOf(x[1])}));
+  // each thing shows once in the day by day, on the first day at its stop
+  return out.map((x,i)=>({...x,i}));
+}
+const mini=x=>`<button class="mini k-${x.kind}" type="button" data-thing="${x.i}" aria-expanded="false"><i aria-hidden="true">${x.icon}</i>${esc(x.name)}</button>`;
 function renderDest(t){
   const offers=(window.OFFERS||{})[t.id]||[{name:t.tag,days:t.days,price:t.price,blurb:t.hook}];
   const route=(window.ROUTES||{})[t.id];
-  const tile=(n)=>`<div class="${n===2&&!t.photos.length?'play':''}">${scape({...t,image:t.photos[n]||'',video:'',sky:[...t.sky].reverse().slice(n%2,3).concat(t.sky).slice(0,3)})}</div>`;
-  const nTiles=t.photos.length>=3?3:5;
+  const things=placeThings(t,route);sheet._things=things;
   const idx=TRIPS.indexOf(t),next=TRIPS[(idx+1)%TRIPS.length];
+  const head=(n,key,title,sub)=>`<header class="d-head"><span class="d-num" aria-hidden="true">${n}</span><div><p class="eyebrow">${key}</p><h3>${title}</h3>${sub?`<p class="d-sub">${sub}</p>`:''}</div></header>`;
+  const stopsLine=route?route.stops.map(s=>esc(s[0])).join(' → ')+(route.loop?' → '+esc(route.stops[0][0]):''):esc(t.story);
+  const days=t.plan.map((d,i)=>{const here=things.filter(x=>x.day===i);
+    return `<li class="day"><small>Day ${i+1}</small><h4>${esc(d[0])}</h4><p>${esc(d[1])}</p>${here.length?`<div class="minis">${here.map(mini).join('')}</div><div class="mini-more" hidden></div>`:''}</li>`}).join('');
+  const groups=[['taste','Taste','What to eat'],['explore','Explore','Wild things to spot'],['take','Take away','What you bring home']].map(([k,key,title])=>{
+    const xs=things.filter(x=>x.kind===k);return xs.length?`<div class="tg k-${k}"><p class="tg-h"><b>${key}</b> ${title}<span>${xs.length}</span></p><div class="minis">${xs.map(mini).join('')}</div><div class="mini-more" hidden></div></div>`:''}).join('');
+  const NAV=[['d-go','Go'],['d-ways','Ways & prices'],['d-more','Taste · Explore · Take away'],['d-story','Story'],['d-book','Unbucket it']];
   sheet.dataset.id=t.id;
   sheet.innerHTML=`<button class="close" data-close aria-label="Back to the map">← Map</button>
    <header class="d-hero">${scape(t)}
@@ -204,17 +280,16 @@ function renderDest(t){
      <div class="d-chips"><span>${t.days} days</span><span>from ${money(t.price)} / person</span><span>${offers.length} way${offers.length>1?'s':''} to unbucket it</span></div>
      <button class="btn" type="button" data-go-book>Unbucket this for me</button></div>
     <span class="d-scroll" aria-hidden="true">↓</span></header>
-   <section class="offers"><p class="eyebrow">Ways to unbucket ${t.name}</p><div class="offer-list">${offers.map((o,i)=>`
-     <article class="offer"><div class="offer-ph">${scape({...t,image:t.photos[i%Math.max(1,t.photos.length)]||'',video:''})}</div>
-      <div class="offer-body"><h3>${o.name}</h3><p>${o.blurb}</p><div class="offer-meta"><span>${o.days} days</span><b>${money(o.price)}<small> / person</small></b></div>
-      <button class="btn" type="button" data-pick="${i}">Choose this</button></div></article>`).join('')}</div>
-</section>
-   ${route?routeCard(t,route):''}
-   ${fourSections(t)}
-   <div class="gallery ${nTiles===3?'g3':''}">${[...Array(nTiles).keys()].map(tile).join('')}</div>
-   <section class="tale in-drawer">${storyBanner(t)}</section>
-   <div class="d-body"><div><p class="eyebrow day-eye">Day by day</p><h3>${t.tag}</h3><p class="lede">${t.story}</p>
-    <div class="tl">${t.plan.map((d,i)=>`<div class="day"><small>Day ${i+1}</small><h4>${d[0]}</h4><p>${d[1]}</p></div>`).join('')}</div></div>
+   <nav class="d-nav" aria-label="On this page">${NAV.map(([id,l],i)=>`<a href="#${id}" data-jump="${id}"><b>${String(i+1).padStart(2,'0')}</b>${l}</a>`).join('')}</nav>
+   <section class="d-sec d-go" id="d-go">${head('01','Go',`The journey · ${t.days} days`,stopsLine)}
+    <div class="go-grid">${route?routeCard(t,route):''}<ol class="tl">${days}</ol></div></section>
+   <section class="d-sec" id="d-ways">${head('02','Ways & prices',`How to unbucket ${esc(t.name)}`,'Every way includes stays, transfers, a local guide and the experiences listed. Prices are per person.')}
+    <div class="offer-list">${offers.map((o,i)=>`<article class="offer"><div class="offer-ph">${scape({...t,image:t.photos[i%Math.max(1,t.photos.length)]||'',video:''})}</div>
+      <div class="offer-body"><h4>${esc(o.name)}</h4><p>${esc(o.blurb)}</p><p class="offer-meta"><span>${o.days} days</span><b>${money(o.price)}<small> / person</small></b></p></div>
+      <button class="btn" type="button" data-pick="${i}">Choose</button></article>`).join('')}</div></section>
+   ${groups?`<section class="d-sec" id="d-more">${head('03','Taste · Explore · Take away','What else this place gives you','Tap any one to read more.')}<div class="tgs">${groups}</div></section>`:''}
+   <section class="d-sec d-story" id="d-story">${head('04','The story',`${esc(t.tag)}`,'')}<div class="tale in-drawer">${storyBanner(t)}</div></section>
+   <section class="d-sec" id="d-book">${head('05','Unbucket it','Tell us when, and we’ll plan the rest','')}
     <form class="book" id="bookForm" novalidate>
      <div class="p" id="bkPrice">${money(offers[0].price)} <span>/ person</span></div>
      <label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select>
@@ -227,11 +302,16 @@ function renderDest(t){
      <button class="btn" type="submit">Unbucket this for me</button>
      <button class="btn ghost2" type="button" data-save="${t.id}">${bucketLabel(t.id)}</button>
      <p class="fine">Preview: requests are not collected yet, so nothing is sent.</p>
-    </form></div>
+    </form></section>
    <nav class="d-next"><button type="button" data-close>← Back to the map</button><button type="button" data-goto="${next.id}">Next: ${next.name} →</button></nav>
    <div class="d-bar"><div><b>${money(t.price)}</b><small> / person</small><span>Best in ${MONTH_FULL[t.m]} · ${t.days} days</span></div><button class="btn" type="button" data-go-book>Unbucket this</button></div>`;
   sheet.scrollTop=0;
   const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{root:sheet,threshold:.2});$$('.day',sheet).forEach(d=>o.observe(d));
+  // the numbered nav shows where you are
+  const links=$$('.d-nav a',sheet);
+  const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('on',a.dataset.jump===e.target.id));const a=links.find(a=>a.dataset.jump===e.target.id);if(a)a.parentNode.scrollTo({left:a.offsetLeft-a.parentNode.firstElementChild.offsetLeft,behavior:'smooth'})}}),{root:sheet,rootMargin:'-45% 0px -50% 0px'});
+  $$('.d-sec',sheet).forEach(s=>so.observe(s));
+  initTale(sheet);
   const f=$('#bookForm',sheet),cur=()=>offers[+$('#bkOffer',f).value];
   const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;$('#bkTotal',f).textContent=money(cur().price*+$('#bkPax',f).value)};
   f.addEventListener('input',upd);
@@ -244,44 +324,66 @@ function renderDest(t){
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
   });
 }
-/* TASTE, EXPLORE, TAKE AWAY: what this place gives you besides the route */
-function fourSections(t){
-  const B=(window.BUCKET||{})[t.id]||{},wild=(window.WILDLIFE||{})[t.id]||[];
-  const card=(e,name,where,line)=>`<article class="four-card">${e?`<div class="e" aria-hidden="true">${e}</div>`:''}<h4>${esc(name)}</h4><p class="w">${esc(where)}</p><p>${esc(line)}</p></article>`;
-  const group=(key,title,cards)=>cards.length?`<div class="four-g"><p class="eyebrow">${key}</p><h3>${title}</h3><div class="four-list">${cards.join('')}</div></div>`:'';
-  const html=group('Taste',`What to eat in ${esc(t.name)}`,(B.taste||[]).map(x=>card('',x[0],x[1],x[2])))
-    +group('Explore','Wild things to spot',wild.map(w=>card(w[0],w[1],`${w[4]} · best ${w[6]}`,w[5])))
-    +group('Take away','What you bring home',(B.take||[]).map(x=>card('',x[0],x[1],x[2])));
-  return html?`<section class="four">${html}</section>`:'';
-}
-/* Route card: the journey as a small schematic (A → B → C ...) with day labels, a legend and the stop list */
+// a small chip opens its story right under its row; tap again (or another chip) to switch
+sheet.addEventListener('click',e=>{
+  const j=e.target.closest('[data-jump]');if(j){e.preventDefault();const s=$('#'+j.dataset.jump,sheet);if(s)sheet.scrollTo({top:s.offsetTop-54,behavior:'smooth'});return}
+  const b=e.target.closest('[data-thing]');if(!b)return;const x=(sheet._things||[])[+b.dataset.thing];if(!x)return;
+  const box=b.parentNode.nextElementSibling,open=b.getAttribute('aria-expanded')==='true';
+  $$('[data-thing]',b.parentNode).forEach(o=>o.setAttribute('aria-expanded','false'));
+  if(open){box.hidden=true;return}
+  b.setAttribute('aria-expanded','true');box.hidden=false;
+  box.innerHTML=`<span class="mm-k">${x.key}</span><b>${esc(x.name)}</b><small>${esc(x.where)}</small><p>${esc(x.line)}</p>`;
+});
+/* Route card: the journey as a small schematic (A → B → C ...) with day labels and a legend */
 function routeCard(t,r){
   const KC={arrive:'#3ccf86',depart:'#3ccf86',stop:'#ff6a45',side:'#f6b84b'};
   // schematic, like a metro map: keeps each stop's direction (north up, east right) but spreads them evenly so labels never pile up
-  const narrow=innerWidth<760,n=r.stops.length;
+  const narrow=innerWidth<900,n=r.stops.length;
   const rank=vals=>{const o=vals.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]||p[1]-q[1]),out=[];o.forEach(([,i],k)=>out[i]=n>1?k/(n-1):.5);return out};
   const norm=vals=>{const lo=Math.min(...vals),hi=Math.max(...vals);return vals.map(v=>hi-lo<1e-9?.5:(v-lo)/(hi-lo))};
   const xr=rank(r.stops.map(s=>s[2])),yr=rank(r.stops.map(s=>-s[1])),gx=norm(r.stops.map(s=>s[2])),gy=norm(r.stops.map(s=>-s[1]));
-  const VW=narrow?360:720,VH=narrow?Math.max(300,n*64+40):360;
-  const P=r.stops.map((s,i)=>{const nx=.4*gx[i]+.6*xr[i],ny=.4*gy[i]+.6*yr[i];
-    return narrow?[30+nx*120,36+ny*(VH-72)]:[200+nx*(VW-400),46+ny*(VH-92)]});
+  const VW=360,VH=Math.max(260,n*52+40);
+  const P=r.stops.map((s,i)=>{const nx=.4*gx[i]+.6*xr[i],ny=.4*gy[i]+.6*yr[i];return [30+nx*120,30+ny*(VH-60)]});
   const seq=r.loop?[...P,P[0]]:P;
   let d=`M${seq[0][0].toFixed(1)},${seq[0][1].toFixed(1)}`;
   for(let i=1;i<seq.length;i++){const [a0,b0]=seq[i-1],[a1,b1]=seq[i];d+=` Q${((a0+a1)/2-(b1-b0)*.12).toFixed(1)},${((b0+b1)/2+(a1-a0)*.12).toFixed(1)} ${a1.toFixed(1)},${b1.toFixed(1)}`}
-  const labels=r.stops.map((s,i)=>{const [x,y]=P[i],right=narrow||x<VW/2+20,k=s[5]||'stop',big=k==='arrive'||k==='depart';
+  const labels=r.stops.map((s,i)=>{const [x,y]=P[i],k=s[5]||'stop',big=k==='arrive'||k==='depart';
     return `<g><circle cx="${x}" cy="${y}" r="${big?13:10}" fill="${KC[k]}" opacity=".18"/><circle cx="${x}" cy="${y}" r="${big?7:5.5}" fill="${KC[k]}" stroke="#14110f" stroke-width="2"/>
-     <text x="${x+(right?14:-14)}" y="${y-3}" text-anchor="${right?'start':'end'}" class="rc-n">${esc(s[0])}</text>
-     <text x="${x+(right?14:-14)}" y="${y+11}" text-anchor="${right?'start':'end'}" class="rc-s">${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</text></g>`}).join('');
-  const list=r.stops.map((s,i)=>`<li><i style="background:${KC[s[5]||'stop']}"></i><span><b>${esc(s[0])}</b>, ${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</span></li>`).join('')
-    +(r.loop?`<li><i style="background:${KC.depart}"></i><span><b>${esc(r.stops[0][0])}</b>, back to the start and fly out</span></li>`:'');
-  return `<section class="routecard" aria-label="The ${esc(t.name)} route">
-   <p class="eyebrow">Go</p><h3>${r.stops.map(s=>esc(s[0])).join(' → ')}${r.loop?' → '+esc(r.stops[0][0]):''}</h3>
-   <div class="rc-box"><svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Map of the route">
-     <line x1="${VW/2}" y1="16" x2="${VW/2}" y2="${VH-16}" class="rc-grid"/><line x1="16" y1="${VH/2}" x2="${VW-16}" y2="${VH/2}" class="rc-grid"/>
+     <text x="${x+14}" y="${y-3}" class="rc-n">${esc(s[0])}</text><text x="${x+14}" y="${y+11}" class="rc-s">${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</text></g>`}).join('');
+  return `<figure class="routecard" aria-label="The ${esc(t.name)} route"><svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Map of the route">
      <path d="${d}" class="rc-path"/>${labels}</svg>
-    <p class="rc-legend"><span><i style="background:#ff6a45;border-radius:2px;height:3px"></i>Route</span><span><i style="background:${KC.arrive}"></i>Arrive &amp; depart</span><span><i style="background:${KC.stop}"></i>Stops</span><span><i style="background:${KC.side}"></i>Side trips</span></p>
-    <ol class="rc-list">${list}</ol></div></section>`;
+    <figcaption class="rc-legend"><span><i style="background:${KC.arrive}"></i>Arrive &amp; depart</span><span><i style="background:${KC.stop}"></i>Stops</span><span><i style="background:${KC.side}"></i>Side trips</span></figcaption></figure>`;
 }
+/* Story banner: drifts on its own, but it's yours: swipe or drag it, use ‹ ›, or pause it. It waits while you read, then carries on. */
+const TALES=[];let taleRAF=0,taleT=0;
+const taleSpeed=()=>innerWidth<760?40:52;   // px per second (was ~22)
+function initTale(root){
+  const w=$('.tale-track-wrap',root);if(!w||w._tale)return;const tr=$('.tale-track',w);
+  const s={w,tr,x:0,hold:0,paused:matchMedia('(prefers-reduced-motion: reduce)').matches,on:false,set:-1,hover:false};w._tale=s;
+  const hold=ms=>{s.hold=Math.max(s.hold,performance.now()+ms)};
+  ['pointerdown','touchstart','wheel'].forEach(ev=>w.addEventListener(ev,()=>hold(3500),{passive:true}));
+  
+  w.addEventListener('scroll',()=>{if(Math.abs(w.scrollLeft-s.set)>2){hold(3000);s.x=w.scrollLeft;
+    if(w.scrollLeft<2&&!s.drag){const half=tr.scrollWidth/2;s.x=half;s.set=Math.round(half);w.scrollLeft=s.set}}},{passive:true});
+  // drag with a mouse, like a finger
+  w.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button)return;s.drag={x:e.clientX,l:w.scrollLeft};w.classList.add('grab')});
+  addEventListener('pointermove',e=>{if(!s.drag)return;w.scrollLeft=s.drag.l-(e.clientX-s.drag.x);hold(3000)});
+  addEventListener('pointerup',()=>{if(s.drag){s.drag=null;w.classList.remove('grab')}});
+  const ctl=w.parentNode.querySelector('.tale-ctl');
+  if(ctl)ctl.addEventListener('click',e=>{const b=e.target.closest('[data-tale]');if(!b)return;const d=+b.dataset.tale;
+    if(!d){s.paused=!s.paused;b.textContent=s.paused?'▶':'❚❚';b.setAttribute('aria-label',s.paused?'Play the story':'Pause the story');return}
+    hold(4500);w.scrollBy({left:d*Math.min(300,w.clientWidth*.7),behavior:'smooth'})});
+  if(s.paused&&ctl){const b=ctl.querySelector('[data-tale="0"]');b.textContent='▶';b.setAttribute('aria-label','Play the story')}
+  new IntersectionObserver(([e])=>{s.on=e.isIntersecting;if(s.on){s.x=w.scrollLeft;kickTales()}}).observe(w);
+  TALES.push(s);
+}
+function kickTales(){if(!taleRAF){taleT=performance.now();taleRAF=requestAnimationFrame(taleTick)}}
+function taleTick(now){const dt=Math.min(64,now-taleT);taleT=now;let any=false;
+  for(let i=TALES.length-1;i>=0;i--){const s=TALES[i];if(!s.w.isConnected){TALES.splice(i,1);continue}
+    if(!s.on)continue;any=true;if(s.paused||s.hover||s.drag||now<s.hold)continue;
+    const half=s.tr.scrollWidth/2;s.x+=taleSpeed()*dt/1000;if(s.x>=half)s.x-=half;
+    s.set=Math.round(s.x);s.w.scrollLeft=s.set}
+  taleRAF=any?requestAnimationFrame(taleTick):0}
 function goBook(){const f=$('#bookForm',sheet);if(!f)return;f.scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('#bkName',sheet)?.focus({preventScroll:true}),650)}
 function openTrip(id,{push=true,book=false}={}){
   const t=TRIPS.find(x=>x.id===id);if(!t)return;
