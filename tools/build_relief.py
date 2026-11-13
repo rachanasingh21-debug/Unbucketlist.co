@@ -47,6 +47,7 @@ def bm_tile(z, x, y):
 
 def albedo(lon, lat, z):
     z = int(min(8, z)); W_ = lon.shape[1]
+    lon = np.clip(lon, -179.999, 179.999); lat = np.clip(lat, -85.05, 85.05)   # tile margins can reach past the world's edge
     x0, x1 = float(lon.min()), float(lon.max()); y0, y1 = float(lat.min()), float(lat.max())
     tx0, ty1 = merc_px(np.array(x0), np.array(y0), z); tx1, ty0 = merc_px(np.array(x1), np.array(y1), z)
     tx0, tx1, ty0, ty1 = int(tx0 // 256), min(2 ** z - 1, int(tx1 // 256)), max(0, int(ty0 // 256)), min(2 ** z - 1, int(ty1 // 256))
@@ -75,8 +76,8 @@ def grade(rgb):
     # restyle real-world colour into the reference's tones: lifted, muted, greens pulled towards olive
     L = rgb2lab(rgb); l, a, b = L[..., 0], L[..., 1], L[..., 2]
     g = PAL['grade']; C = np.hypot(a, b); h = np.arctan2(b, a)
-    l2 = g['l0'] + g['l1'] * l
     green = np.clip(np.cos(h - math.radians(135)), 0, 1) ** 2            # how 'green' a hue is
+    l2 = g['l0'] + g['l1'] * l + g.get('lg', 0) * green * np.clip(C / 12, 0, 1)   # greens are lifted (the print's forests are light sage, not dark)
     h2 = h - math.radians(g['olive']) * green                          # greens lean yellow-olive
     C2 = C * g['c'] * (1 + g['cg'] * green)
     return lab2rgb(np.dstack([l2, C2 * np.cos(h2), C2 * np.sin(h2)])), L
@@ -92,6 +93,17 @@ def mosaic(z, x0, x1, y0, y1):
 def merc_px(lon, lat, z):
     n = 256 * 2 ** z; lat = np.clip(lat, -85.05, 85.05); r = np.radians(lat)
     return (lon + 180) / 360 * n, (1 - np.log(np.tan(r) + 1 / np.cos(r)) / math.pi) / 2 * n
+
+def merc_y(lat):  # Web Mercator y in 'degrees' (equals lat at the equator; +-180 at +-85.05)
+    return np.degrees(np.log(np.tan(np.pi / 4 + np.radians(np.clip(lat, -85.0511, 85.0511)) / 2)))
+
+def inv_merc(y): return np.degrees(2 * np.arctan(np.exp(np.radians(y))) - np.pi / 2)
+
+def mgrid(x0, x1, ytop, ybot, w, h):
+    # pixel-centre lon/lat for a Mercator image spanning lon x0..x1 and Mercator y ytop..ybot
+    lon = np.linspace(x0 + (x1 - x0) / (2 * w), x1 - (x1 - x0) / (2 * w), w)[None, :].repeat(h, 0)
+    ym = np.linspace(ytop - (ytop - ybot) / (2 * h), ybot + (ytop - ybot) / (2 * h), h)
+    return lon, inv_merc(ym)[:, None].repeat(w, 1)
 
 def sample(m, px, py):  # bilinear
     px = np.clip(px, 0, m.shape[1] - 1.001); py = np.clip(py, 0, m.shape[0] - 1.001)
@@ -139,7 +151,7 @@ LOOKS = {
                 peak='#bdb8b0', snow='#ffffff', warm='#fff4e0', cool='#2e2c24', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
                 sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.45, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
                 cast=.5, cast_sea=.32, ao=.38, sun_alt=24, bm_world_z=4,
-                grade=dict(w=.9, l0=47, l1=.5, c=1.0, cg=.35, olive=8)),
+                grade=dict(w=.9, l0=47, l1=.5, c=1.0, cg=.35, olive=3, lg=8)),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
                 warm='#ffcf8f', cool='#5b3f7d', sea=['#a8efe2', '#69d9d3', '#33b6c9', '#2584b4', '#1b5694'], sat=1.28, lift=.03, tint=.4),
@@ -174,18 +186,26 @@ def landmask(lon, lat):
     for pts in _LANDMASK:
         xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
         if max(xs) < min(x0, x1) or min(xs) > max(x0, x1) or max(ys) < min(y0, y1) or min(ys) > max(y0, y1): continue
-        d.polygon([((px - x0) / (x1 - x0) * (W - 1), (py - y0) / (y1 - y0) * (H - 1)) for px, py in pts], fill=255)
+        y0m, y1m = float(merc_y(y0)), float(merc_y(y1))
+        ys_ = merc_y(np.array([p[1] for p in pts]))
+        d.polygon([((px - x0) / (x1 - x0) * (W - 1), (y0m - py) / (y0m - y1m) * (H - 1)) for (px, _), py in zip(pts, ys_)], fill=255)
     return np.asarray(im) > 127
 
-def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
+def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None, gw=None, norms=None):
     H, W = elev.shape
+    gw = gw or int(round(W * 360 / max(1e-9, float(lon[0, -1] - lon[0, 0]))))   # pixels across the whole world at this scale
+    def norm(key, f):                       # tiles share one brightness scale, so their seams don't show
+        if norms is not None and key in norms: return norms[key]
+        v = f()
+        if norms is not None: norms[key] = v
+        return v
     if PAL.get('mode') == 'relief':
         # Greenland (its west and east coasts, so Baffin Island, Quebec and Iceland stay out) and Antarctica
         west = np.where(lat < 74, -57, np.where(lat < 77, -68, -74)); east = np.where(lat < 68, -34, np.where(lat < 77, -17, -10))
         ice = ((lat > 59.5) & (lon > west) & (lon < east)) | (lat < -60)
         if ice.any():
             mask = landmask(lon, lat) & ice
-            elev = np.where(mask, np.maximum(elev, 900 + 2200 * sstep(0, 1, smooth(mask.astype(np.float32), max(3, W // 200)))), elev)
+            elev = np.where(mask, np.maximum(elev, 900 + 2200 * sstep(0, 1, smooth(mask.astype(np.float32), max(3, gw // 200)))), elev)
     # region colours, painted the same way as the map's soft regions
     N = noise(lon, lat)
     # greenness from a simple climate model: wet tropics, dry subtropical belts, green temperate lands, tundra
@@ -214,7 +234,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
     c = c * (0.94 + 0.12 * N)[..., None]            # gentle mottling across plains
     LAKE = np.zeros(elev.shape, bool)
     if alb is not None and PAL.get('grade'):
-        al_ = np.dstack([smooth(alb[..., i], max(1, W // 1400)) for i in range(3)])       # soften: colour only, no photo texture
+        al_ = np.dstack([smooth(alb[..., i], max(1, gw // 1400)) for i in range(3)])       # soften: colour only, no photo texture
         gc, L0 = grade(al_)
         known = (np.abs(lat) < 84.5)[..., None]
         c = np.where(known, mix(c, gc, np.full(elev.shape, PAL['grade']['w'], np.float32)), c)
@@ -243,7 +263,8 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
     c = mix(c, hexrgb(PAL['snow']), SNOW * .95)
     # soft sunlight from the north-west
     lat_r = np.radians(lat)
-    dlon = (lon[0, 1] - lon[0, 0]) if W > 1 else 1; dlat = (lat[0, 0] - lat[1, 0]) if H > 1 else 1
+    dlon = (lon[0, 1] - lon[0, 0]) if W > 1 else 1
+    dlat = (-np.gradient(lat[:, 0]) if H > 1 else np.ones(1))[:, None]       # Mercator rows: the step in latitude changes row by row
     dx = dlon * 111320 * np.cos(lat_r); dy = dlat * 110540
     gy, gx = np.gradient(elev * exag)
     sx_ = gx / np.maximum(dx, 1); sy_ = -gy / dy
@@ -257,14 +278,14 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
     k = .72 * light(315, 38) + .28 * light(255, 28)
     if PAL.get('mode') == 'relief': k = .8 * light(315, 32) + .2 * light(270, 24)   # lower sun: longer, crisper shadows
     # local relief: ridges catch light, valleys sit in soft shadow (a cheap ambient occlusion)
-    r = max(3, int(min(H, W) / 160))
+    r = max(3, int(gw / 320))
     blur = smooth(elev.astype(np.float32), r)
-    lr = elev - blur; sc = np.percentile(np.abs(lr[land]), 92) + 1 if land.any() else 1
+    lr = elev - blur; sc = norm('lr', lambda: float(np.percentile(np.abs(lr[land]), 92) + 1) if land.any() else 1.0)
     k = k + PAL.get('local', .32) * np.tanh(lr / sc)
     kk = np.clip(k, -1, 1)
     CAST = np.zeros_like(elev, dtype=np.float32); AO = np.zeros_like(CAST)
     if PAL.get('cast'):
-        hp = np.maximum(elev, 0).astype(np.float32) * exag / max(dy if np.isscalar(dy) else float(np.mean(dy)), 1)   # height in pixel units
+        hp = (np.maximum(elev, 0) * exag / np.maximum(dy, 1)).astype(np.float32)   # height in pixel units
         drop = math.sqrt(2) * math.tan(math.radians(PAL.get('sun_alt', 24)))
         K = int(min(110, max(4, hp.max() / drop)))
         pad = np.pad(hp, ((K, 0), (K, 0)), mode='edge'); best = np.full_like(hp, -1e9)
@@ -277,8 +298,8 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None):
     if PAL.get('ao'):
         e0 = np.maximum(elev, 0).astype(np.float32) * exag
         for r_, w_ in ((2, .45), (6, .35), (16, .2)):
-            d_ = smooth(e0, max(1, int(r_ * W / 4096 * (4 if W < 2000 else 1)))) - e0
-            sc_ = np.percentile(np.abs(d_[land]), 90) + 1 if land.any() else 1
+            d_ = smooth(e0, max(1, int(r_ * gw / 4096 * (4 if gw < 2000 else 1)))) - e0
+            sc_ = norm(f'ao{r_}', lambda: float(np.percentile(np.abs(d_[land]), 90) + 1) if land.any() else 1.0)
             AO += w_ * np.clip(d_ / sc_, 0, 1)
     if PAL.get('mode') == 'relief': kk = kk * (1 - .6 * sstep(.5, 1, SNOW))   # ice sheets stay smooth and bright
     if PAL.get('mode') == 'relief':
@@ -321,6 +342,36 @@ def world():
             im.resize((2048, 1024), Image.LANCZOS).save(OUT + 'world-ocean.jpg', quality=82, optimize=True, progressive=True)
         print('world', W, 'done')
 
+def mworld(levels=(0, 1, 2)):
+    """Mercator world pyramid: m/0.webp (2048 px, the whole world, also the sea under everything),
+    m/1/<row>-<col>.webp (4096 px world in 4x4 tiles) and m/2/... (8192 px in 8x8). Only tiles with land are written."""
+    z = 5; m = mosaic(z, 0, 2 ** z - 1, 0, 2 ** z - 1)
+    def elev_at(lon, lat):
+        px, py = merc_px(lon, lat, z); el = sample(m, px, py); el[lat < -84] = 2500; return el
+    os.makedirs(OUT + 'm', exist_ok=True)
+    norms = {}; S0 = 2048
+    lon, lat = mgrid(-180, 180, 180, -180, S0, S0)
+    rgb, land0 = colourise(elev_at(lon, lat), lon, lat, exag=PAL['exag_world'], alb=albedo(lon, lat, 4) if PAL.get('grade') else None, gw=S0, norms=norms)
+    Image.fromarray(rgb).save(OUT + 'm/0.webp', quality=80, method=6); print('m0 done', norms, flush=True)
+    have = {}
+    for L in levels:
+        if L == 0: continue
+        S = S0 * 2 ** L; n = S // 1024; T = 360 / n; M = 96; px = 360 / S; have[L] = []
+        os.makedirs(OUT + f'm/{L}', exist_ok=True)
+        for j in range(n):
+            for i in range(n):
+                r0, c0 = j * S0 // n, i * S0 // n
+                if not land0[max(0, r0 - 2):r0 + S0 // n + 2, max(0, c0 - 2):c0 + S0 // n + 2].any(): continue
+                x0 = -180 + i * T - M * px; x1 = x0 + T + 2 * M * px
+                yt = 180 - j * T + M * px; yb = yt - T - 2 * M * px
+                lon, lat = mgrid(x0, x1, yt, yb, 1024 + 2 * M, 1024 + 2 * M)
+                alb = albedo(lon, lat, 5) if PAL.get('grade') else None
+                rgb, _ = colourise(elev_at(lon, lat), lon, lat, exag=PAL['exag_world'] * PAL.get('exag_lvl', 1) ** L, alb=alb, gw=S, norms=norms)
+                Image.fromarray(rgb[M:M + 1024, M:M + 1024]).save(OUT + f'm/{L}/{j}-{i}.webp', quality=78, method=6)
+                have[L].append(f'{j}-{i}')
+            print('level', L, 'row', j, 'done', flush=True)
+    json.dump({'size0': S0, 'tile': 1024, 'levels': {str(k): v for k, v in have.items()}}, open(OUT + 'm/tiles.json', 'w'))
+
 LOOK_PALETTE = {'ladakh': '#c7ad86', 'rajasthan': '#dcc28f', 'morocco': '#d6b98a', 'serengeti': '#c9c07f', 'iceland': '#a9ad8e',
                 'patagonia': '#b5b48c', 'peru': '#a9ae7c', 'kyoto': '#86a66d', 'bali': '#76a061', 'newzealand': '#93ad74',
                 'lofoten': '#9fae86', 'santorini': '#c9b593', 'maldives': '#e8dcae'}
@@ -335,7 +386,7 @@ def crops(only=None):
         half = span * 2.2 + .15
         hx = half / max(.3, math.cos(math.radians(cy)))  # wider in degrees of longitude at high latitude
         x0, x1, y0, y1 = cx - hx, cx + hx, cy - half, cy + half
-        W = 1600; H = int(round(W * (y1 - y0) / (x1 - x0)))
+        W = 1600; H = int(round(W * float(merc_y(y1) - merc_y(y0)) / (x1 - x0)))
         H = max(400, min(2400, H))
         degpx = (x1 - x0) / W
         z = int(min(12, max(5, math.ceil(math.log2(360 / (256 * degpx))))))
@@ -345,7 +396,7 @@ def crops(only=None):
             z -= 1; tx0, ty1 = merc_px(np.array(x0), np.array(y0), z); tx1, ty0 = merc_px(np.array(x1), np.array(y1), z)
             tx0, tx1, ty0, ty1 = int(tx0 // 256), int(tx1 // 256), int(ty0 // 256), int(ty1 // 256)
         m = mosaic(z, tx0, tx1, ty0, ty1)
-        lon = np.linspace(x0, x1, W)[None, :].repeat(H, 0); lat = np.linspace(y1, y0, H)[:, None].repeat(W, 1)
+        lon, lat = mgrid(x0, x1, float(merc_y(y1)), float(merc_y(y0)), W, H)
         px, py = merc_px(lon, lat, z); el = sample(m, px - tx0 * 256, py - ty0 * 256)
         exag = (2.2 if span > 1 else 3.2) * PAL.get('exag_crop', 1)
         alb = albedo(lon, lat, z) if PAL.get('grade') else None
@@ -366,6 +417,7 @@ if __name__ == '__main__':
     rest = [a for a in args if a not in LOOKS]
     for look in looks:
         PAL = LOOKS[look]; OUT = BASE + f'looks/{look}/'; os.makedirs(OUT, exist_ok=True); print('== look', look, flush=True)
-        if not rest or 'world' in rest: world()
+        if not rest or 'world' in rest: mworld()
+        if 'world0' in rest: mworld((0,))
         if not rest or 'crops' in rest: crops([a for a in rest if a not in ('world', 'crops')] or None)
         print(look, sum(os.path.getsize(OUT + f) for f in os.listdir(OUT)) // 1024, 'KB total', flush=True)

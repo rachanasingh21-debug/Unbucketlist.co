@@ -28,10 +28,12 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   Regional colour: NASA Blue Marble (GIBS tiles) is used only as a hidden colour guide (albedo), graded in Lab space into the reference tones
   (`grade` in the relief look: lightness lift, olive hue shift, chroma), so greens/browns vary by region (Siberia vs Europe vs Sahel vs Australia).
   Lakes come from that colour data (`LOOK.dataLakes`); only signature lakes with a colour in routes.js (Pangong, Tso Moriri) are drawn by hand.
-  World layer is built from z5 terrain at 4096 px and saved at 3072 (crisper). `LOOK.calm` turns off the dusk tint and tilt-shift blur and
+  Projection: Web Mercator (like the reference and Google Maps). In map.js the map's y is `MY(lat)` (= -mercator(lat) in degree units);
+  never use -lat for a screen position. World imagery is a pyramid: `m/0.webp` overview + 1024 px tiles at 4096 and 8192 px (`drawWorld`,
+  loaded only where you look, LRU of 40), then per-destination close-ups (also Mercator) fade in at k 9-20. `LOOK.calm` turns off the dusk tint and tilt-shift blur and
   keeps the vignette light: the client wants the colours clean, like the printed reference. Prices are INR (`money()` in app.js).
   Earlier looks (vivid, satellite) are in git history; `LOOKS.satellite` / `LOOKS.vivid` stay defined in map.js. Only `public/data/looks/relief/`
-  ships. Rebuild with `python3 tools/build_relief.py relief` (needs tools/mapdata.json next to it).
+  ships. Rebuild with `python3 tools/build_relief.py relief world crops` (needs tools/mapdata.json next to it).
   Rebuild with `tools/build_relief.py` (see `tools/README.md`). The user asked for a natural, Google-Earth-like feel: no drawn triangle mountains/trees.
   Each destination's journey (stops with day notes and kind) and lakes/patches are in `public/routes.js`.
   Flow (rebuilt after a phone walkthrough): hero with a dark scrim -> tap a place -> fly in -> arrival title -> journey draws -> slim place bar

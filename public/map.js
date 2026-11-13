@@ -9,7 +9,7 @@ const R=window.ROUTES||{},DEST=TRIPS.filter(t=>R[t.id]);
 const card=document.getElementById('mapCard'),heroCopy=document.getElementById('heroCopy');
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let W=0,H=0,DPR=1;
-const V={x:60,y:-20,k:4};                 // centre (lng, -lat) and pixels per degree
+const V={x:60,y:-20,k:4};                 // centre (lng, -mercator lat) and pixels per degree of longitude
 let kMin=3,kMax=5000,interacted=false;
 
 /* ---------- small helpers ---------- */
@@ -18,11 +18,14 @@ const ramp=(v,a,b)=>cl((v-a)/(b-a));
 let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
 const sx=x=>(x-V.x)*V.k+W/2, sy=y=>(y-V.y)*V.k+H/2;
 const wx=px=>(px-W/2)/V.k+V.x, wy=py=>(py-H/2)/V.k+V.y;
+// Web Mercator, like the printed reference and every web map: the map's y is -mercator(lat) in degree units (= -lat near the equator)
+const MY=lat=>-180/Math.PI*Math.log(Math.tan(Math.PI/4+cl(lat,-85.05,85.05)*Math.PI/360));
+const YT=MY(83.6),YB=MY(-62);            // how far north and south the map goes (Greenland's tip to just past Cape Horn)
 
 /* ---------- land data ---------- */
 const land={a:null,b:null,detail:{}};      // a: coarse world, b: medium world, detail: per destination
 function decode(rs){return rs.map(a=>{const o=new Float32Array(a.length);let x=0,y=0,x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
-  let off=0,px=null;for(let i=0;i<a.length;i+=2){x+=a[i];y+=a[i+1];let X=x/100+off;if(px!==null&&X-px>180){off-=360;X-=360}else if(px!==null&&X-px<-180){off+=360;X+=360}px=X;const Y=-y/100;o[i]=X;o[i+1]=Y;if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y}
+  let off=0,px=null;for(let i=0;i<a.length;i+=2){x+=a[i];y+=a[i+1];let X=x/100+off;if(px!==null&&X-px>180){off-=360;X-=360}else if(px!==null&&X-px<-180){off+=360;X+=360}px=X;const Y=MY(y/100);o[i]=X;o[i+1]=Y;if(X<x0)x0=X;if(X>x1)x1=X;if(Y<y0)y0=Y;if(Y>y1)y1=Y}
   const shift=(x0+x1)/2>180?-360:(x0+x1)/2<-180?360:0;if(shift){for(let i=0;i<o.length;i+=2)o[i]+=shift;x0+=shift;x1+=shift}
   o.box=[x0,y0,x1,y1];return o})}
 function toPath(rs){const p=new Path2D();for(const r of rs){p.moveTo(r[0],r[1]);for(let i=2;i<r.length;i+=2)p.lineTo(r[i],r[i+1]);p.closePath()}return p}
@@ -37,7 +40,7 @@ const LAKES=[[33,-1,1.4,1.2,0],[29.5,-6,.3,3.2,-15],[34.6,-12,.3,2.6,0],[108,53,
 const CONTINENTS=[['NORTH AMERICA',-100,46],['SOUTH AMERICA',-60,-15],['EUROPE',18,52],['AFRICA',20,6],['ASIA',90,48],['AUSTRALIA',134,-25],['ANTARCTICA',30,-76]];
 const SEAS=[['Mediterranean Sea',18,35],['Arabian Sea',64,15],['Bay of Bengal',89,14],['Caribbean Sea',-75,15],['Gulf of Mexico',-90,25],['South China Sea',114,13],['Coral Sea',155,-18],['Tasman Sea',160,-38],['Norwegian Sea',2,68]];
 const OCEANS=[['Pacific Ocean',-150,8],['Pacific Ocean',165,22],['Atlantic Ocean',-38,28],['Atlantic Ocean',-18,-22],['Indian Ocean',78,-22],['Arctic Ocean',20,79],['Southern Ocean',40,-58]];
-function routeBox(r){const xs=r.stops.map(s=>s[2]),ys=r.stops.map(s=>-s[1]);let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+function routeBox(r){const xs=r.stops.map(s=>s[2]),ys=r.stops.map(s=>MY(s[1]));let x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
   const span=Math.max(x1-x0,y1-y0,.08);return {x0,x1,y0,y1,cx:(x0+x1)/2,cy:(y0+y1)/2,span}}
 
 /* ---------- clouds ---------- */
@@ -62,8 +65,8 @@ function cloudSprite(kind,sd){
 const WISP=cloudSprite('wisp',12),SPR=[cloudSprite('cum',31),cloudSprite('cum',57),cloudSprite('cum',83),WISP,WISP];
 seed=99;
 const CLOUDS=[];
-for(let i=0;i<42;i++)CLOUDS.push({x:-180+rnd()*360,y:-(-50+rnd()*115),s:7+rnd()*7,i:i%3,v:.02+rnd()*.03,g:true,p:1});
-for(let i=0;i<18;i++)CLOUDS.push({x:-180+rnd()*360,y:-(-45+rnd()*105),s:12+rnd()*9,i:3+i%2,v:.04+rnd()*.04,g:true,p:1.18,wisp:true});
+for(let i=0;i<42;i++)CLOUDS.push({x:-180+rnd()*360,y:MY(-50+rnd()*115),s:7+rnd()*7,i:i%3,v:.02+rnd()*.03,g:true,p:1});
+for(let i=0;i<18;i++)CLOUDS.push({x:-180+rnd()*360,y:MY(-45+rnd()*105),s:12+rnd()*9,i:3+i%2,v:.04+rnd()*.04,g:true,p:1.18,wisp:true});
 for(const d of DEST){const b=routeBox(R[d.id]);for(let i=0;i<9;i++){const a=i/9*Math.PI*2+rnd(),rr=b.span*(.6+rnd()*1.1);
   CLOUDS.push({x:b.cx+Math.cos(a)*rr,y:b.cy+Math.sin(a)*rr*.7,s:b.span*(1.1+rnd()*1.2),i:i%3,v:b.span*.004,d:d.id,p:1})}}
 function cloudAlpha(c){
@@ -80,10 +83,26 @@ function fitK(id){const key=id+W+'x'+H;if(fitCache[key])return fitCache[key];con
   return fitCache[key]=Math.min(kMax,(s.x1-s.x0)/(b.x1-b.x0+pad),(s.y1-s.y0)/(b.y1-b.y0+pad))}
 function fitView(id){const b=routeBox(R[id]),s=stage(),k=fitK(id);return {x:b.cx-((s.x0+s.x1)/2-W/2)/k,y:b.cy-((s.y0+s.y1)/2-H/2)/k,k}}
 function clampView(){V.k=cl(V.k,kMin,kMax);const hw=W/2/V.k,hh=H/2/V.k;
-  V.x=360<2*hw?0:cl(V.x,-180+hw,180-hw);V.y=144<2*hh?-11:cl(V.y,-84+hh,60-hh)}
+  V.x=360<2*hw?0:cl(V.x,-180+hw,180-hw);V.y=YB-YT<2*hh?(YT+YB)/2:cl(V.y,YT+hh,YB-hh)}
 
 /* ---------- render ---------- */
-const IMG={ocean:null,land1:null,land3:null,crop:{}};let RELIEF={};
+const IMG={m0:null,crop:{}};let RELIEF={};
+/* The world comes in Mercator tiles: a 2048 px overview (it is also the sea under everything), then sharper 1024 px tiles
+   (4096 and 8192 px worlds) that load only where you look, so the relief stays crisp as you zoom. Built by tools/build_relief.py. */
+let TILES=null;const tcache=new Map();
+function tileImg(L,key){const id=L+'/'+key;let t=tcache.get(id);
+  if(t){tcache.delete(id);tcache.set(id,t);return t.ok?t.im:null}                // most recently used last
+  t={ok:false,im:null};tcache.set(id,t);t.im=img(`data/looks/${LOOK.dir}/m/${L}/${key}.webp`,()=>{t.ok=true});
+  while(tcache.size>40)tcache.delete(tcache.keys().next().value);              // keep memory small on phones
+  return null}
+function drawWorld(c,vx0,vx1,vy0,vy1,land){
+  if(IMG.m0)c.drawImage(IMG.m0,-180,-180,360,360);else{c.fillStyle=land?'#c4ca97':LOOK.sea[0];c.fillRect(-180,-180,360,360)}
+  if(!land||!TILES)return;const need=V.k*DPR,e=.6/V.k;
+  for(const L of [1,2]){const S=TILES.size0*2**L;if(need<S/360*.55)break;   // a sharper level only when the one below would look soft
+    const set=(TILES.sets||(TILES.sets={}))[L]||(TILES.sets[L]=new Set(TILES.levels[L]||[]));const n=S/TILES.tile,T=360/n;
+    const i0=Math.max(0,Math.floor((vx0+180)/T)),i1=Math.min(n-1,Math.floor((vx1+180)/T)),j0=Math.max(0,Math.floor((vy0+180)/T)),j1=Math.min(n-1,Math.floor((vy1+180)/T));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const key=j+'-'+i;if(!set.has(key))continue;const im=tileImg(L,key);if(im)c.drawImage(im,-180+i*T,-180+j*T,T+e,T+e)}}
+}
 /* Colour looks: each is a full set of relief images in data/looks/<id>/ plus light, haze and vignette colours */
 /* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
    satellite: natural, muted land on one flat, calm ocean colour (the client's reference: a "satellite map, flat ocean" poster).
@@ -111,7 +130,7 @@ function drawStatic(){
   c.setTransform(DPR,0,0,DPR,0,0);
   const og=c.createLinearGradient(0,0,0,H);og.addColorStop(0,LOOK.sea[0]);og.addColorStop(1,LOOK.sea[1]);c.fillStyle=og;c.fillRect(0,0,W,H);
   c.setTransform(...T);
-  if(IMG.ocean&&!LOOK.flat)c.drawImage(IMG.ocean,-180,-90,360,180);
+  if(!LOOK.flat)drawWorld(c,vx0,vx1,vy0,vy1,false);
   const did=activeDetail();
   const base=V.k<10||!landB?landA:landB;if(!base)return;const extra=did?detailPath[did]:null,coastal=extra&&COASTAL.has(did);
   const path=base;c.lineJoin='round';
@@ -123,21 +142,21 @@ function drawStatic(){
   // land: natural relief (real elevation, designed colours), kept to the coastline
   const clipPath=extra?(()=>{const p=new Path2D(path);p.addPath(extra);return p})():path;
   c.save();c.clip(clipPath);
-  const land=IMG.land3||IMG.land1;
-  if(land)c.drawImage(land,-180,-90,360,180);else{c.fillStyle='#c4ca97';c.fillRect(-180,-90,360,180)}
+  drawWorld(c,vx0,vx1,vy0,vy1,true);
   c.restore();
   // sharper close-ups melt in as you zoom into a place
-  if(V.k>9)for(const id in RELIEF){const bx=RELIEF[id];if(bx[2]<vx0||bx[0]>vx1||-bx[1]<vy0||-bx[3]>vy1)continue;
+  if(V.k>9)for(const id in RELIEF){const bx=RELIEF[id];const yt=MY(bx[3]),yb=MY(bx[1]);if(bx[2]<vx0||bx[0]>vx1||yb<vy0||yt>vy1)continue;
     const img=IMG.crop[id];if(!img){loadCrop(id);continue}if(img==='loading')continue;
-    c.globalAlpha=ramp(V.k,9,20);c.drawImage(img,bx[0],-bx[3],bx[2]-bx[0],bx[3]-bx[1]);c.globalAlpha=1}
+    c.globalAlpha=ramp(V.k,9,20);c.drawImage(img,bx[0],yt,bx[2]-bx[0],yb-yt);c.globalAlpha=1}
   // lakes and rivers
   c.setTransform(...T);
   const lakes=[...LAKES.map(l=>l),...DEST.flatMap(d=>(R[d.id].lakes||[]).map(([la,lo,rx,ry,rot])=>[lo,la,rx,ry,rot||0,R[d.id].lakeColor]))];
-  for(const [lo,la,rx,ry,rot,lc] of lakes){if(LOOK.dataLakes&&!lc)continue; // real lakes come from the colour data; only signature lakes (Pangong, Tso Moriri) are drawnif(lo+rx<vx0||lo-rx>vx1||-la+ry<vy0||-la-ry>vy1)continue;if(rx*V.k<1.5)continue;
-    c.save();c.translate(lo,-la);c.rotate((rot||0)*Math.PI/180);c.scale(rx,ry);
+  for(const [lo,la,rx,ry0,rot,lc] of lakes){if(LOOK.dataLakes&&!lc)continue;   // real lakes come from the colour data; only signature lakes (Pangong, Tso Moriri) are drawn
+    const y=MY(la),ry=ry0/Math.cos(la*Math.PI/180);if(lo+rx<vx0||lo-rx>vx1||y+ry<vy0||y-ry>vy1)continue;if(rx*V.k<1.5)continue;
+    c.save();c.translate(lo,y);c.rotate((rot||0)*Math.PI/180);c.scale(rx,ry);
     const lg=c.createRadialGradient(0,0,0,0,0,1);const col=lc||'#4f98ad';lg.addColorStop(0,col);lg.addColorStop(.82,col);lg.addColorStop(1,'rgba(120,170,170,0)'); // soft natural shoreline
     c.globalAlpha=.88;c.fillStyle=lg;c.beginPath();c.arc(0,0,1,0,7);c.fill();c.globalAlpha=1;c.restore()}
-  if(V.k>25)for(const d of DEST)for(const rv of R[d.id].rivers||[]){c.strokeStyle='rgba(92,150,170,.55)';c.lineWidth=Math.min(4,Math.max(1.2,V.k/150))/V.k;c.lineCap='round';c.beginPath();rv.forEach(([la,lo],i)=>i?c.lineTo(lo,-la):c.moveTo(lo,-la));c.stroke()}
+  if(V.k>25)for(const d of DEST)for(const rv of R[d.id].rivers||[]){c.strokeStyle='rgba(92,150,170,.55)';c.lineWidth=Math.min(4,Math.max(1.2,V.k/150))/V.k;c.lineCap='round';c.beginPath();rv.forEach(([la,lo],i)=>i?c.lineTo(lo,MY(la)):c.moveTo(lo,MY(la)));c.stroke()}
   // coastline
   c.strokeStyle='rgba(70,105,110,.45)';c.lineWidth=.8/V.k;c.stroke(path);if(coastal)c.stroke(extra);
   // sea mask for the shimmer (land cut out)
@@ -153,12 +172,12 @@ function drawStatic(){
   c.setTransform(DPR,0,0,DPR,0,0);
   const spaced=(t,g)=>t.split('').join(g);
   const put=(list,a,font,col,gap)=>{if(a<=.02)return;c.globalAlpha=a;c.font=font;c.fillStyle=col;c.textAlign='center';c.textBaseline='middle';
-    for(const [n,lo,la] of list){const x=sx(lo),y=sy(-la);if(x>-160&&x<W+160&&y>-20&&y<H+20)c.fillText(spaced(n,gap),x,y)}c.globalAlpha=1};
+    for(const [n,lo,la] of list){const x=sx(lo),y=sy(MY(la));if(x>-160&&x<W+160&&y>-20&&y<H+20)c.fillText(spaced(n,gap),x,y)}c.globalAlpha=1};
   put(OCEANS,1-ramp(V.k,12,20),'italic 300 15px Fraunces, Georgia, serif',LOOK.label||'rgba(38,82,96,.5)','\u2009');
   put(CONTINENTS,1-ramp(V.k,9,15),`500 ${phone()?11:13}px Fraunces, Georgia, serif`,LOOK.land||'rgba(60,50,35,.45)','\u2002');
   put(SEAS,ramp(V.k,7,10)*(1-ramp(V.k,26,40)),'italic 300 13px Fraunces, Georgia, serif',LOOK.label||'rgba(38,82,96,.5)','\u200a');
 }
-function drawAtolls(c){for(const [la,lo,rx,ry] of R.maldives.atolls){c.save();c.translate(lo,-la);c.strokeStyle='rgba(170,232,222,.9)';c.lineWidth=Math.max(rx,ry)*.22;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.stroke();
+function drawAtolls(c){for(const [la,lo,rx,ry] of R.maldives.atolls){c.save();c.translate(lo,MY(la));c.strokeStyle='rgba(170,232,222,.9)';c.lineWidth=Math.max(rx,ry)*.22;c.beginPath();c.ellipse(0,0,rx,ry,0,0,7);c.stroke();
   c.fillStyle='rgba(176,226,222,.55)';c.fill();c.restore()}}
 
 function render(){
@@ -207,7 +226,7 @@ function drawLife(){
   if(far>.02&&DEST.length>1){ // one small plane at a time, flying the year's trips in order
     const leg=14000,n=Math.floor(tNow/leg)%DEST.length,t=(tNow%leg)/leg,a=DEST[n],b=DEST[(n+1)%DEST.length];
     let dx=b.lng-a.lng;if(dx>180)dx-=360;if(dx<-180)dx+=360;
-    const x0=a.lng,y0=-a.lat,x1=a.lng+dx,y1=-b.lat,lift=Math.min(18,Math.hypot(dx,y1-y0)*.22),mx=(x0+x1)/2,my=(y0+y1)/2-lift;
+    const x0=a.lng,y0=MY(a.lat),x1=a.lng+dx,y1=MY(b.lat),lift=Math.min(18,Math.hypot(dx,y1-y0)*.22),mx=(x0+x1)/2,my=(y0+y1)/2-lift;
     const pt=u=>[(1-u)*(1-u)*x0+2*(1-u)*u*mx+u*u*x1,(1-u)*(1-u)*y0+2*(1-u)*u*my+u*u*y1];
     const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2,fade=Math.min(1,t*8,(1-t)*8)*far;
     for(const off of [0,-360,360]){ // the map can show a place twice across the date line; draw whichever copy is on screen
@@ -258,7 +277,7 @@ function starAlpha(id){return ramp(V.k/fitK(id),.32,.62)}
 function onScreen(id){const b=routeBox(R[id]);return (sx(b.cx)>-W*.2&&sx(b.cx)<W*1.2&&sy(b.cy)>-H*.2&&sy(b.cy)<H*1.2)?1:0}
 function drawJourney(d){
   const r=R[d.id],a=starAlpha(d.id);if(a<=0||!onScreen(d.id)||(focus&&focus!==d.id)){prog[d.id]=0;return}
-  const pts=r.stops.map(s=>[sx(s[2]),sy(-s[1])]);if(r.loop)pts.push(pts[0]);
+  const pts=r.stops.map(s=>[sx(s[2]),sy(MY(s[1]))]);if(r.loop)pts.push(pts[0]);
   const n=pts.length-1,held=tNow<(holdUntil[d.id]||0);if(held){prog[d.id]=0;return}
   prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5&&!held?.07:0));const P=prog[d.id];
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
@@ -286,8 +305,8 @@ const WILD=window.WILDLIFE||{};
 function layoutWild(){const out=[];
   for(const d of DEST){const list=WILD[d.id];if(!list||(focus&&focus!==d.id))continue;const q=V.k/fitK(d.id),a=ramp(q,.55,.8)*onScreen(d.id);if(a<=.02)continue;
     if(tNow<(holdUntil[d.id]||0)+700)continue;
-    const big=ramp(q,1.2,1.6),r=5+9*big,obst=R[d.id].stops.map(s=>[sx(s[2]),sy(-s[1]),11]);
-    list.forEach((w,i)=>{const x0=sx(w[3]),y0=sy(-w[2]);if(x0<-40||x0>W+40||y0<40||y0>H+40)return;
+    const big=ramp(q,1.2,1.6),r=5+9*big,obst=R[d.id].stops.map(s=>[sx(s[2]),sy(MY(s[1])),11]);
+    list.forEach((w,i)=>{const x0=sx(w[3]),y0=sy(MY(w[2]));if(x0<-40||x0>W+40||y0<40||y0>H+40)return;
       let x=x0,y=y0;                                               // nudge away from stops and from each other, so nothing sits on the route's dots
       for(let it=0;it<4;it++)for(const [ox,oy,or] of obst){let dx=x-ox,dy=y-oy,dd=Math.hypot(dx,dy),min=or+r+4;if(dd<min){if(dd<.5){dx=.7;dy=-.7;dd=1}x=ox+dx/dd*min;y=oy+dy/dd*min}}
       obst.push([x,y,r]);placed.push([x-r-3,y-r-3,2*r+6,2*r+6]);out.push({x,y,x0,y0,r,a,big,w,id:d.id,i})})}
@@ -306,7 +325,7 @@ function drawWild(list){
 
 /* ---------- place markers (world view) ---------- */
 function drawMarker(d){
-  const a=focus&&focus!==d.id?1:1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(-d.lat);if(x<-60||x>W+60||y<-30||y>H+30)return;
+  const a=focus&&focus!==d.id?1:1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(MY(d.lat));if(x<-60||x>W+60||y<-30||y>H+30)return;
   const mine=typeof wish!=='undefined'&&wish.has(d.id),ph=reduce?0:(tNow*.0012+d.m*.37)%1;
   ctx.globalAlpha=a;ctx.strokeStyle=`rgba(255,255,255,${.75*(1-ph)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,7+ph*14,0,7);ctx.stroke();
   ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'#ff5a3c';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
@@ -350,7 +369,7 @@ function openPop(p,{walk=false}={}){
   if(walk&&p.kind==='stop'){const st=R[p.id].stops,me=st[p.i];let dmin=1e9;st.forEach((o,j)=>{if(j!==p.i)dmin=Math.min(dmin,Math.hypot(o[2]-me[2],o[1]-me[1]))});
     const f=fitK(p.id);k=Math.max(f,Math.min(64/Math.max(dmin,1e-6),f*6))}
   const same=Math.abs(k/V.k-1)<.08;if(same)k=V.k;
-  const ax=sx(pop.lng),ay=sy(-pop.lat),on=ax>20&&ax<W-20&&ay>L.top&&ay<L.bottom;
+  const ax=sx(pop.lng),ay=sy(MY(pop.lat)),on=ax>20&&ax<W-20&&ay>L.top&&ay<L.bottom;
   let tx=ax,ty=ay,side;
   if(same&&on){                                               // usually the map does not need to move at all
     const above=ay-20-h>=L.top,below=ay+20+h<=L.bottom;
@@ -359,7 +378,7 @@ function openPop(p,{walk=false}={}){
     tx=cl(ax,28,W-28);
   }else{side='above';const g=stage();tx=(g.x0+g.x1)/2;ty=Math.min(L.bottom-8,Math.max(L.top+h+20,H*.6))}
   pop.side=side;
-  if(k!==V.k||Math.hypot(tx-ax,ty-ay)>2)flyTo({x:pop.lng-(tx-W/2)/k,y:-pop.lat-(ty-H/2)/k,k},{ms:same?380:750,keep:true});
+  if(k!==V.k||Math.hypot(tx-ax,ty-ay)>2)flyTo({x:pop.lng-(tx-W/2)/k,y:MY(pop.lat)-(ty-H/2)/k,k},{ms:same?380:750,keep:true});
   wake();
 }
 // restore: put the map back where it was before the pop-up moved it (when you close it yourself)
@@ -367,7 +386,7 @@ function closePop(restore){if(!pop)return;const home=pop.home;pop=null;popEl.hid
   if(restore&&home&&(Math.abs(home.k/V.k-1)>.02||Math.hypot((home.x-V.x)*V.k,(home.y-V.y)*V.k)>3))flyTo(home,{ms:450,keep:true});
   wake()}
 function positionPop(){
-  if(!pop)return;const ax=sx(pop.lng),ay=sy(-pop.lat);
+  if(!pop)return;const ax=sx(pop.lng),ay=sy(MY(pop.lat));
   if(ax<-30||ax>W+30||ay<30||ay>H+30){if(anim){popEl.style.visibility='hidden';return}return closePop()}   // flying to it: wait; you dragged it away: close
   popEl.style.visibility='';
   const w=popEl.offsetWidth,h=popEl.offsetHeight,L=popLimits();
@@ -452,14 +471,14 @@ function flyTo(to,{ms=0,place=null,keep=false}={}){
   anim={step(now){const t=cl((now-t0)/dur),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;const [x,y,w]=f(e);V.x=x;V.y=y;V.k=W/w;if(t>=1){anim=null;if(place)showArrive(place)}}};
   wake();
 }
-function worldView(){return {x:phone()?82:42,y:phone()?-33:-24,k:kStart}}
+function worldView(){return {x:phone()?82:42,y:MY(phone()?32:24),k:kStart}}
 function flyToPlace(id){if(!R[id])return;setSheet(false);hideArrive(true);flyTo(fitView(id),{place:id})}
 window.mapFlyTo=flyToPlace;
-window.mapProject=(lng,lat)=>({x:sx(lng),y:sy(-lat)});          // screen position of any lng/lat
-window.mapScreenPos=id=>{const d=TRIPS.find(t=>t.id===id);return d?{x:sx(d.lng),y:sy(-d.lat)}:null};
+window.mapProject=(lng,lat)=>({x:sx(lng),y:sy(MY(lat))});          // screen position of any lng/lat
+window.mapScreenPos=id=>{const d=TRIPS.find(t=>t.id===id);return d?{x:sx(d.lng),y:sy(MY(d.lat))}:null};
 window.mapState=()=>({moving:!!anim,drawn:focus?prog[focus]||0:0,focus,pop:pop&&{kind:pop.kind,i:pop.i},k:V.k,q:focus?V.k/fitK(focus):0,sheet:card.classList.contains('open'),wild:wildHits.map(h=>({x:h.x,y:h.y,i:h.i})),stops:stopHits.map(h=>({x:h.x,y:h.y,i:h.i}))});
 window.mapRefresh=()=>wake();
-window.mapView=(lng,lat,k)=>flyTo({x:lng,y:-lat,k},{ms:0});   // jump the view (used by the look checks)
+window.mapView=(lng,lat,k)=>flyTo({x:lng,y:MY(lat),k},{ms:0});   // jump the view (used by the look checks)
 
 /* ---------- gestures: drag to move, pinch / buttons / double-tap / ctrl+scroll to zoom ---------- */
 const ptrs=new Map();let drag=null,vel={x:0,y:0},lastMove=0,tapStart=null;
@@ -499,7 +518,7 @@ function zoomSmooth(f,px=W/2,py=H/2){const x=wx(px),y=wy(py),k=cl(V.k*f,kMin,kMa
 function zoomBtn(f){interacted=true;setSheet(false);hideArrive(true);if(pop)pop.home=null;
   if(f<1&&focus&&V.k*f/fitK(focus)<.5)return flyTo(worldView());        // zooming out of a place takes you back to the world
   let px=W/2,py=H/2;
-  if(pop){px=sx(pop.lng);py=sy(-pop.lat)}
+  if(pop){px=sx(pop.lng);py=sy(MY(pop.lat))}
   else if(focus){const b=routeBox(R[focus]),x=sx(b.cx),y=sy(b.cy);if(x>0&&x<W&&y>0&&y<H){px=x;py=y}}
   zoomSmooth(f,px,py)}
 cv.addEventListener('wheel',e=>{
@@ -525,7 +544,7 @@ let kStart=4;
 function resize(){
   const r=wrap.getBoundingClientRect();W=Math.round(r.width);H=Math.round(r.height);DPR=Math.min(devicePixelRatio||1,2);
   cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';
-  kMin=Math.max(W/360,H/144);kStart=Math.max(kMin*1.05,phone()?W/95:W/170);statKey='';for(const k in fitCache)delete fitCache[k];clampView();wake();
+  kMin=Math.max(W/360,H/(YB-YT));kStart=Math.max(kMin*1.05,phone()?W/95:W/170);statKey='';for(const k in fitCache)delete fitCache[k];clampView();wake();
 }
 addEventListener('resize',resize);
 async function load(){
@@ -533,8 +552,8 @@ async function load(){
   const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);
   // opening move: a little further out, then glide in
   const w=worldView();Object.assign(V,{x:w.x-20,y:w.y,k:w.k*.62});clampView();flyTo(w,{ms:reduce?1:2200});
-  if(!LOOK.flat)img(`data/looks/${LOOK.dir}/world-ocean.jpg`,i=>IMG.ocean=i);
-  img(`data/looks/${LOOK.dir}/world-land-1k.jpg`,i=>{IMG.land1=i;img(`data/looks/${LOOK.dir}/world-land-3k.jpg`,j=>IMG.land3=j)});
+  img(`data/looks/${LOOK.dir}/m/0.webp`,i=>IMG.m0=i);
+  fetch(`data/looks/${LOOK.dir}/m/tiles.json`).then(r=>r.json()).then(j=>{TILES=j;statKey='';wake()}).catch(()=>{});
   fetch('data/relief.json').then(r=>r.json()).then(j=>{RELIEF=j;statKey='';wake()});
   fetch('data/land-50.json').then(r=>r.json()).then(b=>{land.b=decode(b);landB=toPath(land.b);statKey='';wake()});
   fetch('data/land-detail.json').then(r=>r.json()).then(d=>{for(const id in d){land.detail[id]=decode(d[id]);detailPath[id]=toPath(land.detail[id])}statKey='';wake()});
