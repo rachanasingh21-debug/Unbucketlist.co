@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 S = os.path.dirname(os.path.abspath(__file__))
-BASE = '/home/user/Unbucketlist.co/public/data/'
+BASE = os.environ.get('RELIEF_OUT', '/home/user/Unbucketlist.co/public/data/')   # set RELIEF_OUT to build somewhere else first
 OUT = BASE
 CACHE = S + '/terrain/'
 D = json.load(open(S + '/mapdata.json'))
@@ -149,7 +149,7 @@ LOOKS = {
  # sand deserts, tan uplands, taupe plateaus, white ice; crisp, strong hillshade with warm light and brown-olive shade
  'relief': dict(mode='relief', dry='#e0c193', mid='#a3ab7c', wet='#6f8559', boreal='#5f6a52', dune='#e8cc9c', rock='#a3866a', high='#908b80',
                 peak='#bdb8b0', snow='#ffffff', warm='#fff4e0', cool='#2e2c24', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
-                sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.45, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
+                sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.55, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
                 cast=.5, cast_sea=.32, ao=.38, sun_alt=24, bm_world_z=4,
                 grade=dict(w=.9, l0=47, l1=.5, c=1.0, cg=.35, olive=3, lg=8)),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
@@ -167,7 +167,19 @@ DEST_GREEN = {'ladakh': .08, 'rajasthan': .1, 'morocco': .15, 'santorini': .2, '
               'serengeti': .45, 'lofoten': .5, 'peru': .55, 'newzealand': .7, 'kyoto': .85, 'bali': .95}
 
 _LANDMASK = None
-def landmask(lon, lat):
+def decode_rings(rs):
+    out = []
+    for a in rs:
+        x = y = 0; pts = []; off = 0; px = None
+        for i in range(0, len(a), 2):
+            x += a[i]; y += a[i + 1]; X = x / 100 + off
+            if px is not None and X - px > 180: off -= 360; X -= 360
+            elif px is not None and X - px < -180: off += 360; X += 360
+            px = X; pts.append((X, y / 100))
+        out.append(pts)
+    return out
+
+def landmask(lon, lat, extra=(), base=True):
     # Natural Earth coastlines rasterised onto this grid (union of rings)
     global _LANDMASK
     if _LANDMASK is None:
@@ -183,7 +195,7 @@ def landmask(lon, lat):
     H, W = lon.shape; x0, x1, y0, y1 = lon[0, 0], lon[0, -1], lat[0, 0], lat[-1, 0]
     from PIL import ImageDraw
     im = Image.new('L', (W, H), 0); d = ImageDraw.Draw(im)
-    for pts in _LANDMASK:
+    for pts in (list(_LANDMASK) if base else []) + list(extra):
         xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
         if max(xs) < min(x0, x1) or min(xs) > max(x0, x1) or max(ys) < min(y0, y1) or min(ys) > max(y0, y1): continue
         y0m, y1m = float(merc_y(y0)), float(merc_y(y1))
@@ -239,7 +251,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None, gw=None,
         known = (np.abs(lat) < 84.5)[..., None]
         c = np.where(known, mix(c, gc, np.full(elev.shape, PAL['grade']['w'], np.float32)), c)
         # water inside the land (Great Lakes, Baikal, Victoria...): take the sea's colour
-        LAKE = (((L0[..., 2] < -6) & (L0[..., 0] < 45)) | (L0[..., 0] < 6)) & (elev > 0) & (np.abs(lat) < 84.5)  # bluish, or near-black (Victoria, Biwa)
+        LAKE = (((L0[..., 2] < -6) & (L0[..., 0] < 45)) | ((L0[..., 0] < 6) & (np.abs(lat) < 60))) & (elev > 0) & (np.abs(lat) < 84.5)  # bluish, or near-black (Victoria, Biwa)
         LAKE = smooth(LAKE.astype(np.float32), 1) > .5
     if palette is not None and alb is None:  # each place leans to its own character (arid Ladakh, lush Bali), in this look's colours
         pc = hexrgb(PAL['dry']) * (1 - palette) + hexrgb(PAL['wet']) * palette
@@ -381,11 +393,11 @@ def crops(only=None):
     for rid, r in D['ROUTES'].items():
         if only and rid not in only: continue
         la = [s[1] for s in r['stops']]; lo = [s[2] for s in r['stops']]
-        cx, cy = (min(lo) + max(lo)) / 2, (min(la) + max(la)) / 2
-        span = max(max(lo) - min(lo), max(la) - min(la), .08)
+        my = [float(merc_y(v)) for v in la]
+        cx, cym = (min(lo) + max(lo)) / 2, (min(my) + max(my)) / 2
+        span = max(max(lo) - min(lo), max(my) - min(my), .08)
         half = span * 2.2 + .15
-        hx = half / max(.3, math.cos(math.radians(cy)))  # wider in degrees of longitude at high latitude
-        x0, x1, y0, y1 = cx - hx, cx + hx, cy - half, cy + half
+        x0, x1, y0, y1 = cx - half, cx + half, float(inv_merc(cym - half)), float(inv_merc(cym + half))
         W = 1600; H = int(round(W * float(merc_y(y1) - merc_y(y0)) / (x1 - x0)))
         H = max(400, min(2400, H))
         degpx = (x1 - x0) / W
