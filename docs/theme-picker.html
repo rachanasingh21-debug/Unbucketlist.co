@@ -43,15 +43,21 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 @keyframes fall{to{transform:translateY(160%)}}
 .ld .cloud svg{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 4px rgba(15,59,60,.16))}
 .ld .cloud path{fill:var(--p-cloud)}
-.balloon{position:absolute;left:50%;width:34%;bottom:-34%;transform:translateX(-50%)}
-.ld.run .balloon{animation:rise 4.4s cubic-bezier(.45,.05,.35,1) forwards}
-.ld.run.loop .balloon{animation:rise 4.4s cubic-bezier(.45,.05,.35,1) infinite}
-@keyframes rise{from{bottom:-34%}to{bottom:112%}}
-.sway{transform-origin:50% 0;animation:sway 2.6s ease-in-out infinite alternate}
-@keyframes sway{from{transform:rotate(-3.5deg)}to{transform:rotate(3.5deg)}}
-.balloon svg{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 10px rgba(0,0,0,.14))}
-.flame{transform-origin:50px 103px;animation:flick .18s ease-in-out infinite alternate}
-@keyframes flick{from{transform:scale(.8,.75)}to{transform:scale(1.05,1.2)}}
+.balloon{position:absolute;left:50%;width:36%;bottom:-36%;transform:translateX(-50%)}
+.ld.run .balloon{animation:rise 5.6s cubic-bezier(.42,0,.38,1) forwards}
+.ld.run.loop .balloon{animation:rise 5.6s cubic-bezier(.42,0,.38,1) infinite}
+@keyframes rise{from{bottom:-36%}to{bottom:112%}}
+.sway{transform-origin:50% 10%;animation:sway 3.4s ease-in-out infinite alternate}
+@keyframes sway{0%{transform:rotate(-2.5deg) translateY(0)}50%{transform:rotate(0) translateY(-4%)}100%{transform:rotate(2.5deg) translateY(0)}}
+.balloon svg{display:block;width:100%;height:auto;overflow:visible}
+.balloon .shadow{filter:blur(3px)}
+.glow{transform-origin:50px 103px;animation:glow 1.4s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.55;transform:scale(.85)}to{opacity:1;transform:scale(1.1)}}
+.blink{transform-origin:50px 52px;animation:blink 4.8s infinite}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.15)}}
+.puff{fill:var(--p-cloud);opacity:0;animation:puff 2.8s ease-out infinite}
+.puff.p2{animation-delay:.9s}.puff.p3{animation-delay:1.8s}
+@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.4)}20%{opacity:.8}100%{opacity:0;transform:translate(var(--dx),26px) scale(1.2)}}
 .ld-copy{position:absolute;left:0;right:0;bottom:12%;text-align:center;display:grid;gap:4px;color:var(--p-ink);padding:0 18px}
 .ld-copy .eb{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;opacity:.7;font-weight:600}
 .ld-copy b{font-family:var(--display);font-weight:400;font-size:1.25rem}
@@ -59,8 +65,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 .ld-copy small{font-size:.7rem;opacity:.75}
 @media (prefers-reduced-motion:reduce){
   .ld .cloud{animation:none}
-  .ld.run .balloon,.ld.run.loop .balloon{animation:none;bottom:38%}
-  .sway,.flame{animation:none}
+  .ld.run .balloon,.ld.run.loop .balloon{animation:none;bottom:36%}
+  .sway,.glow,.blink,.puff{animation:none}
 }
 
 /* ---------- Part 2: the themes ---------- */
@@ -141,9 +147,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 .t-seafoam{--p-bg:#eef6f2;--p-surface:#ffffff;--p-bar:#e2f0ea;--p-ink:#0f3436;--p-muted:#5b7674;--p-primary:#1f7a74;--p-cta:#ff6b4a;--p-cta-ink:#ffffff;--p-deep:#0f3b3c;--p-deep-ink:#dff2ea;--p-line:#cfe3db;--p-soft:#dff2ea;--p-veil:rgba(8,40,42,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#c4eedb;--p-sky2:#f5fbf8;--p-cloud:#ffffff;--b1:#ff6b4a;--b2:#fff6ea;--b3:#1f7a74}
 .t-gold   {--p-bg:#f5fbfa;--p-surface:#ffffff;--p-bar:#e6f4f2;--p-ink:#0b3a41;--p-muted:#527175;--p-primary:#12707a;--p-cta:#f2a93b;--p-cta-ink:#2a1d05;--p-deep:#0b4d57;--p-deep-ink:#e3f4f2;--p-line:#cde4e2;--p-soft:#fdf1da;--p-veil:rgba(6,40,46,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#9fdcd0;--p-sky2:#f5fbfa;--p-cloud:#ffffff;--b1:#f2a93b;--b2:#ffffff;--b3:#12707a}
 .t-relief {--p-bg:#f4efe3;--p-surface:#fffdf8;--p-bar:#ece5d4;--p-ink:#2b2a24;--p-muted:#77705f;--p-primary:#5f7a4e;--p-cta:#c8643f;--p-cta-ink:#ffffff;--p-deep:#2e3a35;--p-deep-ink:#efe8d8;--p-line:#e0d6c1;--p-soft:#e9ecdc;--p-veil:rgba(30,32,26,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#a6d5c9;--p-sky2:#f4efe3;--p-cloud:#fffdf8;--b1:#c8643f;--b2:#f4efe3;--b3:#5f7a4e}
+.t-reef   {--p-bg:#f2fbf9;--p-surface:#ffffff;--p-bar:#e1f5f2;--p-ink:#0c3f44;--p-muted:#53787a;--p-primary:#138a86;--p-cta:#ff7f6e;--p-cta-ink:#ffffff;--p-deep:#0c4a4f;--p-deep-ink:#e1f5f2;--p-line:#cbe8e3;--p-soft:#ffe7e1;--p-veil:rgba(6,44,48,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#a9e6dc;--p-sky2:#f2fbf9;--p-cloud:#ffffff;--b1:#ff7f6e;--b2:#ffffff;--b3:#22b3a8}
+.t-pastel {--p-bg:#fdf8f3;--p-surface:#ffffff;--p-bar:#f6efe8;--p-ink:#2f4858;--p-muted:#6f7f88;--p-primary:#3f9a8e;--p-cta:#f2857e;--p-cta-ink:#ffffff;--p-deep:#2f4858;--p-deep-ink:#fdf0ea;--p-line:#ece2d8;--p-soft:#fde3dc;--p-veil:rgba(30,46,58,.72);--p-glass:rgba(255,255,255,.24);--p-sky1:#cdeee6;--p-sky2:#fdf3f6;--p-cloud:#ffffff;--b1:#f6a5a0;--b2:#fff7ef;--b3:#8fd3c7}
+.t-glacier{--p-bg:#f2f7fa;--p-surface:#ffffff;--p-bar:#e5eff5;--p-ink:#12354a;--p-muted:#5b7486;--p-primary:#2d6f8f;--p-cta:#f26b5b;--p-cta-ink:#ffffff;--p-deep:#12354a;--p-deep-ink:#e5f1f7;--p-line:#d3e3ec;--p-soft:#dff0f5;--p-veil:rgba(10,32,46,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#cfe9f0;--p-sky2:#f7fbfd;--p-cloud:#ffffff;--b1:#f26b5b;--b2:#ffffff;--b3:#5aa4c4}
+.t-monsoon{--p-bg:#f1f6ee;--p-surface:#ffffff;--p-bar:#e5eedf;--p-ink:#173d33;--p-muted:#5d7468;--p-primary:#2f6f4f;--p-cta:#e8743b;--p-cta-ink:#ffffff;--p-deep:#173d33;--p-deep-ink:#e7f1e6;--p-line:#d7e4d2;--p-soft:#e2efdc;--p-veil:rgba(14,40,30,.78);--p-glass:rgba(255,255,255,.22);--p-sky1:#9ad8c8;--p-sky2:#f1f6ee;--p-cloud:#ffffff;--b1:#e8743b;--b2:#fff8ec;--b3:#4c9a6e}
+.t-rose   {--p-bg:#f8f1e9;--p-surface:#fffcf8;--p-bar:#f1e6da;--p-ink:#3a2e2c;--p-muted:#7e6c64;--p-primary:#1d8a85;--p-cta:#d4676f;--p-cta-ink:#ffffff;--p-deep:#3a2e2c;--p-deep-ink:#f8ece4;--p-line:#e8dacb;--p-soft:#f6dfdc;--p-veil:rgba(40,28,26,.76);--p-glass:rgba(255,255,255,.22);--p-sky1:#bfe5df;--p-sky2:#f8f1e9;--p-cloud:#fffcf8;--b1:#e3878d;--b2:#fff6ec;--b3:#3fa9a2}
 .t-night  {--p-bg:#0e2a2d;--p-surface:#153a3e;--p-bar:#10333a;--p-ink:#e6f2ee;--p-muted:#9dbab4;--p-primary:#7fd9c6;--p-cta:#ff7a59;--p-cta-ink:#ffffff;--p-deep:#091d20;--p-deep-ink:#e6f2ee;--p-line:#25494d;--p-soft:#1b4549;--p-veil:rgba(4,20,22,.8);--p-glass:rgba(255,255,255,.16);--p-sky1:#1e5a5a;--p-sky2:#0b2225;--p-cloud:#cfe9e3;--b1:#ff7a59;--b2:#f4efe3;--b3:#7fd9c6}
-.balloon .e1{fill:var(--b3)}.balloon .e2{fill:var(--b1)}.balloon .e3{fill:var(--b2)}
+.balloon .e1{fill:color-mix(in srgb,var(--b3) 62%,#fff)}.balloon .e2{fill:color-mix(in srgb,var(--b1) 58%,#fff)}.balloon .e3{fill:color-mix(in srgb,var(--b2) 80%,#fff)}
+.balloon .skirt{fill:color-mix(in srgb,var(--b3) 75%,#fff)}.balloon .flag{fill:color-mix(in srgb,var(--b1) 70%,#fff)}.balloon .flag2{fill:color-mix(in srgb,var(--b3) 60%,#fff)}
 .foot{color:var(--muted);font-size:.8rem}
+.glance{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:22px}
+.glance a{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--fg);text-decoration:none}
+.glance a:hover{border-color:var(--focus)}
+.glance a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.glance b{font-weight:600;font-size:.88rem}
+.glance span{display:flex;height:22px;border-radius:7px;overflow:hidden}
+.glance i{flex:1}
 </style>
 
 <div class="wrap">
@@ -162,31 +181,40 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
           <div class="m-map" style="aspect-ratio:auto;flex:1"><span>Tap a place to fly in</span></div>
         </div>
         <div class="ld" id="ld" role="status" aria-live="polite">
-          <div class="cloud" style="--x:6%;--w:34%;--o:.9;--d:5.5s;--dl:-1s"><svg viewBox="0 0 120 50"><path d="M14 44h86c10 0 16-6 16-13s-7-13-15-12C99 8 89 2 78 5 72-2 55-1 50 9 41 3 27 7 27 19 17 18 8 24 8 32c0 7 3 12 6 12z"/></svg></div>
-          <div class="cloud" style="--x:58%;--w:40%;--o:.75;--d:7s;--dl:-4s"><svg viewBox="0 0 120 50"><path d="M14 44h86c10 0 16-6 16-13s-7-13-15-12C99 8 89 2 78 5 72-2 55-1 50 9 41 3 27 7 27 19 17 18 8 24 8 32c0 7 3 12 6 12z"/></svg></div>
-          <div class="cloud" style="--x:24%;--w:26%;--o:.6;--d:9s;--dl:-2s"><svg viewBox="0 0 120 50"><path d="M14 44h86c10 0 16-6 16-13s-7-13-15-12C99 8 89 2 78 5 72-2 55-1 50 9 41 3 27 7 27 19 17 18 8 24 8 32c0 7 3 12 6 12z"/></svg></div>
-          <div class="cloud" style="--x:70%;--w:22%;--o:.55;--d:6.5s;--dl:-6s"><svg viewBox="0 0 120 50"><path d="M14 44h86c10 0 16-6 16-13s-7-13-15-12C99 8 89 2 78 5 72-2 55-1 50 9 41 3 27 7 27 19 17 18 8 24 8 32c0 7 3 12 6 12z"/></svg></div>
+          <div class="cloud" style="--x:6%;--w:34%;--o:.9;--d:5.5s;--dl:-1s"><svg viewBox="0 0 120 50"><path d="M20 46a14 14 0 0 1-2-28 17 17 0 0 1 30-9 20 20 0 0 1 36 4 15 15 0 0 1 18 18 12 12 0 0 1-6 15z"/></svg></div>
+          <div class="cloud" style="--x:58%;--w:40%;--o:.75;--d:7s;--dl:-4s"><svg viewBox="0 0 120 50"><path d="M20 46a14 14 0 0 1-2-28 17 17 0 0 1 30-9 20 20 0 0 1 36 4 15 15 0 0 1 18 18 12 12 0 0 1-6 15z"/></svg></div>
+          <div class="cloud" style="--x:24%;--w:26%;--o:.6;--d:9s;--dl:-2s"><svg viewBox="0 0 120 50"><path d="M20 46a14 14 0 0 1-2-28 17 17 0 0 1 30-9 20 20 0 0 1 36 4 15 15 0 0 1 18 18 12 12 0 0 1-6 15z"/></svg></div>
+          <div class="cloud" style="--x:70%;--w:22%;--o:.55;--d:6.5s;--dl:-6s"><svg viewBox="0 0 120 50"><path d="M20 46a14 14 0 0 1-2-28 17 17 0 0 1 30-9 20 20 0 0 1 36 4 15 15 0 0 1 18 18 12 12 0 0 1-6 15z"/></svg></div>
           <div class="balloon"><div class="sway">
-            <svg viewBox="0 0 100 136" aria-hidden="true">
+            <svg viewBox="0 0 100 150" aria-hidden="true">
               <defs>
-                <clipPath id="env"><path d="M50 3C21 3 6 25 8 49c2 20 18 34 30 45h24c12-11 28-25 30-45C94 25 79 3 50 3z"/></clipPath>
-                <radialGradient id="shine" cx=".32" cy=".26" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient>
+                <clipPath id="env"><path d="M50 4C23 4 7 22 7 45c0 19 15 33 27 44 4 4 6 7 7 10h18c1-3 3-6 7-10 12-11 27-25 27-44C93 22 77 4 50 4z"/></clipPath>
+                <radialGradient id="soft" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".5" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#5a3a4a" stop-opacity=".14"/></radialGradient>
+                <radialGradient id="warm" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#ffc56b" stop-opacity=".9"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
               </defs>
+              <ellipse class="shadow" cx="54" cy="142" rx="14" ry="2.6" fill="#0b2b2c" opacity=".08"/>
               <g clip-path="url(#env)">
-                <rect class="e1" x="0" y="0" width="100" height="100"/>
-                <ellipse class="e2" cx="50" cy="46" rx="31" ry="62"/>
-                <ellipse class="e3" cx="50" cy="46" rx="15" ry="62"/>
-                <ellipse class="e2" cx="50" cy="46" rx="5" ry="62"/>
-                <rect x="0" y="0" width="100" height="100" fill="url(#shine)"/>
+                <rect class="e1" x="0" y="0" width="100" height="110"/>
+                <ellipse class="e2" cx="50" cy="48" rx="33" ry="70"/>
+                <ellipse class="e3" cx="50" cy="48" rx="17" ry="70"/>
+                <rect x="0" y="0" width="100" height="110" fill="url(#soft)"/>
               </g>
-              <rect class="e1" x="38" y="93" width="24" height="6" rx="2"/>
-              <path d="M40 99 43 118M60 99 57 118M47 99 48 118M53 99 52 118" stroke="#6b4a2c" stroke-width="1" fill="none"/>
-              <ellipse class="flame" cx="50" cy="104" rx="2.6" ry="5" fill="#ffb347"/>
-              <rect x="41" y="117" width="18" height="13" rx="3" fill="#a06a3c"/>
-              <path d="M41 121h18M41 125h18M47 117v13M53 117v13" stroke="#7a4e2a" stroke-width=".8"/>
+              <ellipse cx="34" cy="24" rx="7" ry="11" fill="#fff" opacity=".45" transform="rotate(-24 34 24)"/>
+              <g class="blink"><path d="M38 51q4 4 8 0M54 51q4 4 8 0" stroke="#4a3a3a" stroke-width="2.2" stroke-linecap="round" fill="none"/></g>
+              <path d="M46 59q4 4 8 0" stroke="#4a3a3a" stroke-width="2" stroke-linecap="round" fill="none"/>
+              <ellipse cx="33" cy="58" rx="5" ry="3" fill="#ff8f9a" opacity=".5"/><ellipse cx="67" cy="58" rx="5" ry="3" fill="#ff8f9a" opacity=".5"/>
+              <path class="skirt" d="M40 97h20c0 4-2 7-4 8H44c-2-1-4-4-4-8z"/>
+              <path d="M44 105q-1 7 1 14M56 105q1 7-1 14" stroke="#9a7458" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+              <circle class="glow" cx="50" cy="104" r="7" fill="url(#warm)"/>
+              <rect x="40" y="118" width="20" height="15" rx="5" fill="#e0a877"/>
+              <rect x="40" y="118" width="20" height="4" rx="2" fill="#cf9264"/>
+              <path d="M44 124v6M50 124v6M56 124v6" stroke="#c78a5c" stroke-width="1" stroke-linecap="round"/>
+              <path d="M40 119l-7 8M60 119l7 8" stroke="#9a7458" stroke-width=".8"/>
+              <path class="flag" d="M34 124l4-1 -2 4z"/><path class="flag2" d="M37 121l4-1 -2 4z"/><path class="flag" d="M63 121l4 1 -3 3z"/><path class="flag2" d="M66 124l4 1 -3 3z"/>
+              <circle class="puff" cx="44" cy="136" r="3" style="--dx:-6px"/><circle class="puff p2" cx="56" cy="136" r="2.4" style="--dx:7px"/><circle class="puff p3" cx="50" cy="137" r="2" style="--dx:-2px"/>
             </svg>
           </div></div>
-          <div class="ld-copy"><span class="eb">Zoom out to zoom in</span><b>Unbucketing your map<i id="dots">…</i></b><small>Clearer skies in a moment</small></div>
+          <div class="ld-copy"><span class="eb">Zoom out to zoom in</span><b>Unbucketing your map<i id="dots">…</i></b><small>Floating up to your map</small></div>
         </div>
       </div></div>
       <div class="notes">
@@ -207,7 +235,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-
 
   <section aria-labelledby="h-themes">
     <div class="sec-head"><p class="eyebrow">2 · One colour theme everywhere</p><h2 id="h-themes">Pick the theme the whole site runs on</h2>
-      <p class="lede">Today the map is aqua, the pages are cream, the story bands are near-black and the buttons are orange, so each part feels like a different site. Every theme below starts from the map and carries it into every page.</p></div>
+      <p class="lede">Today the map is aqua, the pages are cream, the story bands are near-black and the buttons are orange, so each part feels like a different site. Every theme below starts from the map and carries it into every page. Tap a strip to jump to it.</p></div>
+    <nav class="glance" id="glance" aria-label="All themes at a glance"></nav>
     <div class="themes" id="themes"></div>
   </section>
   <p class="foot">Photo in the samples: Pangong Tso by KennyOMG, CC BY-SA 4.0, via Wikimedia Commons. Map: our own relief map.</p>
@@ -246,9 +275,24 @@ const THEMES=[
   {id:'seafoam',cls:'t-seafoam',name:'Seafoam Atlas',tag:'rec',
    about:'The map’s own sea becomes the page. Pale seafoam backgrounds, deep lagoon teal for text and story bands, lagoon green for labels. Coral is kept only for the Unbucket buttons, so the one thing to tap always stands out.',
    sw:[['Mist (page)','#eef6f2'],['Seafoam (map sea)','#c4eedb'],['Lagoon (labels, links)','#1f7a74'],['Deep lagoon (text, bands)','#0f3b3c'],['Coral (Unbucket only)','#ff6b4a'],['Shore line','#cfe3db']]},
+  {id:'reef',cls:'t-reef',name:'Coral Reef',tag:'',
+   about:'Turquoise water and soft coral, like looking down at a reef from a boat. Fresh and happy; the coral buttons are warmer and pinker than today’s orange.',
+   sw:[['Shallows (page)','#f2fbf9'],['Reef aqua','#a9e6dc'],['Turquoise (labels)','#138a86'],['Deep water (text, bands)','#0c4a4f'],['Coral (buttons)','#ff7f6e'],['Coral mist','#ffe7e1']]},
+  {id:'pastel',cls:'t-pastel',name:'Pastel Postcard',tag:'',
+   about:'Soft and friendly, like a holiday postcard: warm off-white, mint, blush and a slate-blue ink. The gentlest of the set, and the one that suits the cute balloon best.',
+   sw:[['Postcard (page)','#fdf8f3'],['Mint','#cdeee6'],['Sea green (labels)','#3f9a8e'],['Slate (text, bands)','#2f4858'],['Blush (buttons)','#f2857e'],['Blush mist','#fde3dc']]},
   {id:'gold',cls:'t-gold',name:'Lagoon & Sunrise',tag:'',
    about:'Brighter and more holiday-like. Clear aqua with a teal lagoon, and warm sunrise gold for buttons and highlights instead of orange.',
    sw:[['Foam (page)','#f5fbfa'],['Aqua','#9fdcd0'],['Teal (labels, links)','#12707a'],['Deep teal (text, bands)','#0b4d57'],['Sunrise gold (buttons)','#f2a93b'],['Gold mist','#fdf1da']]},
+  {id:'glacier',cls:'t-glacier',name:'Glacier',tag:'',
+   about:'Cool and crisp: icy blue-white pages, glacier blue for labels and a deep fjord blue for text and bands. Feels calm and premium; coral buttons keep it warm.',
+   sw:[['Ice (page)','#f2f7fa'],['Meltwater','#cfe9f0'],['Glacier blue (labels)','#2d6f8f'],['Fjord (text, bands)','#12354a'],['Coral (buttons)','#f26b5b'],['Frost line','#d3e3ec']]},
+  {id:'monsoon',cls:'t-monsoon',name:'Monsoon Green',tag:'',
+   about:'Lush and tropical: rain-washed greens with an aqua sky and mango buttons. Matches the green lands on the map; feels like Kerala, Bali and Kyoto in the rains.',
+   sw:[['Rain mist (page)','#f1f6ee'],['Aqua sky','#9ad8c8'],['Jungle (labels)','#2f6f4f'],['Deep forest (text, bands)','#173d33'],['Mango (buttons)','#e8743b'],['Leaf mist','#e2efdc']]},
+  {id:'rose',cls:'t-rose',name:'Rose Desert',tag:'',
+   about:'Warm sand, an oasis teal and dusty rose, like Rajasthan and Morocco at golden hour. Romantic and warm, with the map’s aqua as the cool note.',
+   sw:[['Sand (page)','#f8f1e9'],['Oasis aqua','#bfe5df'],['Oasis teal (labels)','#1d8a85'],['Date brown (text, bands)','#3a2e2c'],['Dusty rose (buttons)','#d4676f'],['Rose mist','#f6dfdc']]},
   {id:'relief',cls:'t-relief',name:'Relief Print',tag:'',
    about:'Taken from the land on the map rather than the sea: parchment pages, sage green, a forest-dark band and terracotta buttons. Calm and earthy, like the printed wall map.',
    sw:[['Parchment (page)','#f4efe3'],['Sea','#a6d5c9'],['Sage (labels)','#5f7a4e'],['Forest dark (bands)','#2e3a35'],['Terracotta (buttons)','#c8643f'],['Ink','#2b2a24']]},
@@ -258,12 +302,13 @@ const THEMES=[
 ];
 const tpl=document.getElementById('screens-tpl').innerHTML;
 const host=document.getElementById('themes'),screen=document.getElementById('screen');
-host.innerHTML=THEMES.map(t=>`<article class="theme" data-id="${t.id}" aria-labelledby="t-${t.id}">
+host.innerHTML=THEMES.map(t=>`<article class="theme" id="th-${t.id}" data-id="${t.id}" aria-labelledby="t-${t.id}">
   <div class="th-top"><h3 id="t-${t.id}">${t.name}</h3>${t.tag==='rec'?'<span class="badge rec">My recommendation</span>':t.tag==='today'?'<span class="badge">Today</span>':''}<p>${t.about}</p></div>
   <div class="sw">${t.sw.map(([n,h])=>`<div class="chip"><span style="background:${h}"></span><div><b>${n}</b><code>${h}</code></div></div>`).join('')}</div>
   <div class="screens ${t.cls}">${tpl}</div>
   ${t.tag==='today'?'':`<div class="pick-row"><button type="button" data-pick="${t.id}" aria-pressed="false">Use this theme</button><span>Shows the balloon above in these colours</span></div>`}
 </article>`).join('');
+document.getElementById('glance').innerHTML=THEMES.map(t=>`<a href="#th-${t.id}"><b>${t.name}${t.tag==='rec'?' ★':''}</b><span>${t.sw.slice(0,6).map(([,h])=>`<i style="background:${h}"></i>`).join('')}</span></a>`).join('');
 let picked='seafoam';
 function pick(id){picked=id;const t=THEMES.find(x=>x.id===id);screen.className='screen '+t.cls;
   document.querySelectorAll('.theme').forEach(a=>{const on=a.dataset.id===id;a.classList.toggle('picked',on);const b=a.querySelector('[data-pick]');if(b){b.setAttribute('aria-pressed',on);b.textContent=on?'Showing in the balloon':'Use this theme'}});
