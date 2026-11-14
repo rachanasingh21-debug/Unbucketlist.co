@@ -56,6 +56,11 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   No hover-pause (phones fake hover on tap and never end it).
 - Map layering (map.js render): relief layers with a soft land shadow, a small plane flying between places, birds, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
   warm light / haze / vignette, tilt-shift blur at top and bottom when zoomed into a place. Lakes are soft-edged, not outlined.
+- Colour theme: **Pastel Postcard** (client's pick), tokens in `:root` of styles.css: page #fdf8f3, slate ink/bands #2f4858, sea-green labels
+  `--label` #3f9a8e, blush buttons `--accent` #ec7a72, mint #cdeee6 / #e4f5ef. Destination pages: misty pink background (`--pinkpage`) with light-mint
+  numbered tabs. Use the tokens; don't add new hard-coded colours. The client's palette options are in docs/theme-picker.html.
+- Loading: a cute pastel hot air balloon (`#loader` at the top of index.html) floats slowly up, one after another, until map.js fires `mapready`
+  (first world picture in), shown at least 1.2 s, then fades. The client liked the slow pace: keep it slow.
 - Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in
   index.html when shipping big changes (old copies were cached for an hour before this rule).
 - Booking form is a preview: it does not send or store anything yet (no backend chosen).
