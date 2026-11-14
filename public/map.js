@@ -552,7 +552,7 @@ async function load(){
   const a=await fetch('data/land-110.json').then(r=>r.json());land.a=decode(a);landA=toPath(land.a);
   // opening move: a little further out, then glide in
   const w=worldView();Object.assign(V,{x:w.x-20,y:w.y,k:w.k*.62});clampView();flyTo(w,{ms:reduce?1:2200});
-  img(`data/looks/${LOOK.dir}/m/0.webp`,i=>IMG.m0=i);
+  img(`data/looks/${LOOK.dir}/m/0.webp`,i=>{IMG.m0=i;setTimeout(()=>dispatchEvent(new Event('mapready')),120)});
   fetch(`data/looks/${LOOK.dir}/m/tiles.json`).then(r=>r.json()).then(j=>{TILES=j;statKey='';wake()}).catch(()=>{});
   fetch('data/relief.json').then(r=>r.json()).then(j=>{RELIEF=j;statKey='';wake()});
   fetch('data/land-50.json').then(r=>r.json()).then(b=>{land.b=decode(b);landB=toPath(land.b);statKey='';wake()});
