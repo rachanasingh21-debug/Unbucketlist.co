@@ -158,11 +158,17 @@ stack.addEventListener('click',e=>{
 $('#dots').addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b)toPanel(+b.dataset.d)});
 // as the next place slides up over this one, this one sinks back a little and darkens
 let stackCur=-1;
-function onStack(){
+let stackRAF=0;
+function onStack(){if(!stackRAF)stackRAF=requestAnimationFrame(()=>{stackRAF=0;stackFrame()})}   // at most once per frame
+function stackFrame(){
   const r=stack.getBoundingClientRect(),H=innerHeight,ps=$$('.reel',stack);if(!ps.length)return;
   const h=ps[0].offsetHeight||H;
-  ps.forEach((p,i)=>{const nextTop=r.top+(i+1)*h,c=Math.min(1,Math.max(0,1-nextTop/h));p.style.setProperty('--c',c.toFixed(3));
-    if(r.top+i*h<H*.45)p.classList.add('in')});
+  ps.forEach((p,i)=>{const top=r.top+i*h,nextTop=top+h,c=Math.min(1,Math.max(0,1-nextTop/h));
+    if(Math.abs((p._c??-1)-c)>.004){p._c=c;p.style.setProperty('--c',c.toFixed(3))}   // only touch the places that moved
+    if(top<H*.45)p.classList.add('in');
+    const onScreen=top<H-2&&nextTop>2&&c<.999;
+    if(p.classList.contains('cur')!==onScreen)p.classList.toggle('cur',onScreen);      // only what you can see animates
+    const buried=c>=.999&&i<ps.length-1;if(p.classList.contains('buried')!==buried)p.classList.toggle('buried',buried)});
   const i=Math.min(ps.length-1,Math.max(0,Math.round(-r.top/h)));
   if(i!==stackCur){stackCur=i;$$('#dots button').forEach((d,k)=>d.classList.toggle('on',k===i))}
   $('#dots').classList.toggle('show',r.top<H*.5&&r.bottom>H*.5);
@@ -198,7 +204,8 @@ const pager=(()=>{
     if(t.on===null){if(Math.abs(dy)<6&&Math.abs(dx)<6)return;const a=t.a,s=t.s0,dir=dy<0?1:-1;
       t.on=Math.abs(dy)>Math.abs(dx)&&inRegion(a,s)&&!((dir<0&&s<=a[0]+4)||(dir>0&&s>=a[a.length-1]-4))}
     if(!t.on)return;e.preventDefault();const now=performance.now();t.v=(y-t.last)/Math.max(1,now-t.lt);t.last=y;t.lt=now;
-    scrollTo({top:Math.max(t.a[0],Math.min(t.a[t.a.length-1],t.s0-dy)),behavior:'instant'})},{passive:false});
+    t.want=Math.max(t.a[0],Math.min(t.a[t.a.length-1],t.s0-dy));
+    if(!t.raf)t.raf=requestAnimationFrame(()=>{if(t){t.raf=0;scrollTo({top:t.want,behavior:'instant'})}})},{passive:false});   // follow the finger once per frame
   addEventListener('touchend',()=>{if(!t||!t.on){t=null;return}const dy=t.last-t.y0,a=t.a;let i=nearest(a,t.s0);
     if(dy<-50||t.v<-.35)i=Math.min(a.length-1,i+1);else if(dy>50||t.v>.35)i=Math.max(0,i-1);
     t=null;go(a[i],420)},{passive:true});

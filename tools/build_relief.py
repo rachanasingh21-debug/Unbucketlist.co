@@ -151,6 +151,7 @@ LOOKS = {
                 peak='#bdb8b0', snow='#ffffff', warm='#fff4e0', cool='#2e2c24', sea=['#c4eedb', '#b3e3d3', '#a6d5c9', '#99c9be', '#8ebeb4'],
                 sat=.94, lift=0, tint=.35, sea_relief=.2, exag_world=24, exag_crop=2.6, local=.55, world_z=5, world_sizes=[(1024, 1024), (4096, 3072)],
                 cast=.5, cast_sea=.32, ao=.38, sun_alt=24, bm_world_z=4,
+                shade_k=1.05, soft=dict(exag_world=.42, cast=.25, cast_sea=.3, ao=.4, local=.65, shade_k=.62),   # multipliers for levels 0 and 1 (the world view)
                 grade=dict(w=.9, l0=47, l1=.5, c=1.0, cg=.35, olive=3, lg=8)),
  # golden hour: emerald and honey, coral light, plum shadows, turquoise lagoons, sapphire sea
  'golden': dict(dry='#f3cf86', mid='#c6d06f', wet='#3f9a5b', boreal='#2f7a5a', dune='#f0b971', rock='#c98d63', high='#e9bf9f', snow='#fff7ee',
@@ -315,7 +316,7 @@ def colourise(elev, lon, lat, exag, palette=None, patches=(), alb=None, gw=None,
             AO += w_ * np.clip(d_ / sc_, 0, 1)
     if PAL.get('mode') == 'relief': kk = kk * (1 - .6 * sstep(.5, 1, SNOW))   # ice sheets stay smooth and bright
     if PAL.get('mode') == 'relief':
-        c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .38, 1.05), .3)[..., None])
+        c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .38, PAL.get('shade_k', 1.05)), .3)[..., None])
     else:
         c = c * (1 + kk[..., None] * np.where(land, np.where(kk > 0, .45, .8), .3)[..., None])
     c = mix(c, hexrgb(PAL['warm']), np.clip(kk, 0, 1) * np.where(land, .28, 0))        # warm light
@@ -361,14 +362,22 @@ def mworld(levels=(0, 1, 2)):
     def elev_at(lon, lat):
         px, py = merc_px(lon, lat, z); el = sample(m, px, py); el[lat < -84] = 2500; return el
     os.makedirs(OUT + 'm', exist_ok=True)
-    norms = {}; S0 = 2048
+    S0 = 2048
+    base = dict(PAL); soft = {k: base[k] * v for k, v in PAL.get('soft', {}).items() if k in base}
+    def look(L): PAL.clear(); PAL.update(base); PAL.update(soft if L < 2 else {})
     lon, lat = mgrid(-180, 180, 180, -180, S0, S0)
-    rgb, land0 = colourise(elev_at(lon, lat), lon, lat, exag=PAL['exag_world'], alb=albedo(lon, lat, 4) if PAL.get('grade') else None, gw=S0, norms=norms)
-    Image.fromarray(rgb).save(OUT + 'm/0.webp', quality=80, method=6); print('m0 done', norms, flush=True)
-    have = {}
+    el0 = elev_at(lon, lat); alb0 = albedo(lon, lat, 4) if PAL.get('grade') else None
+    norms_by = {}
+    for grp in ((0,), (2,)):             # one brightness scale per look, from the whole world, so tiles join without seams
+        look(grp[0]); norms_by[grp[0]] = {}
+        rgb, land0 = colourise(el0, lon, lat, exag=PAL['exag_world'], alb=alb0, gw=S0, norms=norms_by[grp[0]])
+        if grp[0] == 0: Image.fromarray(rgb).save(OUT + 'm/0.webp', quality=80, method=6); print('m0 done', norms_by[0], flush=True)
+    norms_by[1] = norms_by[0]
+    old = OUT + 'm/tiles.json'
+    have = {int(k): v for k, v in json.load(open(old))['levels'].items()} if os.path.exists(old) else {}
     for L in levels:
         if L == 0: continue
-        S = S0 * 2 ** L; n = S // 1024; T = 360 / n; M = 96; px = 360 / S; have[L] = []
+        S = S0 * 2 ** L; n = S // 1024; T = 360 / n; M = 96; px = 360 / S; have[L] = []; look(L); norms = norms_by[L]
         os.makedirs(OUT + f'm/{L}', exist_ok=True)
         for j in range(n):
             for i in range(n):
@@ -382,7 +391,8 @@ def mworld(levels=(0, 1, 2)):
                 Image.fromarray(rgb[M:M + 1024, M:M + 1024]).save(OUT + f'm/{L}/{j}-{i}.webp', quality=78, method=6)
                 have[L].append(f'{j}-{i}')
             print('level', L, 'row', j, 'done', flush=True)
-    json.dump({'size0': S0, 'tile': 1024, 'levels': {str(k): v for k, v in have.items()}}, open(OUT + 'm/tiles.json', 'w'))
+    look(2); PAL.clear(); PAL.update(base)
+    json.dump({'size0': S0, 'tile': 1024, 'levels': {str(k): v for k, v in sorted(have.items())}}, open(OUT + 'm/tiles.json', 'w'))
 
 LOOK_PALETTE = {'ladakh': '#c7ad86', 'rajasthan': '#dcc28f', 'morocco': '#d6b98a', 'serengeti': '#c9c07f', 'iceland': '#a9ad8e',
                 'patagonia': '#b5b48c', 'peru': '#a9ae7c', 'kyoto': '#86a66d', 'bali': '#76a061', 'newzealand': '#93ad74',
@@ -431,5 +441,6 @@ if __name__ == '__main__':
         PAL = LOOKS[look]; OUT = BASE + f'looks/{look}/'; os.makedirs(OUT, exist_ok=True); print('== look', look, flush=True)
         if not rest or 'world' in rest: mworld()
         if 'world0' in rest: mworld((0,))
+        if 'world01' in rest: mworld((0, 1))
         if not rest or 'crops' in rest: crops([a for a in rest if a not in ('world', 'crops')] or None)
         print(look, sum(os.path.getsize(OUT + f) for f in os.listdir(OUT)) // 1024, 'KB total', flush=True)

@@ -30,7 +30,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   Lakes come from that colour data (`LOOK.dataLakes`); only signature lakes with a colour in routes.js (Pangong, Tso Moriri) are drawn by hand.
   Projection: Web Mercator (like the reference and Google Maps). In map.js the map's y is `MY(lat)` (= -mercator(lat) in degree units);
   never use -lat for a screen position. World imagery is a pyramid: `m/0.webp` overview + 1024 px tiles at 4096 and 8192 px (`drawWorld`,
-  loaded only where you look, LRU of 40), then per-destination close-ups (also Mercator) fade in at k 9-20. `LOOK.calm` turns off the dusk tint and tilt-shift blur and
+  loaded only where you look, LRU of 40; levels 0-1 are built gentler via `soft` in the relief look because the client found the strong
+  mountains scary on the front page; level 2 fades in with zoom), then per-destination close-ups (also Mercator) fade in at k 9-20. `LOOK.calm` turns off the dusk tint and tilt-shift blur and
   keeps the vignette light: the client wants the colours clean, like the printed reference. Prices are INR (`money()` in app.js).
   Earlier looks (vivid, satellite) are in git history; `LOOKS.satellite` / `LOOKS.vivid` stay defined in map.js. Only `public/data/looks/relief/`
   ships. Rebuild with `python3 tools/build_relief.py relief world crops` (needs tools/mapdata.json next to it).
@@ -52,6 +53,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Home list (below the map): one place fills the screen at a time (stack of sticky full-screen panels, the next slides over the last, like
   oneintheorangejacket.com). `pager` in app.js moves exactly one place per swipe / wheel step / arrow key inside the list; CSS scroll-snap was
   unreliable across browsers. Category chips filter the stack.
+- Android smoothness: in the list only the place on screen animates (`.cur`), fully covered places get `.buried` (not painted), no
+  backdrop-filter inside `.reel`, scroll work is batched per frame. Keep it that way; Android stuttered and painted grey boxes before.
 - Story banner: drifts by JS (`initTale`, ~40 px/s phone, 52 desktop), and the visitor can swipe/drag it, use ‹ ❚❚ ›; it waits 3 s after a touch.
   No hover-pause (phones fake hover on tap and never end it).
 - Map layering (map.js render): relief layers with a soft land shadow, a small plane flying between places, birds, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,

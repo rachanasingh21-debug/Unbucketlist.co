@@ -101,7 +101,8 @@ function drawWorld(c,vx0,vx1,vy0,vy1,land){
   for(const L of [1,2]){const S=TILES.size0*2**L;if(need<S/360*.55)break;   // a sharper level only when the one below would look soft
     const set=(TILES.sets||(TILES.sets={}))[L]||(TILES.sets[L]=new Set(TILES.levels[L]||[]));const n=S/TILES.tile,T=360/n;
     const i0=Math.max(0,Math.floor((vx0+180)/T)),i1=Math.min(n-1,Math.floor((vx1+180)/T)),j0=Math.max(0,Math.floor((vy0+180)/T)),j1=Math.min(n-1,Math.floor((vy1+180)/T));
-    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const key=j+'-'+i;if(!set.has(key))continue;const im=tileImg(L,key);if(im)c.drawImage(im,-180+i*T,-180+j*T,T+e,T+e)}}
+    const fade=L===2?ramp(need,S/360*.55,S/360*.95):1;c.globalAlpha=fade;   // the strong close-up relief eases in as you zoom, never pops
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const key=j+'-'+i;if(!set.has(key))continue;const im=tileImg(L,key);if(im)c.drawImage(im,-180+i*T,-180+j*T,T+e,T+e)}c.globalAlpha=1}
 }
 /* Colour looks: each is a full set of relief images in data/looks/<id>/ plus light, haze and vignette colours */
 /* Map colours. One look ships at a time; its relief images live in data/looks/<dir>/ (build with tools/build_relief.py <dir>).
