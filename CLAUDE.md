@@ -48,11 +48,14 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - `public/offers.js`: 2-3 offerings per destination, shown on the destination page and in the booking form.
 - Destination pages are a full-screen overlay routed by hash (`#ladakh`). They read in five numbered steps, most important first, with a sticky
   numbered nav: 01 Go (route schematic + day by day; each day carries small TASTE/EXPLORE/TAKE AWAY chips, tap to read), 02 Ways & prices
-  (compact rows), 03 Taste · Explore · Take away (three small chip clusters), 04 The story (banner), 05 Unbucket it (form). The client asked for
+  (compact rows), 03 Taste · Explore · Take away (small cards that keep the one-line story: a swipeable row on phones, three columns on
+  laptops; the client liked the explanations, not bare chips), 04 The story (banner), 05 Unbucket it (form). The client asked for
   small chips, not big cards: the itinerary is the most important thing on the page.
+- Map labels sit on slate pills and the route has a dark casing; a light veil calms the terrain inside a place (legibility on busy
+  mountains, asked for after a laptop check).
 - Home list (below the map): one place fills the screen at a time (stack of sticky full-screen panels, the next slides over the last, like
   oneintheorangejacket.com). `pager` in app.js moves exactly one place per swipe / wheel step / arrow key inside the list; CSS scroll-snap was
-  unreliable across browsers. Category chips filter the stack.
+  unreliable across browsers. No category chips (the client removed them).
 - Android smoothness: in the list only the place on screen animates (`.cur`), fully covered places get `.buried` (not painted), no
   backdrop-filter inside `.reel`, scroll work is batched per frame. Keep it that way; Android stuttered and painted grey boxes before.
 - Story banner: drifts by JS (`initTale`, ~40 px/s phone, 52 desktop), and the visitor can swipe/drag it, use ‹ ❚❚ ›; it waits 3 s after a touch.

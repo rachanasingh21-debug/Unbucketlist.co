@@ -124,9 +124,7 @@ function storyBanner(t){
 
 /* ---------- 2. THE LIST: one place fills the screen at a time (a story you scroll through) ---------- */
 let cat='all';
-function renderChips(){
-  $('#chips').innerHTML=CATS.map(c=>`<button class="chip ${c.id===cat?'on':''}" data-c="${c.id}" role="tab"><span>${c.icon}</span>${c.name}</button>`).join('');
-}
+
 const stack=$('#reels');
 function renderCards(){
   const list=TRIPS.filter(t=>cat==='all'||t.cat.includes(cat)),N=list.length;
@@ -149,7 +147,6 @@ function renderCards(){
 }
 const toPanel=i=>pager.go(i);
 document.body.insertAdjacentHTML('beforeend','<nav class="dots" id="dots" aria-label="Places"></nav>');
-$('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;cat=b.dataset.c;renderChips();renderCards();toPanel(0)});
 stack.addEventListener('click',e=>{
   const o=e.target.closest('[data-open]');if(o)return openTrip(o.dataset.open);
   const h=e.target.closest('[data-h2]');if(h)return toggleBucket(h.dataset.h2);
@@ -277,8 +274,9 @@ function renderDest(t){
   const stopsLine=route?route.stops.map(s=>esc(s[0])).join(' → ')+(route.loop?' → '+esc(route.stops[0][0]):''):esc(t.story);
   const days=t.plan.map((d,i)=>{const here=things.filter(x=>x.day===i);
     return `<li class="day"><small>Day ${i+1}</small><h4>${esc(d[0])}</h4><p>${esc(d[1])}</p>${here.length?`<div class="minis">${here.map(mini).join('')}</div><div class="mini-more" hidden></div>`:''}</li>`}).join('');
+  const tcard=x=>`<article class="tcard k-${x.kind}">${x.kind==='explore'?`<i aria-hidden="true">${x.icon}</i>`:''}<h4>${esc(x.name)}</h4><p class="w">${esc(x.where)}</p><p>${esc(x.line)}</p></article>`;
   const groups=[['taste','Taste','What to eat'],['explore','Explore','Wild things to spot'],['take','Take away','What you bring home']].map(([k,key,title])=>{
-    const xs=things.filter(x=>x.kind===k);return xs.length?`<div class="tg k-${k}"><p class="tg-h"><b>${key}</b> ${title}<span>${xs.length}</span></p><div class="minis">${xs.map(mini).join('')}</div><div class="mini-more" hidden></div></div>`:''}).join('');
+    const xs=things.filter(x=>x.kind===k);return xs.length?`<div class="tg k-${k}"><p class="tg-h"><b>${key}</b> ${title}<span>${xs.length}</span></p><div class="tcards">${xs.map(tcard).join('')}</div></div>`:''}).join('');
   const NAV=[['d-go','Go'],['d-ways','Ways & prices'],['d-more','Taste · Explore · Take away'],['d-story','Story'],['d-book','Unbucket it']];
   sheet.dataset.id=t.id;
   sheet.innerHTML=`<button class="close" data-close aria-label="Back to the map">← Map</button>
@@ -294,7 +292,7 @@ function renderDest(t){
     <div class="offer-list">${offers.map((o,i)=>`<article class="offer"><div class="offer-ph">${scape({...t,image:t.photos[i%Math.max(1,t.photos.length)]||'',video:''})}</div>
       <div class="offer-body"><h4>${esc(o.name)}</h4><p>${esc(o.blurb)}</p><p class="offer-meta"><span>${o.days} days</span><b>${money(o.price)}<small> / person</small></b></p></div>
       <button class="btn" type="button" data-pick="${i}">Choose</button></article>`).join('')}</div></section>
-   ${groups?`<section class="d-sec" id="d-more">${head('03','Taste · Explore · Take away','What else this place gives you','Tap any one to read more.')}<div class="tgs">${groups}</div></section>`:''}
+   ${groups?`<section class="d-sec" id="d-more">${head('03','Taste · Explore · Take away','What else this place gives you','')}<div class="tgs">${groups}</div></section>`:''}
    <section class="d-sec d-story" id="d-story">${head('04','The story',`${esc(t.tag)}`,'')}<div class="tale in-drawer">${storyBanner(t)}</div></section>
    <section class="d-sec" id="d-book">${head('05','Unbucket it','Tell us when, and we’ll plan the rest','')}
     <form class="book" id="bookForm" novalidate>
@@ -444,5 +442,5 @@ finder.addEventListener('click',e=>{
 addEventListener('keydown',e=>{if(e.key==='Escape')closeFinder()});
 $('#notify').addEventListener('submit',e=>{e.preventDefault();toast('Thanks! We’ll help you unbucket one ✈');e.target.reset()});
 $('#yr').textContent=new Date().getFullYear();
-renderChips();renderCards();saveWish();
+renderCards();saveWish();
 routeFromHash();

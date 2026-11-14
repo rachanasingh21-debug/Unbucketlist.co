@@ -533,3 +533,18 @@ footer{background:var(--mint2)}
 
 /* phones: no frosted glass inside the full-screen places (it made Android stutter and paint grey boxes while scrolling) */
 .reel .btn.ghost{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(255,255,255,.24)}
+
+/* 03 Taste · Explore · Take away: small cards that keep the short story; a swipeable row on phones, three columns on a laptop */
+.tgs{gap:22px}
+.sheet .tg{background:none;border:0;padding:0}
+.tg-h{margin-bottom:8px}
+.tcards{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px 2px 8px;margin:0 -2px}
+.tcards::-webkit-scrollbar{display:none}
+.tcard{flex:0 0 min(250px,74vw);scroll-snap-align:start;background:#fff;border:1px solid #f1dcd4;border-top:3px solid var(--accent);border-radius:14px;padding:12px 14px 13px;display:grid;gap:3px;align-content:start;position:relative}
+.tcard.k-explore{border-top-color:var(--label)}
+.tcard.k-take{border-top-color:#a99ad6}
+.tcard i{font-style:normal;font-size:1.35rem;line-height:1;position:absolute;right:12px;top:11px}
+.tcard h4{font-family:var(--serif);font-weight:400;font-size:1.12rem;line-height:1.15;padding-right:26px}
+.tcard .w{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.tcard p:last-child{font-size:.86rem;line-height:1.45;color:var(--text2);margin-top:2px}
+@media(min-width:901px){.tgs{grid-template-columns:repeat(3,minmax(0,1fr))}.tcards{flex-direction:column;overflow:visible;margin:0;padding:0}.tcard{flex:none}}

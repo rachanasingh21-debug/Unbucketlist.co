@@ -213,6 +213,8 @@ function render(){
     const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.3,W/2,H/2,Math.max(W,H)*.75);vg.addColorStop(0,'rgba(10,16,40,0)');vg.addColorStop(1,`rgba(10,16,40,${.4*dusk})`);ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   // journeys, wild things and place markers; labels are placed so they never collide with each other or the page's own controls
   stopHits=[];hits=[];wildHits=[];placed=[];reserveUI();
+  let veil=0;for(const d of DEST)veil=Math.max(veil,starAlpha(d.id)*onScreen(d.id));
+  if(veil>.01){ctx.fillStyle=`rgba(250,246,240,${.26*veil})`;ctx.fillRect(0,0,W,H)}
   const wl=layoutWild();
   for(const d of DEST)drawJourney(d);
   drawWild(wl);
@@ -257,20 +259,23 @@ function reserveUI(){ // screen areas labels must stay out of: the site header a
 const KIND_RGB={arrive:'60,207,134',depart:'60,207,134',stop:'255,106,69',side:'246,184,75'};
 function fit(text,max){if(ctx.measureText(text).width<=max)return text;while(text.length>3&&ctx.measureText(text+'…').width>max)text=text.slice(0,-1);return text.trim()+'…'}
 // place a label (name, optional second line) next to a dot without colliding with anything already placed; tries right, left, below, above
-function placeLabel(name,sub,x,y,gap=13){
+function placeLabel(name,sub,x,y,gap=19){
   const maxW=phone()?150:230;
   ctx.font='600 13px Inter, system-ui, sans-serif';const n=fit(name,maxW),w1=ctx.measureText(n).width;
   ctx.font='500 11px Inter, system-ui, sans-serif';const s=sub?fit(sub,maxW):'',w2=s?ctx.measureText(s).width:0;
   const w=Math.max(w1,w2),h=s?30:16;
-  for(const [dx,dy,al] of [[gap,0,'left'],[-gap,0,'right'],[0,gap+11,'center'],[0,-gap-11,'center']]){
+  for(const [dx,dy,al] of [[gap,0,'left'],[-gap,0,'right'],[0,gap+11,'center'],[0,-gap-11,'center'],[gap-4,-h/2-6,'left'],[gap-4,h/2+6,'left'],[-gap+4,-h/2-6,'right'],[-gap+4,h/2+6,'right']]){
     const lx=al==='left'?x+dx:al==='right'?x+dx-w:x-w/2,ly=y+dy-h/2;
-    if(lx<4||lx+w>W-4||ly<4||ly+h>H-4)continue;
-    if(placed.some(r=>lx<r[0]+r[2]&&lx+w>r[0]&&ly<r[1]+r[3]&&ly+h>r[1]))continue;
-    placed.push([lx-4,ly-3,w+8,h+6]);return {x:x+dx,y:y+dy,al,n,s}}
+    if(lx<10||lx+w>W-10||ly<6||ly+h>H-6)continue;
+    if(placed.some(r=>lx-7<r[0]+r[2]&&lx+w+7>r[0]&&ly-4<r[1]+r[3]&&ly+h+4>r[1]))continue;
+    placed.push([lx-7,ly-4,w+14,h+8]);return {x:x+dx,y:y+dy,al,n,s,lx,ly,w,h}}
   return sub?placeLabel(name,'',x,y,gap):null}
-function drawLabel(pl,a){ctx.textAlign=pl.al;ctx.textBaseline='middle';ctx.lineJoin='round';ctx.strokeStyle=`rgba(14,20,34,${.6*a})`;
-  ctx.font='600 13px Inter, system-ui, sans-serif';ctx.lineWidth=3.5;ctx.strokeText(pl.n,pl.x,pl.s?pl.y-7:pl.y);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
-  if(pl.s){ctx.font='500 11px Inter, system-ui, sans-serif';ctx.lineWidth=3;ctx.strokeText(pl.s,pl.x,pl.y+8);ctx.fillStyle=`rgba(255,244,232,${.94*a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}}
+function drawLabel(pl,a){
+  ctx.save();ctx.shadowColor=`rgba(20,32,42,${.25*a})`;ctx.shadowBlur=6;ctx.shadowOffsetY=1;
+  ctx.fillStyle=`rgba(47,72,88,${.84*a})`;ctx.beginPath();ctx.roundRect(pl.lx-7,pl.ly-4,pl.w+14,pl.h+8,pl.s?9:11);ctx.fill();ctx.restore();
+  ctx.textAlign=pl.al;ctx.textBaseline='middle';
+  ctx.font='600 13px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
+  if(pl.s){ctx.font='500 11px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(253,228,222,${.95*a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}}
 
 /* ---------- the journey: stops joined in travel order ---------- */
 const prog={},holdUntil={};let hits=[],stopHits=[],wildHits=[];
@@ -286,8 +291,8 @@ function drawJourney(d){
   for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
     const mx=(x0+x1)/2-(y1-y0)*.12,my=(y0+y1)/2+(x1-x0)*.12; // a slight curve reads as a journey, not a ruler line
     if(f>=1)ctx.quadraticCurveTo(mx,my,x1,y1);else{const qx=x0+(mx-x0)*f,qy=y0+(my-y0)*f,rx=mx+(x1-mx)*f,ry=my+(y1-my)*f;ctx.quadraticCurveTo(qx,qy,qx+(rx-qx)*f,qy+(ry-qy)*f)}}
-  ctx.strokeStyle=`rgba(20,24,40,${.35*a})`;ctx.lineWidth=5;ctx.stroke();                                         // soft casing so the line reads on any terrain
-  ctx.strokeStyle=`rgba(255,255,255,${.95*a})`;ctx.lineWidth=2.4;ctx.setLineDash([7,6]);ctx.lineDashOffset=reduce?0:-tNow*.012;ctx.stroke();
+  ctx.strokeStyle=`rgba(30,48,60,${.62*a})`;ctx.lineWidth=7;ctx.stroke();                                         // soft casing so the line reads on any terrain
+  ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=3;ctx.setLineDash([8,6]);ctx.lineDashOffset=reduce?0:-tNow*.012;ctx.stroke();
   ctx.restore();
   const shown=i=>i<=Math.ceil(P)||i===0;
   r.stops.forEach((s,i)=>{if(shown(i)){const [x,y]=pts[i];placed.push([x-10,y-10,20,20])}});
