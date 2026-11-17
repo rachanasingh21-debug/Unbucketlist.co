@@ -51,9 +51,11 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   (compact rows), 03 Taste · Explore · Take away (small cards that keep the one-line story: a swipeable row on phones, three columns on
   laptops; the client liked the explanations, not bare chips), 04 The story (banner), 05 Unbucket it (form). The client asked for
   small chips, not big cards: the itinerary is the most important thing on the page.
-- Map labels are solid white cards (dark name, sea-green day note); the route is one solid blush-coral line with a white edge (no dashes),
-  stops are bold dots with white rings, and inside a place the terrain is desaturated and veiled; canvas draws at up to 3x DPR (iPhones). (Legibility on busy
-  mountains, asked for after a laptop check).
+- Map labels are small editorial cards: spaced-caps day in sea green above a Fraunces name in slate (day only; the note is in the pop-up).
+  The route is one solid blush-coral line with a white edge (no dashes) and a soft light travelling along it; stops are numbered markers in travel
+  order (start & end coral, stops slate, side trips sea green, white ring); wild things are small cream badges with the animal and give way to labels.
+  Inside a place the terrain keeps its warm colour (`VEIL` in map.js: light warm soft-light, slate edge vignette). The client called the earlier grey
+  wash "dull, not premium": never grey out the terrain. Canvas draws at up to 3x DPR (iPhones). No birds over a place.
 - Home list (below the map): one place fills the screen at a time (stack of sticky full-screen panels, the next slides over the last, like
   oneintheorangejacket.com). `pager` in app.js moves exactly one place per swipe / wheel step / arrow key inside the list; CSS scroll-snap was
   unreliable across browsers. No category chips (the client removed them).

@@ -341,7 +341,7 @@ sheet.addEventListener('click',e=>{
 });
 /* Route card: the journey as a small schematic (A → B → C ...) with day labels and a legend */
 function routeCard(t,r){
-  const KC={arrive:'#3ccf86',depart:'#3ccf86',stop:'#ff6a45',side:'#f6b84b'};
+  const KC={arrive:'var(--accent)',depart:'var(--accent)',stop:'var(--paper)',side:'var(--label)'};
   // schematic, like a metro map: keeps each stop's direction (north up, east right) but spreads them evenly so labels never pile up
   const narrow=innerWidth<900,n=r.stops.length;
   const rank=vals=>{const o=vals.map((v,i)=>[v,i]).sort((p,q)=>p[0]-q[0]||p[1]-q[1]),out=[];o.forEach(([,i],k)=>out[i]=n>1?k/(n-1):.5);return out};
@@ -353,11 +353,11 @@ function routeCard(t,r){
   let d=`M${seq[0][0].toFixed(1)},${seq[0][1].toFixed(1)}`;
   for(let i=1;i<seq.length;i++){const [a0,b0]=seq[i-1],[a1,b1]=seq[i];d+=` Q${((a0+a1)/2-(b1-b0)*.12).toFixed(1)},${((b0+b1)/2+(a1-a0)*.12).toFixed(1)} ${a1.toFixed(1)},${b1.toFixed(1)}`}
   const labels=r.stops.map((s,i)=>{const [x,y]=P[i],k=s[5]||'stop',big=k==='arrive'||k==='depart';
-    return `<g><circle cx="${x}" cy="${y}" r="${big?13:10}" fill="${KC[k]}" opacity=".18"/><circle cx="${x}" cy="${y}" r="${big?7:5.5}" fill="${KC[k]}" stroke="#14110f" stroke-width="2"/>
-     <text x="${x+14}" y="${y-3}" class="rc-n">${esc(s[0])}</text><text x="${x+14}" y="${y+11}" class="rc-s">${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</text></g>`}).join('');
+    return `<g><circle cx="${x}" cy="${y}" r="9" style="fill:${KC[k]}" class="rc-dot"/><text x="${x}" y="${y+.5}" class="rc-i${k==='stop'?' ink':''}">${i+1}</text>
+     <text x="${x+16}" y="${y-3}" class="rc-n">${esc(s[0])}</text><text x="${x+16}" y="${y+11}" class="rc-s">${esc(s[3])}${s[4]?' · '+esc(s[4]):''}</text></g>`}).join('');
   return `<figure class="routecard" aria-label="The ${esc(t.name)} route"><svg viewBox="0 0 ${VW} ${VH}" role="img" aria-label="Map of the route">
      <path d="${d}" class="rc-path"/>${labels}</svg>
-    <figcaption class="rc-legend"><span><i style="background:${KC.arrive}"></i>Arrive &amp; depart</span><span><i style="background:${KC.stop}"></i>Stops</span><span><i style="background:${KC.side}"></i>Side trips</span></figcaption></figure>`;
+    <figcaption class="rc-legend"><span><i style="background:${KC.arrive}"></i>Start &amp; end</span><span><i style="background:${KC.stop}"></i>Stops</span><span><i style="background:${KC.side}"></i>Side trips</span></figcaption></figure>`;
 }
 /* Story banner: drifts on its own, but it's yours: swipe or drag it, use ‹ ›, or pause it. It waits while you read, then carries on. */
 const TALES=[];let taleRAF=0,taleT=0;

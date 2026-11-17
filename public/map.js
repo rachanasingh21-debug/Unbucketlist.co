@@ -214,15 +214,19 @@ function render(){
   // journeys, wild things and place markers; labels are placed so they never collide with each other or the page's own controls
   stopHits=[];hits=[];wildHits=[];placed=[];reserveUI();
   let veil=0;for(const d of DEST)veil=Math.max(veil,starAlpha(d.id)*onScreen(d.id));
-  if(veil>.01){ctx.globalCompositeOperation='saturation';ctx.fillStyle=`rgba(128,128,128,${.45*veil})`;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='source-over';
-    ctx.fillStyle=`rgba(250,246,240,${.36*veil})`;ctx.fillRect(0,0,W,H)}
-  const wl=layoutWild();
+  if(veil>.01){const G=window.__veil||VEIL;   // inside a place: warm, clean light (no grey wash), and a soft frame that draws the eye to the journey
+    if(G.sat){ctx.globalCompositeOperation='saturation';ctx.fillStyle=`rgba(128,128,128,${G.sat*veil})`;ctx.fillRect(0,0,W,H)}
+    ctx.globalCompositeOperation='soft-light';ctx.fillStyle=`rgba(${G.warmC},${G.warm*veil})`;ctx.fillRect(0,0,W,H);ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle=`rgba(253,248,243,${G.cream*veil})`;ctx.fillRect(0,0,W,H);
+    const vg=ctx.createRadialGradient(W/2,H*.5,Math.min(W,H)*.32,W/2,H*.5,Math.hypot(W,H)*.62);vg.addColorStop(0,'rgba(47,72,88,0)');vg.addColorStop(1,`rgba(47,72,88,${G.vig*veil})`);
+    ctx.fillStyle=vg;ctx.fillRect(0,0,W,H)}
   for(const d of DEST)drawJourney(d);
-  drawWild(wl);
+  drawWild(layoutWild());
   for(const d of DEST)drawMarker(d);
   positionPop();
 }
 
+const VEIL={sat:.12,warmC:'255,226,196',warm:.45,cream:.1,vig:.38};
 /* ---------- little signs of life: a plane hopping between our places, birds over the place you're in ---------- */
 function drawLife(){
   if(reduce)return;
@@ -242,10 +246,7 @@ function drawLife(){
       ctx.beginPath();ctx.moveTo(9,0);ctx.lineTo(-2,-1.8);ctx.lineTo(-5,-7);ctx.lineTo(-7,-7);ctx.lineTo(-5,-1.6);ctx.lineTo(-8,-1.2);ctx.lineTo(-9.5,-3.4);ctx.lineTo(-10.5,-3.4);ctx.lineTo(-9.6,0);
       ctx.lineTo(-10.5,3.4);ctx.lineTo(-9.5,3.4);ctx.lineTo(-8,1.2);ctx.lineTo(-5,1.6);ctx.lineTo(-7,7);ctx.lineTo(-5,7);ctx.lineTo(-2,1.8);ctx.closePath();ctx.fill();ctx.restore()}
   }
-  if(focus){const q=V.k/fitK(focus),a=ramp(q,.5,.8)*(1-ramp(q,3,5))*.55;if(a>.02){ // a small flock drifting across
-    ctx.strokeStyle=`rgba(20,30,50,${a})`;ctx.lineWidth=1.3;ctx.lineCap='round';
-    for(let i=0;i<5;i++){const x=((tNow*.018+i*23+(i%2)*9)%(W+160))-80,y=H*.26+Math.sin(tNow*.0006+i)*10+i*7-(i%2)*12,f=3+Math.sin(tNow*.012+i*2)*1.6;
-      ctx.beginPath();ctx.moveTo(x-5,y-f);ctx.quadraticCurveTo(x-2,y-f*.2,x,y);ctx.quadraticCurveTo(x+2,y-f*.2,x+5,y-f);ctx.stroke()}}}
+
 }
 
 /* ---------- labels ---------- */
@@ -257,29 +258,33 @@ function reserveUI(){ // screen areas labels must stay out of: the site header a
   for(const el of [btns,card,crumb,heroCopy]){if(!el||el.hidden)continue;if(el===card&&!card.classList.contains('on'))continue;if(el===heroCopy&&heroCopy.classList.contains('away'))continue;
     const r=el.getBoundingClientRect();if(!r.width)continue;placed.push([r.left-wr.left-6,r.top-wr.top-6,r.width+12,r.height+12])}
 }
-const KIND_RGB={arrive:'60,207,134',depart:'60,207,134',stop:'255,106,69',side:'246,184,75'};
+const KIND_RGB={arrive:'236,122,114',depart:'236,122,114',stop:'47,72,88',side:'63,154,142'};   // start & end in blush coral, stops in slate ink, side trips in sea green
+const NAME_F='600 14px Fraunces, Georgia, serif',CAPS_F='600 9.5px Inter, system-ui, sans-serif';
+const caps=t=>t.toUpperCase().split('').join('\u200a');
 function fit(text,max){if(ctx.measureText(text).width<=max)return text;while(text.length>3&&ctx.measureText(text+'…').width>max)text=text.slice(0,-1);return text.trim()+'…'}
 // place a label (name, optional second line) next to a dot without colliding with anything already placed; tries right, left, below, above
-function placeLabel(name,sub,x,y,gap=19){
+function placeLabel(name,sub,x,y,gap=22){
   const maxW=phone()?150:230;
-  ctx.font='600 13px Inter, system-ui, sans-serif';const n=fit(name,maxW),w1=ctx.measureText(n).width;
-  ctx.font='500 11px Inter, system-ui, sans-serif';const s=sub?fit(sub,maxW):'',w2=s?ctx.measureText(s).width:0;
-  const w=Math.max(w1,w2),h=s?30:16;
-  for(const [dx,dy,al] of [[gap,0,'left'],[-gap,0,'right'],[0,gap+11,'center'],[0,-gap-11,'center'],[gap-4,-h/2-6,'left'],[gap-4,h/2+6,'left'],[-gap+4,-h/2-6,'right'],[-gap+4,h/2+6,'right']]){
+  ctx.font=NAME_F;const n=fit(name,maxW),w1=ctx.measureText(n).width;
+  ctx.font=CAPS_F;const s=sub?fit(caps(sub),maxW):'',w2=s?ctx.measureText(s).width:0;
+  const w=Math.max(w1,w2),h=s?31:17;
+  const spots=g=>[[g,0,'left'],[-g,0,'right'],[0,g+11,'center'],[0,-g-11,'center'],[g-4,-h/2-6,'left'],[g-4,h/2+6,'left'],[-g+4,-h/2-6,'right'],[-g+4,h/2+6,'right']];
+  for(const [dx,dy,al] of [...spots(gap),...spots(gap+18)]){   // close by first, then a little further out
     const lx=al==='left'?x+dx:al==='right'?x+dx-w:x-w/2,ly=y+dy-h/2;
     if(lx<10||lx+w>W-10||ly<6||ly+h>H-6)continue;
-    if(placed.some(r=>lx-7<r[0]+r[2]&&lx+w+7>r[0]&&ly-4<r[1]+r[3]&&ly+h+4>r[1]))continue;
-    placed.push([lx-7,ly-4,w+14,h+8]);return {x:x+dx,y:y+dy,al,n,s,lx,ly,w,h}}
+    if(placed.some(r=>lx-9<r[0]+r[2]&&lx+w+9>r[0]&&ly-5<r[1]+r[3]&&ly+h+5>r[1]))continue;
+    placed.push([lx-9,ly-5,w+18,h+10]);return {x:x+dx,y:y+dy,al,n,s,lx,ly,w,h}}
   return sub?placeLabel(name,'',x,y,gap):null}
 function drawLabel(pl,a){
-  ctx.save();ctx.shadowColor=`rgba(20,32,42,${.25*a})`;ctx.shadowBlur=6;ctx.shadowOffsetY=1;
-  ctx.fillStyle=`rgba(255,255,255,${.97*a})`;ctx.beginPath();ctx.roundRect(pl.lx-7,pl.ly-4,pl.w+14,pl.h+8,pl.s?9:11);ctx.fill();ctx.restore();
+  ctx.save();ctx.shadowColor=`rgba(30,44,56,${.2*a})`;ctx.shadowBlur=14;ctx.shadowOffsetY=4;
+  ctx.fillStyle=`rgba(255,253,250,${.97*a})`;ctx.beginPath();ctx.roundRect(pl.lx-9,pl.ly-5,pl.w+18,pl.h+10,10);ctx.fill();ctx.restore();
   ctx.textAlign=pl.al;ctx.textBaseline='middle';
-  ctx.font='600 13px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(47,72,88,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y-7:pl.y);
-  if(pl.s){ctx.font='500 11px Inter, system-ui, sans-serif';ctx.fillStyle=`rgba(46,128,118,${a})`;ctx.fillText(pl.s,pl.x,pl.y+8)}}
+  if(pl.s){ctx.font=CAPS_F;ctx.fillStyle=`rgba(46,128,118,${a})`;ctx.fillText(pl.s,pl.x,pl.y-8)}
+  ctx.font=NAME_F;ctx.fillStyle=`rgba(47,72,88,${a})`;ctx.fillText(pl.n,pl.x,pl.s?pl.y+7:pl.y+.5)}
 
 /* ---------- the journey: stops joined in travel order ---------- */
 const prog={},holdUntil={};let hits=[],stopHits=[],wildHits=[];
+const sel0=(id,i)=>!!(pop&&pop.kind==='stop'&&pop.id===id&&pop.i===i);
 function starAlpha(id){return ramp(V.k/fitK(id),.32,.62)}
 function onScreen(id){const b=routeBox(R[id]);return (sx(b.cx)>-W*.2&&sx(b.cx)<W*1.2&&sy(b.cy)>-H*.2&&sy(b.cy)<H*1.2)?1:0}
 function drawJourney(d){
@@ -287,26 +292,32 @@ function drawJourney(d){
   const pts=r.stops.map(s=>[sx(s[2]),sy(MY(s[1]))]);if(r.loop)pts.push(pts[0]);
   const n=pts.length-1,held=tNow<(holdUntil[d.id]||0);if(held){prog[d.id]=0;return}
   prog[d.id]=reduce?n:Math.min(n,(prog[d.id]||0)+(a>.5&&!held?.07:0));const P=prog[d.id];
+  const ctl=pts.map((p,i)=>{if(!i)return null;const [x0,y0]=pts[i-1],[x1,y1]=p;return [(x0+x1)/2-(y1-y0)*.12,(y0+y1)/2+(x1-x0)*.12]}); // a slight curve reads as a journey, not a ruler line
+  const at=u=>{const i=Math.min(n,Math.floor(u)+1),t=u-(i-1),[x0,y0]=pts[i-1],[mx,my]=ctl[i],[x1,y1]=pts[i];return [(1-t)*(1-t)*x0+2*(1-t)*t*mx+t*t*x1,(1-t)*(1-t)*y0+2*(1-t)*t*my+t*t*y1]};
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
-  for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
-    const mx=(x0+x1)/2-(y1-y0)*.12,my=(y0+y1)/2+(x1-x0)*.12; // a slight curve reads as a journey, not a ruler line
+  for(let i=1;i<=n;i++){const f=cl(P-(i-1));if(f<=0)break;const [x0,y0]=pts[i-1],[mx,my]=ctl[i],[x1,y1]=pts[i];
     if(f>=1)ctx.quadraticCurveTo(mx,my,x1,y1);else{const qx=x0+(mx-x0)*f,qy=y0+(my-y0)*f,rx=mx+(x1-mx)*f,ry=my+(y1-my)*f;ctx.quadraticCurveTo(qx,qy,qx+(rx-qx)*f,qy+(ry-qy)*f)}}
-  ctx.shadowColor=`rgba(20,32,42,${.35*a})`;ctx.shadowBlur=4;ctx.shadowOffsetY=1;
-  ctx.strokeStyle=`rgba(255,255,255,${.97*a})`;ctx.lineWidth=7.5;ctx.stroke();ctx.shadowColor='transparent';   // a clean white edge so the line reads on any terrain
-  ctx.strokeStyle=`rgba(236,122,114,${a})`;ctx.lineWidth=3.6;ctx.stroke();                                         // the journey, in the brand's blush coral
+  ctx.shadowColor=`rgba(30,44,56,${.28*a})`;ctx.shadowBlur=8;ctx.shadowOffsetY=2;
+  ctx.strokeStyle=`rgba(255,253,250,${a})`;ctx.lineWidth=7;ctx.stroke();ctx.shadowColor='transparent';   // a clean white edge so the line reads on any terrain
+  ctx.strokeStyle=`rgba(236,122,114,${a})`;ctx.lineWidth=3.4;ctx.stroke();                                // the journey, in the brand's blush coral
+  if(P>=n&&!reduce&&n>0){const per=n*1700,u=(tNow%per)/per*n;   // a soft light travelling the route, start to finish
+    for(let k=10;k>=0;k--){const v=u-k*.035;if(v<0)continue;const [cx,cy]=at(v);ctx.fillStyle=`rgba(255,250,240,${a*(1-k/11)*.75})`;ctx.beginPath();ctx.arc(cx,cy,1.9*(1-k/14),0,7);ctx.fill()}
+    const [cx,cy]=at(u),gl=ctx.createRadialGradient(cx,cy,0,cx,cy,11);gl.addColorStop(0,`rgba(255,250,240,${.9*a})`);gl.addColorStop(1,'rgba(255,250,240,0)');
+    ctx.fillStyle=gl;ctx.beginPath();ctx.arc(cx,cy,11,0,7);ctx.fill()}
   ctx.restore();
   const shown=i=>i<=Math.ceil(P)||i===0;
-  r.stops.forEach((s,i)=>{if(shown(i)){const [x,y]=pts[i];placed.push([x-10,y-10,20,20])}});
-  r.stops.forEach((s,i)=>{if(!shown(i))return;const [x,y]=pts[i],k=s[5]||'stop',rgb=KIND_RGB[k],sel=pop&&pop.kind==='stop'&&pop.id===d.id&&pop.i===i;
-    const tw=reduce?1:.75+.25*Math.sin(tNow*.003+i*1.7),big=k==='arrive'||k==='depart'||sel;
-    ctx.save();ctx.shadowColor=`rgba(20,32,42,${.35*a})`;ctx.shadowBlur=5;ctx.shadowOffsetY=1;
-    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(x,y,(sel?9:big?8:6.6)+2.6,0,7);ctx.fill();ctx.restore();
-    ctx.fillStyle=`rgba(${rgb},${a})`;ctx.beginPath();ctx.arc(x,y,sel?9:big?8:6.6,0,7);ctx.fill();
-    if(big&&!sel){ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(x,y,2.6,0,7);ctx.fill()}
-    if(sel){ctx.strokeStyle=`rgba(255,255,255,${.9*a})`;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(x,y,13,0,7);ctx.stroke()}
-    if(!sel){const pl=placeLabel(s[0],phone()?s[3]:`${s[3]} · ${s[4]||''}`,x,y);if(pl)drawLabel(pl,a)}
+  r.stops.forEach((s,i)=>{if(shown(i)){const [x,y]=pts[i];placed.push([x-12,y-12,24,24])}});
+  const labs=r.stops.map((s,i)=>shown(i)&&!sel0(d.id,i)?placeLabel(s[0],s[3],pts[i][0],pts[i][1]):null);   // labels claim their spots in travel order
+  r.stops.map((s,i)=>i).slice(1).concat(0).forEach(i=>{const s=r.stops[i];if(!shown(i))return;const [x,y]=pts[i],k=s[5]||'stop',rgb=sel0(d.id,i)?KIND_RGB.arrive:KIND_RGB[k],sel=sel0(d.id,i);
+    const R0=sel?12.5:k==='arrive'||k==='depart'?10.5:9.5;
+    if(sel&&!reduce){const ph=(tNow*.0011)%1;ctx.strokeStyle=`rgba(236,122,114,${.7*(1-ph)*a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,R0+3+ph*14,0,7);ctx.stroke()}
+    ctx.save();ctx.shadowColor=`rgba(30,44,56,${.32*a})`;ctx.shadowBlur=8;ctx.shadowOffsetY=2;
+    ctx.fillStyle=`rgba(255,253,250,${a})`;ctx.beginPath();ctx.arc(x,y,R0+2.2,0,7);ctx.fill();ctx.restore();   // white ring
+    ctx.fillStyle=`rgba(${rgb},${a})`;ctx.beginPath();ctx.arc(x,y,R0,0,7);ctx.fill();
+    ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.font=`600 ${sel?12:10.5}px Inter, system-ui, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),x,y+.5);   // stops are numbered in travel order
     stopHits.push({x,y,id:d.id,i})});
+  labs.forEach(pl=>pl&&drawLabel(pl,a));
 }
 
 /* ---------- wild things: small dots that bloom into badges as you zoom in ---------- */
@@ -314,21 +325,22 @@ const WILD=window.WILDLIFE||{};
 function layoutWild(){const out=[];
   for(const d of DEST){const list=WILD[d.id];if(!list||(focus&&focus!==d.id))continue;const q=V.k/fitK(d.id),a=ramp(q,.55,.8)*onScreen(d.id);if(a<=.02)continue;
     if(tNow<(holdUntil[d.id]||0)+700)continue;
-    const big=ramp(q,1.2,1.6),r=5+9*big,obst=R[d.id].stops.map(s=>[sx(s[2]),sy(MY(s[1])),11]);
+    const big=ramp(q,1.2,1.6),r=9+5*big,obst=R[d.id].stops.map(s=>[sx(s[2]),sy(MY(s[1])),11]);
     list.forEach((w,i)=>{const x0=sx(w[3]),y0=sy(MY(w[2]));if(x0<-40||x0>W+40||y0<40||y0>H+40)return;
       let x=x0,y=y0;                                               // nudge away from stops and from each other, so nothing sits on the route's dots
       for(let it=0;it<4;it++)for(const [ox,oy,or] of obst){let dx=x-ox,dy=y-oy,dd=Math.hypot(dx,dy),min=or+r+4;if(dd<min){if(dd<.5){dx=.7;dy=-.7;dd=1}x=ox+dx/dd*min;y=oy+dy/dd*min}}
+      const hit=(x,y)=>placed.some(q=>x-r-3<q[0]+q[2]&&x+r+3>q[0]&&y-r-3<q[1]+q[3]&&y+r+3>q[1]);
+      if(hit(x,y)){let ok=0;for(let t=0;t<8&&!ok;t++){const an=t*Math.PI/4,nx=x0+Math.cos(an)*(r*2.4),ny=y0+Math.sin(an)*(r*2.4);if(!hit(nx,ny)){x=nx;y=ny;ok=1}}if(!ok)return}
       obst.push([x,y,r]);placed.push([x-r-3,y-r-3,2*r+6,2*r+6]);out.push({x,y,x0,y0,r,a,big,w,id:d.id,i})})}
   return out}
 function drawWild(list){
   for(const {x,y,x0,y0,r,a,big,w,id,i} of list){
     const sel=pop&&pop.kind==='wild'&&pop.id===id&&pop.i===i;
     ctx.globalAlpha=a;
-    if(Math.hypot(x-x0,y-y0)>4){ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x,y);ctx.stroke()}
-    ctx.shadowColor='rgba(0,0,0,.3)';ctx.shadowBlur=5;ctx.shadowOffsetY=2;ctx.fillStyle='#fffaf2';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-    ctx.strokeStyle=sel?'#ff6a45':'#1f9a72';ctx.lineWidth=sel?3:2;ctx.stroke();
-    if(big>.35){ctx.globalAlpha=a*ramp(big,.35,.8);ctx.font=`${Math.round(7+9*big)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(w[0],x,y+1)}
-    else{ctx.fillStyle='#1f9a72';ctx.beginPath();ctx.arc(x,y,1.8,0,7);ctx.fill()}
+    if(Math.hypot(x-x0,y-y0)>4){ctx.strokeStyle='rgba(255,253,250,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x,y);ctx.stroke()}
+    ctx.shadowColor='rgba(30,44,56,.28)';ctx.shadowBlur=10;ctx.shadowOffsetY=3;ctx.fillStyle='rgba(255,253,250,.96)';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    if(sel){ctx.strokeStyle='rgb(236,122,114)';ctx.lineWidth=2.5;ctx.stroke()}
+    ctx.font=`${Math.round(r*1.12)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(w[0],x,y+1)
     ctx.globalAlpha=1;wildHits.push({x,y,r:Math.max(16,r+6),id,i})}
 }
 
@@ -337,7 +349,7 @@ function drawMarker(d){
   const a=focus&&focus!==d.id?1:1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(MY(d.lat));if(x<-60||x>W+60||y<-30||y>H+30)return;
   const mine=typeof wish!=='undefined'&&wish.has(d.id),ph=reduce?0:(tNow*.0012+d.m*.37)%1;
   ctx.globalAlpha=a;ctx.strokeStyle=`rgba(255,255,255,${.75*(1-ph)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,7+ph*14,0,7);ctx.stroke();
-  ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'#ff5a3c';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'rgb(236,122,114)';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2.4;ctx.stroke();
   if(mine){ctx.strokeStyle='#5a3d00';ctx.lineWidth=1.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x-2.8,y+.2);ctx.lineTo(x-.8,y+2.3);ctx.lineTo(x+3,y-2.2);ctx.stroke()} // on your bucket list
   placed.push([x-9,y-9,18,18]);const pl=placeLabel(d.name,'',x,y,12);if(pl)drawLabel(pl,1);
