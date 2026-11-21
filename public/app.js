@@ -297,11 +297,11 @@ function renderDest(t){
    <section class="d-sec" id="d-book">${head('05','Unbucket it','Tell us when, and we’ll plan the rest','')}
     <form class="book" id="bookForm" novalidate>
      <div class="p" id="bkPrice">${money(offers[0].price)} <span>/ person</span></div>
-     <label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select>
-     <label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select>
-     <label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select>
-     <label for="bkName">Your name</label><input id="bkName" autocomplete="name" required>
-     <label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required>
+     <div class="f wide"><label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select></div>
+     <div class="f"><label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select></div>
+     <div class="f"><label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select></div>
+     <div class="f"><label for="bkName">Your name</label><input id="bkName" autocomplete="name" required></div>
+     <div class="f"><label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required></div>
      <div class="total"><span>Estimated total</span><b id="bkTotal">${money(offers[0].price*2)}</b></div>
      <p class="err" id="bkErr" hidden></p>
      <button class="btn" type="submit">Unbucket this for me</button>

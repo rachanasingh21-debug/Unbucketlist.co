@@ -76,5 +76,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   Taste/Explore/Take away rows stretched the page to 1300 px and a swipe slid the whole page off-screen. The tab row fades out under the Map
   button (mask); the price bar (`.d-bar`) hides while "05 Unbucket it" is on screen; story cards never overlap (no negative margins).
   Re-check with the phone audit (each row swiped, page scrollLeft must stay 0) after any layout change.
+- Laptop: painted clouds/birds (`.amb`) never sit on real photos (`.media~.amb`, they showed as hard white ovals on wide screens); list
+  panels have a slate scrim from the bottom and left so names read on bright skies; the booking form is two columns on laptops (`.f` pairs).
+  Check both 1440x900 and 1280x720 after layout changes.
 - Home story chapters sit over a real destination photo (`t.photos[0]`) under the slate scrim, not a plain colour.
 - Booking form is a preview: it does not send or store anything yet (no backend chosen).

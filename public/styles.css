@@ -575,3 +575,22 @@ footer{background:var(--mint2)}
 /* home story: photos behind each chapter, and a shorter scroll */
 .story-bg{background-color:var(--deep)}
 .story-steps div{height:75vh}
+
+/* ---- fixes from a laptop walk-through ---- */
+/* real photos don't get painted clouds or birds (on wide screens the clouds showed as hard white ovals) */
+.media~.amb{display:none}
+/* words on the full-screen places stay readable on bright skies */
+.reel::after{background:linear-gradient(180deg,rgba(28,44,56,.4),transparent 24%,transparent 36%,rgba(28,44,56,.55) 60%,rgba(28,44,56,.86)),
+ linear-gradient(90deg,rgba(28,44,56,.45),rgba(28,44,56,0) 55%)}
+.reel-copy h2,.reel-copy p{text-shadow:0 1px 14px rgba(20,32,42,.35)}
+/* the tab row is solid, so dark sections don't show through it */
+.d-nav{background:var(--pinkpage)}
+/* booking on a laptop: the form uses the width, fields side by side */
+@media(min-width:901px){
+ #d-book .book{position:static;max-width:780px;display:grid;grid-template-columns:1fr 1fr;column-gap:20px;padding:28px 32px}
+ #d-book .book>*{grid-column:1/-1}
+ #d-book .book>.f{grid-column:auto}
+ #d-book .book>.f.wide{grid-column:1/-1}
+ #d-book .book>.btn{grid-column:auto;margin:0}
+ #d-book .book>.btn+.btn{margin:0}
+}
