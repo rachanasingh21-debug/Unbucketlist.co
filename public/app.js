@@ -228,7 +228,7 @@ $('#storySteps').innerHTML=CH.map((_,i)=>`<div data-s="${i}"></div>`).join('');
 let cur=-1;const sb=$('#storyBg'),st=$('#storyText');
 function chapter(i){if(i===cur)return;cur=i;const [k,txt,t]=CH[i];st.classList.add('swap');
   setTimeout(()=>{st.innerHTML=`<small>${k}</small>${txt}`;st.classList.remove('swap')},350);
-  sb.classList.remove('k');sb.style.background=`linear-gradient(180deg,${t.sky.join(',')})`;requestAnimationFrame(()=>requestAnimationFrame(()=>sb.classList.add('k')))}
+  sb.classList.remove('k');sb.style.background=t.photos&&t.photos.length?`center/cover no-repeat url("${t.photos[0]}"), linear-gradient(180deg,${t.sky.join(',')})`:`linear-gradient(180deg,${t.sky.join(',')})`;requestAnimationFrame(()=>requestAnimationFrame(()=>sb.classList.add('k')))}
 {const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)chapter(+e.target.dataset.s)}),{threshold:.55});$$('#storySteps div').forEach(d=>o.observe(d))}
 chapter(0);
 
@@ -313,6 +313,8 @@ function renderDest(t){
   sheet.scrollTop=0;
   const o=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{root:sheet,threshold:.2});$$('.day',sheet).forEach(d=>o.observe(d));
   // the numbered nav shows where you are
+  const bar=$('.d-bar',sheet),book=$('#d-book',sheet);
+  if(bar&&book)new IntersectionObserver(([e])=>bar.classList.toggle('away',e.isIntersecting),{root:sheet,threshold:.08}).observe(book);
   const links=$$('.d-nav a',sheet);
   const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('on',a.dataset.jump===e.target.id));const a=links.find(a=>a.dataset.jump===e.target.id);if(a)a.parentNode.scrollTo({left:a.offsetLeft-a.parentNode.firstElementChild.offsetLeft,behavior:'smooth'})}}),{root:sheet,rootMargin:'-45% 0px -50% 0px'});
   $$('.d-sec',sheet).forEach(s=>so.observe(s));

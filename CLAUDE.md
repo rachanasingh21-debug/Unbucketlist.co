@@ -72,4 +72,9 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   (first world picture in), shown at least 1.2 s, then fades. The client liked the slow pace: keep it slow.
 - Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in
   index.html when shipping big changes (old copies were cached for an hour before this rule).
+- Destination page on phones: the sheet never scrolls sideways (`.sheet{overflow-x:hidden}`, `.tgs>.tg{min-width:0}`); before this fix the
+  Taste/Explore/Take away rows stretched the page to 1300 px and a swipe slid the whole page off-screen. The tab row fades out under the Map
+  button (mask); the price bar (`.d-bar`) hides while "05 Unbucket it" is on screen; story cards never overlap (no negative margins).
+  Re-check with the phone audit (each row swiped, page scrollLeft must stay 0) after any layout change.
+- Home story chapters sit over a real destination photo (`t.photos[0]`) under the slate scrim, not a plain colour.
 - Booking form is a preview: it does not send or store anything yet (no backend chosen).

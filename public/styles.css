@@ -552,3 +552,26 @@ footer{background:var(--mint2)}
 .tcard .w{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .tcard p:last-child{font-size:.86rem;line-height:1.45;color:var(--text2);margin-top:2px}
 @media(min-width:901px){.tgs{grid-template-columns:repeat(3,minmax(0,1fr))}.tcards{flex-direction:column;overflow:visible;margin:0;padding:0}.tcard{flex:none}}
+
+/* ---- fixes from a customer walk-through on a phone ---- */
+/* the Taste / Explore / Take away rows scroll inside themselves; the page never slides sideways */
+.sheet{overflow-x:hidden}
+.tgs{grid-template-columns:minmax(0,1fr)}
+.tgs>.tg{min-width:0}
+.tcards{margin:0;overscroll-behavior-x:contain}
+@media(min-width:901px){.tgs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* the numbered tabs fade out before they reach the Map button instead of sliding under it */
+.d-nav{-webkit-mask-image:linear-gradient(90deg,transparent 88px,#000 108px);mask-image:linear-gradient(90deg,transparent 88px,#000 108px)}
+@media(max-width:820px){.d-nav{-webkit-mask-image:linear-gradient(90deg,transparent 80px,#000 100px);mask-image:linear-gradient(90deg,transparent 80px,#000 100px)}}
+/* the price bar gets out of the way of the booking form */
+.d-bar{transition:opacity .35s,transform .35s}
+.d-bar.away{opacity:0;transform:translateY(24px);pointer-events:none}
+/* story cards sit side by side, never on top of each other */
+.tile{margin-right:14px}
+.tile:hover{z-index:auto}
+@media(max-width:760px){.tile{margin-right:12px}}
+/* route diagram: names stay readable where the line crosses them */
+.rc-n,.rc-s{paint-order:stroke;stroke:var(--deep);stroke-width:4px;stroke-linejoin:round}
+/* home story: photos behind each chapter, and a shorter scroll */
+.story-bg{background-color:var(--deep)}
+.story-steps div{height:75vh}
