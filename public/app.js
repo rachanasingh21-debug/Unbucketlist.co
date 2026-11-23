@@ -327,9 +327,44 @@ function renderDest(t){
     const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
     if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
     const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=+$('#bkPax',f).value,of=cur();
-    f.innerHTML=`<div class="p">Almost unbucketed, ${esc(name.split(' ')[0])}</div><p class="ok">${esc(of.name)} · ${when} · ${pax} traveller${pax>1?'s':''} · about ${money(of.price*pax)}</p>
+    // the confirmation: a departure board that flips the journey into place, stop by stop
+    const r=route||{stops:[]},names=r.stops.map(x=>x[0]);if(r.loop&&names.length)names.push(names[0]);
+    f.classList.add('done');
+    f.innerHTML=`<div class="board" role="status">
+       <p class="sr">Request ready: ${esc(names.join(', then '))}. ${esc(of.name)}, ${when}, ${pax} traveller${pax>1?'s':''}.</p>
+       <p class="bd-eye" aria-hidden="true"><span>Charting your journey</span><i>…</i></p>
+       <p class="bd-lab" aria-hidden="true">Full route</p>
+       <div class="bd-rows" aria-hidden="true"></div>
+       <div class="bd-status" aria-hidden="true"><span class="bd-lab">Status</span><div class="bd-row st"></div></div></div>
+     <p class="bd-hi">Almost unbucketed, ${esc(name.split(' ')[0])}.</p>
+     <dl class="bd-info"><div><dt>Way</dt><dd>${esc(of.name)}</dd></div><div><dt>When</dt><dd>${when}</dd></div>
+      <div><dt>Travellers</dt><dd>${pax}</dd></div><div><dt>Estimated total</dt><dd>${money(of.price*pax)}</dd></div></dl>
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
+    flapBoard($('.board',f),names,'Requested');
+    const bx=f.getBoundingClientRect(),sx=sheet.getBoundingClientRect();if(bx.top<sx.top+60||bx.top>sx.top+sx.height*.4)sheet.scrollTo({top:sheet.scrollTop+bx.top-sx.top-90,behavior:'smooth'});
   });
+}
+/* Split-flap departure board: each tile spins through letters and lands, left to right, one row after another */
+const FLAP='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+function flapBoard(board,rows,status){
+  const box=$('.bd-rows',board),st=$('.bd-row.st',board),eye=$('.bd-eye',board);
+  const W=box.clientWidth||300,longest=Math.max(status.length,...rows.map(x=>x.length));
+  const tile=Math.max(13,Math.min(26,Math.floor(W/longest)-3));board.style.setProperty('--tile',tile+'px');   // long names get smaller tiles, never wrap
+  const tiles=[];let t0=0;
+  const row=(el,text,start)=>{[...text.toUpperCase()].forEach((ch,i)=>{const b=document.createElement('b');
+    if(ch===' '){b.className='gap';el.appendChild(b);return}
+    el.appendChild(b);tiles.push({b,ch,at:start+i*38+380+Math.random()*120,last:0})});return start+text.length*38+500};
+  const step=Math.min(420,2600/Math.max(1,rows.length));   // rows overlap a little, so any journey lands in about four seconds
+  rows.forEach((name,i)=>{if(i){const a=document.createElement('i');a.className='bd-arrow';a.textContent='↓';box.appendChild(a)}
+    const el=document.createElement('div');el.className='bd-row';box.appendChild(el);t0=Math.max(t0,row(el,name,i*step))});
+  row(st,status,t0+150);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){tiles.forEach(x=>x.b.textContent=x.ch);board.classList.add('landed');eye.firstChild.textContent='Your journey';return}
+  const start=performance.now();
+  const tick=now=>{const e=now-start;let busy=false;
+    for(const x of tiles){if(x.done)continue;if(e>=x.at){x.b.textContent=x.ch;x.done=true;x.b.classList.remove('spin');void x.b.offsetWidth;x.b.classList.add('land');continue}
+      busy=true;if(e>x.at-900&&now-x.last>70){x.last=now;x.b.textContent=FLAP[Math.random()*FLAP.length|0];x.b.classList.toggle('spin')}}
+    if(busy&&board.isConnected)requestAnimationFrame(tick);else{board.classList.add('landed');eye.firstChild.textContent='Your journey'}};
+  requestAnimationFrame(tick);
 }
 // a small chip opens its story right under its row; tap again (or another chip) to switch
 sheet.addEventListener('click',e=>{

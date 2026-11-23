@@ -80,4 +80,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   panels have a slate scrim from the bottom and left so names read on bright skies; the booking form is two columns on laptops (`.f` pairs).
   Check both 1440x900 and 1280x720 after layout changes.
 - Home story chapters sit over a real destination photo (`t.photos[0]`) under the slate scrim, not a plain colour.
+- Booking confirmation (client's pick, inspired by a split-flap board video): after a valid submit the form becomes a departure board
+  (`flapBoard` in app.js): "Charting your journey…", the trip's stops flip into place row by row (slate tiles, cream letters, coral arrows), then
+  STATUS "REQUESTED" in coral; any journey lands in ~4 s; reduced motion shows it settled. Below: "Almost unbucketed, <name>" and
+  way / when / travellers / total. Status says REQUESTED, never CONFIRMED, until bookings are real. Our own colours, not the amber-on-black original.
 - Booking form is a preview: it does not send or store anything yet (no backend chosen).
