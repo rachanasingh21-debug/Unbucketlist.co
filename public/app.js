@@ -243,12 +243,14 @@ $('#seeAll').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'s
 /* ---------- DESTINATION PAGE (full screen, own link: #ladakh) ---------- */
 const drawer=$('#drawer'),sheet=$('#sheet');
 let pushed=false;
-function monthOptions(t){
-  const now=new Date(),opts=[];let picked=false;
-  for(let k=0;k<12;k++){const d=new Date(now.getFullYear(),now.getMonth()+1+k,1),sel=!picked&&d.getMonth()===t.m;if(sel)picked=true;
-    opts.push(`<option value="${d.getFullYear()}-${d.getMonth()+1}" ${sel?'selected':''}>${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}</option>`)}
-  return opts.join('');
-}
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON3=MONTH_FULL.map(m=>m.slice(0,3));
+const isoDay=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseDay=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?new Date(+m[1],+m[2]-1,+m[3]):null};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const longDay=d=>`${DOW[d.getDay()]} ${d.getDate()} ${MON3[d.getMonth()]} ${d.getFullYear()}`;   // Sat 1 Mar 2027
+const flapDay=d=>`${DOW[d.getDay()]} ${String(d.getDate()).padStart(2,'0')} ${MON3[d.getMonth()]}`.toUpperCase();   // SAT 01 MAR
+// earliest boarding two weeks out; suggested: the 1st of the place's best month, at least three weeks away
+function boardingDefaults(t){const now=new Date(),min=addDays(now,14);let d=new Date(now.getFullYear(),t.m,1);if(d<addDays(now,21))d=new Date(now.getFullYear()+1,t.m,1);return {min:isoDay(min),val:isoDay(d)}}
 /* The page reads in five numbered steps, most important first:
    01 Go (the journey, day by day, with what to taste / spot / take away at each stop)  02 Ways & prices
    03 Taste · Explore · Take away (small chips, tap to read)  04 The story  05 Unbucket it (the request form) */
@@ -297,9 +299,10 @@ function renderDest(t){
    <section class="d-sec" id="d-book">${head('05','Unbucket it','Tell us when, and we’ll plan the rest','')}
     <form class="book" id="bookForm" novalidate>
      <div class="p" id="bkPrice">${money(offers[0].price)} <span>/ person</span></div>
-     <div class="f wide"><label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select></div>
-     <div class="f"><label for="bkMonth">When</label><select id="bkMonth">${monthOptions(t)}</select></div>
+     <div class="f"><label for="bkOffer">How you’ll unbucket it</label><select id="bkOffer">${offers.map((o,i)=>`<option value="${i}">${o.name} · ${o.days} days</option>`).join('')}</select></div>
      <div class="f"><label for="bkPax">Travellers</label><select id="bkPax">${[1,2,3,4,5,6,7,8].map(n=>`<option ${n===2?'selected':''}>${n}</option>`).join('')}</select></div>
+     <div class="f"><label for="bkStart">Boarding date</label><input id="bkStart" type="date" min="${boardingDefaults(t).min}" value="${boardingDefaults(t).val}" required><small class="hint">Best in ${MONTH_FULL[t.m]}</small></div>
+     <div class="f"><label for="bkEnd">Unbucketing date</label><output id="bkEnd" for="bkStart bkOffer" class="out"></output><small class="hint" id="bkLen"></small></div>
      <div class="f"><label for="bkName">Your name</label><input id="bkName" autocomplete="name" required></div>
      <div class="f"><label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required></div>
      <div class="total"><span>Estimated total</span><b id="bkTotal">${money(offers[0].price*2)}</b></div>
@@ -320,36 +323,44 @@ function renderDest(t){
   $$('.d-sec',sheet).forEach(s=>so.observe(s));
   initTale(sheet);
   const f=$('#bookForm',sheet),cur=()=>offers[+$('#bkOffer',f).value];
-  const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;$('#bkTotal',f).textContent=money(cur().price*+$('#bkPax',f).value)};
-  f.addEventListener('input',upd);
+  const endOf=()=>{const a=parseDay($('#bkStart',f).value);return a?addDays(a,cur().days-1):null};
+  const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;$('#bkTotal',f).textContent=money(cur().price*+$('#bkPax',f).value);
+    const e=endOf();$('#bkEnd',f).textContent=e?longDay(e):'Pick a boarding date';$('#bkLen',f).textContent=`${cur().days} days, ${cur().days-1} nights`};
+  upd();
+  f.addEventListener('input',upd);f.addEventListener('change',upd);
   f.addEventListener('submit',e=>{
     e.preventDefault();
     const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
     if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
-    const when=$('#bkMonth',f).selectedOptions[0].textContent,pax=+$('#bkPax',f).value,of=cur();
+    const start=parseDay($('#bkStart',f).value),pax=+$('#bkPax',f).value,of=cur();
+    if(!start||isoDay(start)<$('#bkStart',f).min){err.hidden=false;err.textContent='Pick a boarding date at least two weeks from today.';return}
+    const end=addDays(start,of.days-1);
     // the confirmation: a departure board that flips the journey into place, stop by stop
     const r=route||{stops:[]},names=r.stops.map(x=>x[0]);if(r.loop&&names.length)names.push(names[0]);
     f.classList.add('done');
     f.innerHTML=`<div class="board" role="status">
-       <p class="sr">Request ready: ${esc(names.join(', then '))}. ${esc(of.name)}, ${when}, ${pax} traveller${pax>1?'s':''}.</p>
+       <p class="sr">Request ready: ${esc(names.join(', then '))}. Boarding ${longDay(start)}, unbucketing ${longDay(end)}. ${esc(of.name)}, ${pax} traveller${pax>1?'s':''}.</p>
        <p class="bd-eye" aria-hidden="true"><span>Charting your journey</span><i>…</i></p>
        <p class="bd-lab" aria-hidden="true">Full route</p>
        <div class="bd-rows" aria-hidden="true"></div>
-       <div class="bd-status" aria-hidden="true"><span class="bd-lab">Status</span><div class="bd-row st"></div></div></div>
+       <div class="bd-status" aria-hidden="true"><span class="bd-lab">Boarding</span><div class="bd-row dt"></div><span class="bd-lab">Unbucketing</span><div class="bd-row dt"></div><span class="bd-lab">Status</span><div class="bd-row st"></div></div></div>
      <p class="bd-hi">Almost unbucketed, ${esc(name.split(' ')[0])}.</p>
-     <dl class="bd-info"><div><dt>Way</dt><dd>${esc(of.name)}</dd></div><div><dt>When</dt><dd>${when}</dd></div>
-      <div><dt>Travellers</dt><dd>${pax}</dd></div><div><dt>Estimated total</dt><dd>${money(of.price*pax)}</dd></div></dl>
+     <dl class="bd-info"><div><dt>Boarding</dt><dd>${longDay(start)}</dd></div><div><dt>Unbucketing</dt><dd>${longDay(end)}</dd></div>
+      <div><dt>Way</dt><dd>${esc(of.name)} · ${of.days} days</dd></div><div><dt>Travellers</dt><dd>${pax}</dd></div><div><dt>Estimated total</dt><dd>${money(of.price*pax)}</dd></div></dl>
      <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
-    flapBoard($('.board',f),names,'Requested');
+    flapBoard($('.board',f),names,[flapDay(start),flapDay(end)],'Requested');
     const bx=f.getBoundingClientRect(),sx=sheet.getBoundingClientRect();if(bx.top<sx.top+60||bx.top>sx.top+sx.height*.4)sheet.scrollTo({top:sheet.scrollTop+bx.top-sx.top-90,behavior:'smooth'});
   });
 }
 /* Split-flap departure board: each tile spins through letters and lands, left to right, one row after another */
 const FLAP='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-function flapBoard(board,rows,status){
-  const box=$('.bd-rows',board),st=$('.bd-row.st',board),eye=$('.bd-eye',board);
-  const W=box.clientWidth||300,longest=Math.max(status.length,...rows.map(x=>x.length));
-  const tile=Math.max(13,Math.min(26,Math.floor(W/longest)-3));board.style.setProperty('--tile',tile+'px');   // long names get smaller tiles, never wrap
+function flapBoard(board,rows,dates,status){
+  const box=$('.bd-rows',board),st=$('.bd-row.st',board),eye=$('.bd-eye',board),dts=$$('.bd-row.dt',board);
+  const lab=Math.max(0,...$$('.bd-status .bd-lab',board).map(x=>x.getBoundingClientRect().width));
+  const W=box.clientWidth||300,longest=Math.max(...rows.map(x=>x.length)),side=Math.max(status.length,...dates.map(x=>x.length));
+  const tile=Math.max(13,Math.min(26,Math.floor(W/longest)-3)),tile2=Math.max(12,Math.min(tile,Math.floor((W-lab-14)/side)-3));   // dates and status share the width with their label
+  $('.bd-status',board).style.setProperty('--tile',tile2+'px');
+  board.style.setProperty('--tile',tile+'px');   // long names get smaller tiles, never wrap
   const tiles=[];let t0=0;
   const row=(el,text,start)=>{[...text.toUpperCase()].forEach((ch,i)=>{const b=document.createElement('b');
     if(ch===' '){b.className='gap';el.appendChild(b);return}
@@ -357,6 +368,7 @@ function flapBoard(board,rows,status){
   const step=Math.min(420,2600/Math.max(1,rows.length));   // rows overlap a little, so any journey lands in about four seconds
   rows.forEach((name,i)=>{if(i){const a=document.createElement('i');a.className='bd-arrow';a.textContent='↓';box.appendChild(a)}
     const el=document.createElement('div');el.className='bd-row';box.appendChild(el);t0=Math.max(t0,row(el,name,i*step))});
+  dates.forEach((d,i)=>{t0=row(dts[i],d,t0-(i?250:150))});   // dates overlap the row before, so the board still lands in about five seconds
   row(st,status,t0+150);
   if(matchMedia('(prefers-reduced-motion: reduce)').matches){tiles.forEach(x=>x.b.textContent=x.ch);board.classList.add('landed');eye.firstChild.textContent='Your journey';return}
   const start=performance.now();

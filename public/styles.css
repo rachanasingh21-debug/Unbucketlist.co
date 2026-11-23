@@ -615,7 +615,7 @@ footer{background:var(--mint2)}
 @keyframes bdFlip{50%{transform:scaleY(.82)}}
 @keyframes bdLand{0%{transform:scaleY(.6)}100%{transform:none}}
 .bd-arrow{font-style:normal;color:var(--accent);font-size:calc(var(--tile)*.7);line-height:1;padding:2px 0 2px calc(var(--tile)*.3)}
-.bd-status{display:flex;align-items:center;gap:12px;margin-top:16px;padding-top:14px;border-top:1px dashed rgba(253,240,234,.18)}
+.bd-status{display:grid;grid-template-columns:auto auto;justify-content:start;align-items:center;gap:8px 12px;margin-top:16px;padding-top:14px;border-top:1px dashed rgba(253,240,234,.18)}
 .bd-status .bd-lab{margin:0}
 .bd-row.st b{background:linear-gradient(180deg,rgba(255,255,255,.1) 0 50%,rgba(0,0,0,.06) 50%),var(--accent);color:#fff}
 .bd-row.st b.gap{background:none}
@@ -625,3 +625,10 @@ footer{background:var(--mint2)}
 .bd-info dd{margin:2px 0 0;font-size:.95rem;color:var(--ink)}
 @media(min-width:901px){#d-book .book.done{display:block}}
 @media (prefers-reduced-motion:reduce){.bd-row b.spin,.bd-row b.land,.bd-eye i{animation:none}}
+
+/* ---- booking: boarding and unbucketing dates ---- */
+.book input[type=date]{-webkit-appearance:none;appearance:none;min-height:46px;display:block;text-align:left}
+.book input[type=date]::-webkit-date-and-time-value{text-align:left}
+.book .out{display:flex;align-items:center;min-height:46px;padding:11px 12px;border-radius:12px;border:1px dashed var(--line2);background:var(--mint2);color:var(--ink);font-variant-numeric:tabular-nums}
+.book .hint{display:block;font-size:.72rem;color:var(--muted);margin-top:4px}
+.bd-row.dt b{color:var(--mint)}
