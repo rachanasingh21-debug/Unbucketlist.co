@@ -52,5 +52,23 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log",
+        "test.js"
+      ],
+      "predeploy": [
+        "cp \"$PROJECT_DIR/public/offers.js\" \"$PROJECT_DIR/public/pay-config.js\" \"$RESOURCE_DIR/\""
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

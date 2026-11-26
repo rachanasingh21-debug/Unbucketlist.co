@@ -243,6 +243,9 @@ $('#seeAll').addEventListener('click',()=>$('#pick').scrollIntoView({behavior:'s
 /* ---------- DESTINATION PAGE (full screen, own link: #ladakh) ---------- */
 const drawer=$('#drawer'),sheet=$('#sheet');
 let pushed=false;
+// payments: pay-config.js holds the switch and the pricing rules (the server uses the same file); pay.js talks to Razorpay
+const PAYC=()=>window.PAY||{},payOn=()=>!!(window.Pay&&Pay.ready());
+const quoteOf=(price,pax)=>PAYC().quote?PAYC().quote(price,pax):{trip:price*pax,gst:0,total:price*pax,now:price*pax,later:0};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],MON3=MONTH_FULL.map(m=>m.slice(0,3));
 const isoDay=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const parseDay=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v||'');return m?new Date(+m[1],+m[2]-1,+m[3]):null};
@@ -305,11 +308,11 @@ function renderDest(t){
      <div class="f"><label for="bkEnd">Unbucketing date</label><output id="bkEnd" for="bkStart bkOffer" class="out"></output><small class="hint" id="bkLen"></small></div>
      <div class="f"><label for="bkName">Your name</label><input id="bkName" autocomplete="name" required></div>
      <div class="f"><label for="bkEmail">Email</label><input id="bkEmail" type="email" autocomplete="email" required></div>
-     <div class="total"><span>Estimated total</span><b id="bkTotal">${money(offers[0].price*2)}</b></div>
-     <p class="err" id="bkErr" hidden></p>
-     <button class="btn" type="submit">Unbucket this for me</button>
+     <dl class="total" id="bkSum"></dl>
+     <p class="err" id="bkErr" role="alert" hidden></p>
+     <button class="btn" type="submit" id="bkGo">Unbucket this for me</button>
      <button class="btn ghost2" type="button" data-save="${t.id}">${bucketLabel(t.id)}</button>
-     <p class="fine">Preview: requests are not collected yet, so nothing is sent.</p>
+     <p class="fine">${payOn()?`Secure payment by Razorpay: UPI, cards, netbanking and wallets. ${PAYC().charge==='full'?'':`The rest is due ${PAYC().balanceDueDays||30} days before you board.`}`:'Preview: requests are not collected yet, so nothing is sent.'}</p>
     </form></section>
    <nav class="d-next"><button type="button" data-close>← Back to the map</button><button type="button" data-goto="${next.id}">Next: ${next.name} →</button></nav>
    <div class="d-bar"><div><b>${money(t.price)}</b><small> / person</small><span>Best in ${MONTH_FULL[t.m]} · ${t.days} days</span></div><button class="btn" type="button" data-go-book>Unbucket this</button></div>`;
@@ -324,17 +327,31 @@ function renderDest(t){
   initTale(sheet);
   const f=$('#bookForm',sheet),cur=()=>offers[+$('#bkOffer',f).value];
   const endOf=()=>{const a=parseDay($('#bkStart',f).value);return a?addDays(a,cur().days-1):null};
-  const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;$('#bkTotal',f).textContent=money(cur().price*+$('#bkPax',f).value);
+  const upd=()=>{$('#bkPrice',f).innerHTML=`${money(cur().price)} <span>/ person</span>`;
+    const pax=+$('#bkPax',f).value,q=quoteOf(cur().price,pax),P=PAYC();   // the same sums the server charges (pay-config.js)
+    $('#bkSum',f).innerHTML=(q.gst?`<div><dt>Trip, ${pax} traveller${pax>1?'s':''}</dt><dd>${money(q.trip)}</dd></div><div><dt>GST ${P.gstPct}%</dt><dd>${money(q.gst)}</dd></div>`:'')
+      +`<div class="sum"><dt>${payOn()||q.gst?'Total':'Estimated total'}</dt><dd><b id="bkTotal">${money(q.total)}</b></dd></div>`
+      +(payOn()&&q.later?`<div class="now"><dt>Pay now · ${P.depositPct}% deposit</dt><dd><b>${money(q.now)}</b></dd></div><div><dt>Rest, ${P.balanceDueDays||30} days before you board</dt><dd>${money(q.later)}</dd></div>`:'');
+    if(payOn()&&!f.dataset.busy)$('#bkGo',f).textContent=`Pay ${money(q.now)} and unbucket it`;
     const e=endOf();$('#bkEnd',f).textContent=e?longDay(e):'Pick a boarding date';$('#bkLen',f).textContent=`${cur().days} days, ${cur().days-1} nights`};
   upd();
   f.addEventListener('input',upd);f.addEventListener('change',upd);
-  f.addEventListener('submit',e=>{
-    e.preventDefault();
+  if(payOn())f.addEventListener('focusin',()=>Pay.preload(),{once:true});   // fetch Razorpay's window while they type
+  f.addEventListener('submit',async e=>{
+    e.preventDefault();if(f.dataset.busy)return;
     const name=$('#bkName',f).value.trim(),email=$('#bkEmail',f).value.trim(),err=$('#bkErr',f);
     if(!name||!/^\S+@\S+\.\S+$/.test(email)){err.hidden=false;err.textContent=!name?'Add your name so we know who is travelling.':'Add an email address we can reply to, like you@example.com.';return}
-    const start=parseDay($('#bkStart',f).value),pax=+$('#bkPax',f).value,of=cur();
+    const start=parseDay($('#bkStart',f).value),pax=+$('#bkPax',f).value,of=cur(),oi=+$('#bkOffer',f).value;
     if(!start||isoDay(start)<$('#bkStart',f).min){err.hidden=false;err.textContent='Pick a boarding date at least two weeks from today.';return}
-    const end=addDays(start,of.days-1);
+    const end=addDays(start,of.days-1),q=quoteOf(of.price,pax);
+    // with payments on: Razorpay takes the deposit (or full amount) first; the board only shows once the server has verified it
+    let paid=null;
+    if(payOn()){const go=$('#bkGo',f),label=go.textContent;f.dataset.busy=1;go.disabled=true;go.textContent='Opening secure payment…';err.hidden=true;
+      try{paid=await Pay.checkout({place:t.id,offer:oi,pax,start:isoDay(start),name,email,description:`${of.name} · ${pax} traveller${pax>1?'s':''} · boarding ${longDay(start)}`})}
+      catch(x){err.hidden=false;err.textContent=x.message;
+        if(x.code==='verify'){go.textContent='Payment received';return}   // money went through: never offer to pay again
+        delete f.dataset.busy;go.disabled=false;go.textContent=label;return}}
+    const pq=paid&&paid.quote||q,status=paid?(paid.status==='paid'?'Paid':'Deposit paid'):'Requested';
     // the confirmation: a departure board that flips the journey into place, stop by stop
     const r=route||{stops:[]},names=r.stops.map(x=>x[0]);if(r.loop&&names.length)names.push(names[0]);
     f.classList.add('done');
@@ -344,11 +361,13 @@ function renderDest(t){
        <p class="bd-lab" aria-hidden="true">Full route</p>
        <div class="bd-rows" aria-hidden="true"></div>
        <div class="bd-status" aria-hidden="true"><span class="bd-lab">Boarding</span><div class="bd-row dt"></div><span class="bd-lab">Unbucketing</span><div class="bd-row dt"></div><span class="bd-lab">Status</span><div class="bd-row st"></div></div></div>
-     <p class="bd-hi">Almost unbucketed, ${esc(name.split(' ')[0])}.</p>
+     <p class="bd-hi">${paid?'Unbucketed':'Almost unbucketed'}, ${esc(name.split(' ')[0])}.</p>
      <dl class="bd-info"><div><dt>Boarding</dt><dd>${longDay(start)}</dd></div><div><dt>Unbucketing</dt><dd>${longDay(end)}</dd></div>
-      <div><dt>Way</dt><dd>${esc(of.name)} · ${of.days} days</dd></div><div><dt>Travellers</dt><dd>${pax}</dd></div><div><dt>Estimated total</dt><dd>${money(of.price*pax)}</dd></div></dl>
-     <p class="fine">This is a preview, so your request was not sent anywhere yet. Booking will open here soon.</p>`;
-    flapBoard($('.board',f),names,[flapDay(start),flapDay(end)],'Requested');
+      <div><dt>Way</dt><dd>${esc(of.name)} · ${of.days} days</dd></div><div><dt>Travellers</dt><dd>${pax}</dd></div>
+      ${paid?`<div><dt>Paid</dt><dd>${money(pq.now)}</dd></div>${pq.later?`<div><dt>Due ${PAYC().balanceDueDays||30} days before boarding</dt><dd>${money(pq.later)}</dd></div>`:''}<div class="wide"><dt>Payment reference</dt><dd>${esc(paid.paymentId||'')}</dd></div>`
+        :`<div><dt>${q.gst?'Total':'Estimated total'}</dt><dd>${money(q.total)}</dd></div>`}</dl>
+     <p class="fine">${paid?`Keep the payment reference for your records. We’ll write to ${esc(email)} to plan the details.`:'This is a preview, so your request was not sent anywhere yet. Booking will open here soon.'}</p>`;
+    flapBoard($('.board',f),names,[flapDay(start),flapDay(end)],status);
     const bx=f.getBoundingClientRect(),sx=sheet.getBoundingClientRect();if(bx.top<sx.top+60||bx.top>sx.top+sx.height*.4)sheet.scrollTo({top:sheet.scrollTop+bx.top-sx.top-90,behavior:'smooth'});
   });
 }

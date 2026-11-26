@@ -1,0 +1,14 @@
+{
+  "name": "unbucketlist-functions",
+  "private": true,
+  "description": "Razorpay payments for unbucketlist.co (Firebase Cloud Functions). See docs/payments.md.",
+  "main": "index.js",
+  "engines": { "node": "22" },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

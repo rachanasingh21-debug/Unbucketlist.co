@@ -1,3 +1,6 @@
 node_modules/
 .firebase/
 *.log
+# copied from public/ at deploy time (see firebase.json predeploy)
+functions/offers.js
+functions/pay-config.js

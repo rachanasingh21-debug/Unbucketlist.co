@@ -86,7 +86,13 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
 - Booking confirmation (client's pick, inspired by a split-flap board video): after a valid submit the form becomes a departure board
   (`flapBoard` in app.js): "Charting your journey…", the trip's stops flip into place row by row (dark tiles, cream letters, aqua arrows), then
   BOARDING and UNBUCKETING dates (light aqua letters), then STATUS "REQUESTED" in aqua; any journey lands in ~4 s; reduced motion shows it settled. Below: "Almost unbucketed, <name>" and
-  way / when / travellers / total. Status says REQUESTED, never CONFIRMED, until bookings are real. Our own colours, not the amber-on-black original.
+  way / when / travellers / total. Status says REQUESTED (preview) or DEPOSIT PAID / PAID (payment verified by the server), never CONFIRMED. Our own colours, not the amber-on-black original.
 - Booking form dates: the visitor picks a Boarding date (earliest two weeks out, default the 1st of the place's best month);
   the Unbucketing date (trip end) is worked out from the chosen way's days (boarding + days - 1) and shown read-only.
-- Booking form is a preview: it does not send or store anything yet (no backend chosen).
+- Payments (Razorpay) are built but OFF (`PAY.on:false` in `public/pay-config.js`); while off the booking form is a preview that sends/stores nothing.
+  `pay-config.js` holds the switch AND the pricing rules (`PAY.quote`: trip, GST, deposit now / rest later) and is read by both the site and the
+  server, so never put prices or sums anywhere else. `public/pay.js` = Razorpay Checkout; server = `functions/` (Cloud Functions 2nd gen,
+  asia-south1: createOrder, verifyPayment, razorpayWebhook; bookings in Firestore `bookings`; secrets RAZORPAY_KEY_ID / _KEY_SECRET /
+  _WEBHOOK_SECRET; `npm test` in functions/). The server re-prices every booking from offers.js; never trust amounts from the browser.
+  With payments on, the board says DEPOSIT PAID / PAID only after the server verified Razorpay's signature. Go-live steps: docs/payments.md.
+  Deploying the site stays `--only hosting`; functions need the Blaze plan and are deployed separately once the client has Razorpay keys.
