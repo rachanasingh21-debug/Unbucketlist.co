@@ -1,8 +1,8 @@
-:root{--ink:#f1ece2;--paper:#0d1112;--sand:#131a1b;--accent:#d2a75c;--teal:#0f3a36;--muted:#979a93;--r:22px;
-/* Night Sea & Brass: near-black page, deep sea green bands, sea-green labels, brass for everything you tap or book, cream text.
-   (Earlier theme, Pastel Postcard, is in git history.) */
---label:#62b8a8;--deep:#0f3a36;--deep-ink:#f1ece2;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.15);--text2:#c4c0b5;--blush:#1d1a14;--mint:#1a3c38;--mint2:#0f1f1e;
---pinkpage:#0d1112;--lightaccent:#e7cc97;--card:#161e1f;--card2:#1a2324;--on-accent:#1d1608;--glass:rgba(13,17,18,.9);color-scheme:dark;
+:root{--ink:#eef3f0;--paper:#0b0f10;--sand:#11181a;--accent:#46cdbb;--teal:#123d39;--muted:#8c9c9a;--r:22px;
+/* Black Lagoon (client's pick): near-black page, one bright aqua for labels and everything you tap or book, off-white text.
+   (Earlier themes, Pastel Postcard and Night Sea & Brass, are in git history.) */
+--label:#46cdbb;--deep:#070a0b;--deep-ink:#eef3f0;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.15);--text2:#b8c6c3;--blush:#13201f;--mint:#1a3a36;--mint2:#0f1c1c;
+--pinkpage:#0b0f10;--lightaccent:#9ce6da;--card:#151d1f;--card2:#182224;--on-accent:#04201c;--glass:rgba(11,15,16,.9);color-scheme:dark;
 --serif:'Fraunces',Georgia,serif;--sans:'Inter',system-ui,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -359,7 +359,7 @@ html,body{overflow-x:clip}
 .pc-row{display:flex;gap:8px}
 .pc-row .btn{flex:1;padding:10px 8px;font-size:.82rem;text-align:center}
 .btn.ghost3{background:transparent;color:var(--ink);border:1px solid var(--line2)}
-.btn.ghost3[aria-pressed="true"]{background:rgba(210,167,92,.16);border-color:var(--accent)}
+.btn.ghost3[aria-pressed="true"]{background:rgba(70,205,187,.16);border-color:var(--accent)}
 .pc-ways{font-size:.74rem;color:var(--muted);text-align:center;margin-top:10px}
 @media(max-width:760px){
  .map-wrap{height:86svh}
@@ -384,7 +384,7 @@ html,body{overflow-x:clip}
 .finder-in{width:min(520px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--card2);color:var(--ink);border-radius:24px;padding:18px;box-shadow:0 24px 60px rgba(0,10,40,.4);animation:popIn .3s cubic-bezier(.2,.7,.2,1)}
 .finder label{font-family:var(--serif);font-size:1.5rem;margin-bottom:10px}
 .finder input{font:inherit;padding:12px 16px;border-radius:99px;border:1px solid var(--line2);background:var(--paper);color:var(--ink);outline:0}
-.finder input:focus-visible{border-color:var(--label);box-shadow:0 0 0 3px rgba(210,167,92,.25)}
+.finder input:focus-visible{border-color:var(--label);box-shadow:0 0 0 3px rgba(70,205,187,.25)}
 .finder ul{list-style:none;margin-top:10px;overflow-y:auto;display:grid;gap:2px}
 .finder li button{display:flex;align-items:center;gap:12px;width:100%;padding:8px;border-radius:14px;text-align:left;color:var(--ink)}
 .finder li button:hover,.finder li button:focus-visible{background:var(--line);outline:0}
@@ -441,8 +441,8 @@ html,body{overflow-x:clip}
 .minis{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .mini{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:500;line-height:1.2;padding:5px 11px 5px 7px;border-radius:99px;background:var(--card);border:1px solid var(--line2);color:var(--ink);transition:.15s}
 .mini i{font-style:normal;font-size:.95rem;line-height:1}
-.mini.k-taste{background:rgba(210,167,92,.1);border-color:rgba(210,167,92,.3)}
-.mini.k-explore{background:rgba(98,184,168,.1);border-color:rgba(98,184,168,.3)}
+.mini.k-taste{background:rgba(70,205,187,.1);border-color:rgba(70,205,187,.3)}
+.mini.k-explore{background:rgba(156,230,218,.07);border-color:rgba(156,230,218,.22)}
 .mini.k-take{background:rgba(241,236,226,.06);border-color:var(--line2)}
 .mini:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.08)}
 .mini[aria-expanded=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
@@ -513,7 +513,7 @@ footer{background:var(--deep);color:var(--deep-ink)}
 .pick-sub,.lede{color:var(--muted)}
 
 /* ===== Loading: a little hot air balloon floats up until the map is ready ===== */
-.loader{position:fixed;inset:0;z-index:200;background:linear-gradient(180deg,#0d1112 0%,#0f2a28 55%,#0f3a36 100%);overflow:hidden;transition:opacity .7s ease,visibility .7s}
+.loader{position:fixed;inset:0;z-index:200;background:linear-gradient(180deg,#0b0f10 0%,#0e2422 55%,#123d39 100%);overflow:hidden;transition:opacity .7s ease,visibility .7s}
 .loader.gone{opacity:0;visibility:hidden}
 .ld-cloud{position:absolute;left:var(--x);top:-22%;width:var(--w);opacity:var(--o);animation:ldfall var(--d) linear infinite;animation-delay:var(--dl)}
 .ld-cloud svg{display:block;width:100%;height:auto;filter:drop-shadow(0 3px 4px rgba(47,72,88,.12))}
