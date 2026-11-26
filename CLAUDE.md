@@ -52,8 +52,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   laptops; the client liked the explanations, not bare chips), 04 The story (banner), 05 Unbucket it (form). The client asked for
   small chips, not big cards: the itinerary is the most important thing on the page.
 - Map labels are small editorial cards: spaced-caps day in sea green above a Fraunces name in slate (day only; the note is in the pop-up).
-  The route is one solid blush-coral line with a white edge (no dashes) and a soft light travelling along it; stops are numbered markers in travel
-  order (start & end coral, stops slate, side trips sea green, white ring); wild things are small cream badges with the animal and give way to labels.
+  The route is one solid brass line with a white edge (no dashes) and a soft light travelling along it; stops are numbered markers in travel
+  order (start & end brass, stops near-black, side trips sea green, white ring); wild things are small cream badges with the animal and give way to labels.
   Inside a place the terrain keeps its warm colour (`VEIL` in map.js: light warm soft-light, slate edge vignette). The client called the earlier grey
   wash "dull, not premium": never grey out the terrain. Canvas draws at up to 3x DPR (iPhones). No birds over a place.
 - Home list (below the map): one place fills the screen at a time (stack of sticky full-screen panels, the next slides over the last, like
@@ -65,10 +65,13 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   No hover-pause (phones fake hover on tap and never end it).
 - Map layering (map.js render): relief layers with a soft land shadow, a small plane flying between places, birds, noise-generated clouds (cumulus + high wisps with parallax) with soft shadows, sun shimmer on the sea,
   warm light / haze / vignette, tilt-shift blur at top and bottom when zoomed into a place. Lakes are soft-edged, not outlined.
-- Colour theme: **Pastel Postcard** (client's pick), tokens in `:root` of styles.css: page #fdf8f3, slate ink/bands #2f4858, sea-green labels
-  `--label` #3f9a8e, blush buttons `--accent` #ec7a72, mint #cdeee6 / #e4f5ef. Destination pages: misty pink background (`--pinkpage`) with light-mint
-  numbered tabs. Use the tokens; don't add new hard-coded colours. The client's palette options are in docs/theme-picker.html.
-- Loading: a cute pastel hot air balloon (`#loader` at the top of index.html) floats slowly up, one after another, until map.js fires `mapready`
+- Colour theme: **Night Sea & Brass** (client asked for black + sea green, "premium, not baby"; picked from docs/theme-*.jpg previews).
+  Tokens in `:root` of styles.css: page `--paper` #0d1112 (near-black), cards `--card` #161e1f / `--card2` #1a2324, deep sea green bands
+  `--deep` #0f3a36, sea-green labels `--label` #62b8a8, brass for everything you tap or book `--accent` #d2a75c (text on it `--on-accent`),
+  light brass `--lightaccent`, cream text `--ink` #f1ece2, overlays `--glass`. Use the tokens; don't add new hard-coded colours.
+  The earlier Pastel Postcard theme is in git history; mock-ups of the A/B/C dark options are docs/theme-*.jpg (A black+aqua, C deep sea).
+  On the map the route, start/end markers and world dots are brass (210,167,92), stops near-black; map label cards stay cream so they read on terrain.
+- Loading: a cute pastel hot air balloon (`#loader` at the top of index.html) on a night-sea sky floats slowly up, one after another, until map.js fires `mapready`
   (first world picture in), shown at least 1.2 s, then fades. The client liked the slow pace: keep it slow.
 - Caching: firebase.json sends `no-cache` for html/js/css/json and `data/**` so phones always revalidate. Bump the `?v=` on script/style tags in
   index.html when shipping big changes (old copies were cached for an hour before this rule).
@@ -81,8 +84,8 @@ Small fixes (typos, one-line tweaks) can be batched into the next deploy.
   Check both 1440x900 and 1280x720 after layout changes.
 - Home story chapters sit over a real destination photo (`t.photos[0]`) under the slate scrim, not a plain colour.
 - Booking confirmation (client's pick, inspired by a split-flap board video): after a valid submit the form becomes a departure board
-  (`flapBoard` in app.js): "Charting your journey…", the trip's stops flip into place row by row (slate tiles, cream letters, coral arrows), then
-  BOARDING and UNBUCKETING dates (mint letters), then STATUS "REQUESTED" in coral; any journey lands in ~4 s; reduced motion shows it settled. Below: "Almost unbucketed, <name>" and
+  (`flapBoard` in app.js): "Charting your journey…", the trip's stops flip into place row by row (dark tiles, cream letters, brass arrows), then
+  BOARDING and UNBUCKETING dates (mint letters), then STATUS "REQUESTED" in brass; any journey lands in ~4 s; reduced motion shows it settled. Below: "Almost unbucketed, <name>" and
   way / when / travellers / total. Status says REQUESTED, never CONFIRMED, until bookings are real. Our own colours, not the amber-on-black original.
 - Booking form dates: the visitor picks a Boarding date (earliest two weeks out, default the 1st of the place's best month);
   the Unbucketing date (trip end) is worked out from the chosen way's days (boarding + days - 1) and shown read-only.

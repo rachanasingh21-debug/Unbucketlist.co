@@ -258,7 +258,7 @@ function reserveUI(){ // screen areas labels must stay out of: the site header a
   for(const el of [btns,card,crumb,heroCopy]){if(!el||el.hidden)continue;if(el===card&&!card.classList.contains('on'))continue;if(el===heroCopy&&heroCopy.classList.contains('away'))continue;
     const r=el.getBoundingClientRect();if(!r.width)continue;placed.push([r.left-wr.left-6,r.top-wr.top-6,r.width+12,r.height+12])}
 }
-const KIND_RGB={arrive:'236,122,114',depart:'236,122,114',stop:'47,72,88',side:'63,154,142'};   // start & end in blush coral, stops in slate ink, side trips in sea green
+const KIND_RGB={arrive:'210,167,92',depart:'210,167,92',stop:'13,17,18',side:'63,154,142'};   // start & end in brass, stops near-black, side trips in sea green
 const NAME_F='600 14px Fraunces, Georgia, serif',CAPS_F='600 9.5px Inter, system-ui, sans-serif';
 const caps=t=>t.toUpperCase().split('').join('\u200a');
 function fit(text,max){if(ctx.measureText(text).width<=max)return text;while(text.length>3&&ctx.measureText(text+'…').width>max)text=text.slice(0,-1);return text.trim()+'…'}
@@ -300,7 +300,7 @@ function drawJourney(d){
     if(f>=1)ctx.quadraticCurveTo(mx,my,x1,y1);else{const qx=x0+(mx-x0)*f,qy=y0+(my-y0)*f,rx=mx+(x1-mx)*f,ry=my+(y1-my)*f;ctx.quadraticCurveTo(qx,qy,qx+(rx-qx)*f,qy+(ry-qy)*f)}}
   ctx.shadowColor=`rgba(30,44,56,${.28*a})`;ctx.shadowBlur=8;ctx.shadowOffsetY=2;
   ctx.strokeStyle=`rgba(255,253,250,${a})`;ctx.lineWidth=7;ctx.stroke();ctx.shadowColor='transparent';   // a clean white edge so the line reads on any terrain
-  ctx.strokeStyle=`rgba(236,122,114,${a})`;ctx.lineWidth=3.4;ctx.stroke();                                // the journey, in the brand's blush coral
+  ctx.strokeStyle=`rgba(210,167,92,${a})`;ctx.lineWidth=3.4;ctx.stroke();                                // the journey, in the brand's brass
   if(P>=n&&!reduce&&n>0){const per=n*1700,u=(tNow%per)/per*n;   // a soft light travelling the route, start to finish
     for(let k=10;k>=0;k--){const v=u-k*.035;if(v<0)continue;const [cx,cy]=at(v);ctx.fillStyle=`rgba(255,250,240,${a*(1-k/11)*.75})`;ctx.beginPath();ctx.arc(cx,cy,1.9*(1-k/14),0,7);ctx.fill()}
     const [cx,cy]=at(u),gl=ctx.createRadialGradient(cx,cy,0,cx,cy,11);gl.addColorStop(0,`rgba(255,250,240,${.9*a})`);gl.addColorStop(1,'rgba(255,250,240,0)');
@@ -311,7 +311,7 @@ function drawJourney(d){
   const labs=r.stops.map((s,i)=>shown(i)&&!sel0(d.id,i)?placeLabel(s[0],s[3],pts[i][0],pts[i][1]):null);   // labels claim their spots in travel order
   r.stops.map((s,i)=>i).slice(1).concat(0).forEach(i=>{const s=r.stops[i];if(!shown(i))return;const [x,y]=pts[i],k=s[5]||'stop',rgb=sel0(d.id,i)?KIND_RGB.arrive:KIND_RGB[k],sel=sel0(d.id,i);
     const R0=sel?12.5:k==='arrive'||k==='depart'?10.5:9.5;
-    if(sel&&!reduce){const ph=(tNow*.0011)%1;ctx.strokeStyle=`rgba(236,122,114,${.7*(1-ph)*a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,R0+3+ph*14,0,7);ctx.stroke()}
+    if(sel&&!reduce){const ph=(tNow*.0011)%1;ctx.strokeStyle=`rgba(210,167,92,${.7*(1-ph)*a})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,R0+3+ph*14,0,7);ctx.stroke()}
     ctx.save();ctx.shadowColor=`rgba(30,44,56,${.32*a})`;ctx.shadowBlur=8;ctx.shadowOffsetY=2;
     ctx.fillStyle=`rgba(255,253,250,${a})`;ctx.beginPath();ctx.arc(x,y,R0+2.2,0,7);ctx.fill();ctx.restore();   // white ring
     ctx.fillStyle=`rgba(${rgb},${a})`;ctx.beginPath();ctx.arc(x,y,R0,0,7);ctx.fill();
@@ -339,7 +339,7 @@ function drawWild(list){
     ctx.globalAlpha=a;
     if(Math.hypot(x-x0,y-y0)>4){ctx.strokeStyle='rgba(255,253,250,.6)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x,y);ctx.stroke()}
     ctx.shadowColor='rgba(30,44,56,.28)';ctx.shadowBlur=10;ctx.shadowOffsetY=3;ctx.fillStyle='rgba(255,253,250,.96)';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
-    if(sel){ctx.strokeStyle='rgb(236,122,114)';ctx.lineWidth=2.5;ctx.stroke()}
+    if(sel){ctx.strokeStyle='rgb(210,167,92)';ctx.lineWidth=2.5;ctx.stroke()}
     ctx.font=`${Math.round(r*1.12)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#000';ctx.fillText(w[0],x,y+1)
     ctx.globalAlpha=1;wildHits.push({x,y,r:Math.max(16,r+6),id,i})}
 }
@@ -349,7 +349,7 @@ function drawMarker(d){
   const a=focus&&focus!==d.id?1:1-starAlpha(d.id);if(a<=.02)return;const x=sx(d.lng),y=sy(MY(d.lat));if(x<-60||x>W+60||y<-30||y>H+30)return;
   const mine=typeof wish!=='undefined'&&wish.has(d.id),ph=reduce?0:(tNow*.0012+d.m*.37)%1;
   ctx.globalAlpha=a;ctx.strokeStyle=`rgba(255,255,255,${.75*(1-ph)})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(x,y,7+ph*14,0,7);ctx.stroke();
-  ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'rgb(236,122,114)';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+  ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=6;ctx.shadowOffsetY=2;ctx.fillStyle=mine?'#ffc94d':'rgb(210,167,92)';ctx.beginPath();ctx.arc(x,y,6.5,0,7);ctx.fill();ctx.shadowBlur=0;ctx.shadowOffsetY=0;
   ctx.strokeStyle='#fff';ctx.lineWidth=2.4;ctx.stroke();
   if(mine){ctx.strokeStyle='#5a3d00';ctx.lineWidth=1.8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x-2.8,y+.2);ctx.lineTo(x-.8,y+2.3);ctx.lineTo(x+3,y-2.2);ctx.stroke()} // on your bucket list
   placed.push([x-9,y-9,18,18]);const pl=placeLabel(d.name,'',x,y,12);if(pl)drawLabel(pl,1);
